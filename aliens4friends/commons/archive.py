@@ -3,7 +3,7 @@ from os.path import splitext
 
 
 class ArchiveError(Exception):
-    pass
+	pass
 
 class Archive:
 

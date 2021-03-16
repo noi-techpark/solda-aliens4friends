@@ -114,7 +114,7 @@ class AlienPackage(Package):
 
 	def print_stats(self):
 		print(f"| Package:")
-		print(f"|   - Name               : {self.name}")
-		print(f"|   - Alternative Names  : {self.alternative_names}")
-		print(f"|   - Version            : {self.version.str}")
-		print(f"|   - Internal Archive   : {self.internal_archive_name}")
+		print(f"| - Name             : {self.name}")
+		print(f"| - Alternative Names: {self.alternative_names}")
+		print(f"| - Version          : {self.version.str}")
+		print(f"| - Internal Archive : {self.internal_archive_name}")
