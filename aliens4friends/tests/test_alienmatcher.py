@@ -40,8 +40,8 @@ def test_single():
         os.getcwd(),
         "tmp",
         "alberto",
-        "SCA",
-        "alienacl-2.2.53.tar.gz"
+        "SCA2",
+        "alien-acl-2.2.53.aliensrc"
         # "alienlibusb1-1.0.22.tar.gz"
     )
     package = AlienPackage(package_path)

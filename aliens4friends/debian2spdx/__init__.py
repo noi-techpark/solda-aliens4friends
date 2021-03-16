@@ -39,7 +39,7 @@ from spdx.writers.tagvalue import write_document
 
 from flanker.addresslib import address as email_address
 
-from aliens4friends.commons.utils import SUPPORTED_ARCHIVES, bash, md5
+from aliens4friends.commons.utils import bash, md5, Archive
 
 # Conversion table from DEP5 to SPDX license identifiers
 # https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/#license-specification
@@ -223,7 +223,7 @@ class Debian2SPDX:
     def _get_tar_param(self, archive_name):
         _, extension = os.path.splitext(archive_name)
         try:
-            return SUPPORTED_ARCHIVES[extension]["tarparam"]
+            return Archive.SUPPORTED_ARCHIVES[extension]["tarparam"]
         except KeyError:
             pass
         raise Debian2SPDXException(f"Archive type unknown for {archive_name}.")
