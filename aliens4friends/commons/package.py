@@ -58,7 +58,7 @@ class AlienPackage(Package):
 
 	def __init__(self, full_archive_path):
 		archive = Archive(full_archive_path)
-		info_filename, info_lines = archive.readfile(self.ALIEN_MATCHER_YAML)
+		info_lines = archive.readfile(self.ALIEN_MATCHER_YAML)
 		info_yaml = yaml.load("\n".join(info_lines), Loader = yaml.SafeLoader)
 
 		self.spec_version = info_yaml['version']
@@ -79,7 +79,7 @@ class AlienPackage(Package):
 
 		if len(checksums) != len(self.package_files):
 			raise PackageError(
-				f"We do not have the same number of archive-files and checksums inside {info_filename}."
+				f"We do not have the same number of archive-files and checksums inside {self.ALIEN_MATCHER_YAML}."
 			)
 
 		arch_count = 0

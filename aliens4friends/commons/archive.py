@@ -37,8 +37,7 @@ class Archive:
 
 	def readfile(self, file_path):
 		stdout, _ = self._make_tar_cmd(f'{file_path} --to-command=cat')
-		result = stdout.split('\n')
-		return result[0], result[1:]
+		return stdout.split('\n')[1:]
 
 	def checksums(self, file_path):
 		stdout, _ = self._make_tar_cmd(f'{file_path} --to-command=sha1sum')

@@ -10,8 +10,6 @@
 # https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 # https://spdx.github.io/spdx-spec/
 
-#FIXME Replace all bash commands with commands from "aliens4friends.commons.utils"
-
 import os
 import re
 import logging
@@ -202,15 +200,14 @@ class Debian2SPDX:
 	"""
 
 	def __init__(self, debsrc_orig: str, debsrc_debian: str = None):
-		self.debsrc_orig = debsrc_orig
-		self.orig_cmp = self._get_tar_param(self.debsrc_orig)
-		self.debsrc_debian = debsrc_debian if debsrc_debian else debsrc_orig
-		self.debian_cmp = self._get_tar_param(self.debsrc_debian)
-		if not debsrc_debian: # native format
-			stdout, stderr = bash(f'tar -tJf {debsrc_orig}')
-			self.native_rootdir = stdout.split('\n')[0]
-		else:
+		self.debarchive_orig = Archive(debsrc_orig)
+		if debsrc_debian:
 			self.native_rootdir = ''
+			self.debarchive_debian = Archive(debsrc_debian)
+		else: 	# native format
+			stdout, _ = bash(f'tar -tJf {debsrc_orig}')
+			self.native_rootdir = stdout.split('\n')[0]
+			self.debarchive_debian = self.debarchive_orig
 		self.spdx_files: Dict[str, Type[SPDXFile]] = {}
 		self.spdx_extracted_licenses: Dict[str, Type[SPDXExtractedLicense]] = {}
 		self.deb_copyright = None
@@ -221,51 +218,22 @@ class Debian2SPDX:
 		self.spdx_pkg = None
 		self.spdx_doc = None
 
-	def _get_tar_param(self, archive_name):
-		_, extension = os.path.splitext(archive_name)
-		try:
-			return Archive.SUPPORTED_ARCHIVES[extension]["tarparam"]
-		except KeyError:
-			pass
-		raise Debian2SPDXException(f"Archive type unknown for {archive_name}.")
-
-	def bash(self, command: str) -> Tuple[str, str]:
-		return bash(command, exception=Debian2SPDXException)
-
 	def get_files_sha1s(self):
 		"""Use tar+sha1sum commands to generate a dict of SPDX File objects"""
-		stdout, stderr = self.bash(
-			f"tar xv{self.orig_cmp}f {self.debsrc_orig} --to-command=sha1sum"
-		)
-
-		lines = stdout.split("\n")
-		i = 0
-		while i < len(lines):
-			if lines[i].endswith("/") or not self._check_next_endswith(lines, i+1, '-'):
-				i += 1
-				continue
-			path = "/".join(lines[i].split("/")[1:])
-			sha1 = lines[i + 1][:40]
+		lines = self.debarchive_orig.checksums("")
+		for path, sha1 in lines.items():
 			spdx_file = SPDXFile(
 				path,
 				chk_sum=SPDXAlgorithm("SHA1", sha1),
 				spdx_id=f'SPDXRef-file-{md5(path)}'
 			)
 			self.spdx_files.update({path: spdx_file})
-			i += 2
-
-	def _check_next_endswith(self, lines, index, ends):
-		if index >= len(lines) or index < 0 or not lines[index]:
-			return False
-		return lines[index].endswith(ends)
 
 	def parse_deb_copyright(self):
 		"""Extract and parse debian/copyright"""
-		stdout, stderr = self.bash(
-			f"tar -x{self.debian_cmp}f {self.debsrc_debian} {self.native_rootdir}debian/copyright --to-command=cat"
-		)
+		content = self.debarchive_debian.readfile(f"{self.native_rootdir}debian/copyright")
 		try:
-			self.deb_copyright = DebCopyright(stdout.split("\n"))
+			self.deb_copyright = DebCopyright(content)
 		except (NotMachineReadableError, MachineReadableFormatError):
 			raise Debian2SPDXException(
 				"Debian Copyright file is not machine readable,"
@@ -278,17 +246,13 @@ class Debian2SPDX:
 
 	def parse_deb_changelog(self):
 		"""Extract and parse debian/changelog"""
-		stdout, stderr = self.bash(
-			f"tar -x{self.debian_cmp}f {self.debsrc_debian} {self.native_rootdir}debian/changelog --to-command=cat"
-		)
-		self.deb_changelog = DebChangelog(stdout.split("\n"))
+		content = self.debarchive_debian.readfile(f"{self.native_rootdir}debian/changelog")
+		self.deb_changelog = DebChangelog(content)
 
 	def parse_deb_control(self):
 		"""Extract and parse debian/control"""
-		stdout, stderr = self.bash(
-			f"tar -x{self.debian_cmp}f {self.debsrc_debian} {self.native_rootdir}debian/control --to-command=cat"
-		)
-		self.deb_control = Deb822(stdout.split("\n"))
+		content = self.debarchive_debian.readfile(f"{self.native_rootdir}debian/control")
+		self.deb_control = Deb822(content)
 
 	def add_spdx_extracted_license(self, license_id: str, deb_license: DebLicense):
 		"""Search for text of non-spdx licenses in debian/copyright (identified
