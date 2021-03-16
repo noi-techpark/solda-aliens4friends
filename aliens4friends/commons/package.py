@@ -3,7 +3,7 @@ import sys
 import yaml
 from typing import Union
 
-from .utils import Archive
+from .archive import Archive
 from .version import Version
 
 

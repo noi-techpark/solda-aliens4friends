@@ -39,7 +39,8 @@ from spdx.writers.tagvalue import write_document
 
 from flanker.addresslib import address as email_address
 
-from aliens4friends.commons.utils import bash, md5, Archive
+from aliens4friends.commons.utils import bash, md5
+from aliens4friends.commons.archive import Archive
 
 # Conversion table from DEP5 to SPDX license identifiers
 # https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/#license-specification

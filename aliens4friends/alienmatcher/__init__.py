@@ -32,7 +32,8 @@ from spdx.parsers.tagvalue import Parser as SPDXTagValueParser
 from spdx.parsers.tagvaluebuilders import Builder as SPDXTagValueBuilder
 from spdx.writers.tagvalue import write_document
 
-from aliens4friends.commons.utils import io_file_checksum, Archive, ArchiveError, md5
+from aliens4friends.commons.archive import Archive, ArchiveError
+from aliens4friends.commons.utils import io_file_checksum, md5
 from aliens4friends.commons.package import AlienPackage, Package, PackageError
 from aliens4friends.commons.version import Version
 
