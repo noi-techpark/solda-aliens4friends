@@ -26,6 +26,14 @@ class Pool:
 		copy(src, os.path.join(dest, os.path.basename(src)))
 		return dest
 
+	def write(self, contents, *path_args):
+		dest_folder = self.subpath(*path_args[:-1])
+		dest = os.path.join(dest_folder, *path_args[-1])
+		self.mkdir(dest_folder)
+		with open(dest, 'wb+') as f:
+			f.write(contents)
+		return dest
+
 	def get(self, *path_args):
 		return self._get(False, *path_args)
 

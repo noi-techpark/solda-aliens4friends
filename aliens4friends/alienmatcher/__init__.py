@@ -234,15 +234,14 @@ class AlienMatcher:
 			r = requests.get(full_url)
 			if r.status_code != 200:
 				raise AlienMatcherError(f"Error {r.status_code} in downloading {full_url}")
-			local_path = self._subpath(
+			local_path = self.pool.write(
+				r.content,
 				self.POOL_RELPATH_DEBIAN,
 				package_name,
-				package_version
+				package_version,
+				filename
 			)
-			self.mkdir(local_path)
-			with open(os.path.join(local_path, filename), 'wb+') as f:
-				f.write(r.content)
-			print(f"| Result cached in {os.path.join(local_path, filename)}.")
+			print(f"| Result cached in {local_path}.")
 			response = r.content
 		return response
 
