@@ -112,7 +112,7 @@ class AlienPackage(Package):
 		if not self.internal_archive_name:
 			raise PackageError(f"Found no internal archive in {full_archive_path}")
 
-	def print_stats(self):
+	def print_info(self):
 		print(f"| Package:")
 		print(f"| - Name             : {self.name}")
 		print(f"| - Alternative Names: {self.alternative_names}")

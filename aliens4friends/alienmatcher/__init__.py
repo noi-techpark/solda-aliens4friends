@@ -33,9 +33,10 @@ from spdx.parsers.tagvaluebuilders import Builder as SPDXTagValueBuilder
 from spdx.writers.tagvalue import write_document
 
 from aliens4friends.commons.archive import Archive, ArchiveError
-from aliens4friends.commons.utils import io_file_checksum, md5
+from aliens4friends.commons.utils import sha1sum, md5, copy
 from aliens4friends.commons.package import AlienPackage, Package, PackageError
 from aliens4friends.commons.version import Version
+from aliens4friends.commons.pool import Pool
 
 VERSION = "0.1"
 
@@ -54,59 +55,46 @@ class AlienMatcher:
 	def __init__(self, path_to_pool):
 		print(f"# Initializing ALIENMATCHER v{VERSION} with cache pool at {path_to_pool}.")
 		super().__init__()
-		path_to_pool = os.path.abspath(path_to_pool)
-		self.pool_path = path_to_pool
-		self.mkdir()
-		if not os.path.isdir(path_to_pool):
-			raise NotADirectoryError(
-				f"Unable to create the POOL at path '{path_to_pool}'."
-			)
-		self.debian_path = self.mkdir(self.POOL_RELPATH_DEBIAN)
-		self.userland_path = self.mkdir(self.POOL_RELPATH_USERLAND)
-		self.tmp_path = self.mkdir(self.POOL_RELPATH_TMP)
+		self.pool = Pool(path_to_pool)
+		self.debian_path = self.pool.mkdir(self.POOL_RELPATH_DEBIAN)
+		self.userland_path = self.pool.mkdir(self.POOL_RELPATH_USERLAND)
+		self.tmp_path = self.pool.mkdir(self.POOL_RELPATH_TMP)
 
 		print(f"| Pool directory structure created:")
-		print(f"|   - Debian Path		  : {self.debian_path}")
-		print(f"|   - Userland Path		: {self.userland_path}")
+		print(f"|   - Debian Path          : {self.debian_path}")
+		print(f"|   - Userland Path	       : {self.userland_path}")
 		print(f"|   - Temporary Files Path : {self.tmp_path}")
 
 	def add_to_userland(self, alienpackage: AlienPackage):
 		if not isinstance(alienpackage, AlienPackage):
 			raise TypeError("Parameter must be a AlienPackage.")
-		self._add(
+		self.pool.add(
+			alienpackage.archive_fullpath,
 			self.POOL_RELPATH_USERLAND,
 			alienpackage.name,
-			alienpackage.version.str,
-			alienpackage.archive_fullpath
+			alienpackage.version.str
 		)
+		print(f"| Adding package '{alienpackage.name}/{alienpackage.version.str}' to '{self.POOL_RELPATH_USERLAND}'.")
 
 	def add_to_debian(self, package: Package):
 		if not isinstance(package, Package):
 			raise TypeError("Parameter must be a Package.")
-		self._add(
+		self.pool.add(
+			package.archive_fullpath,
 			self.POOL_RELPATH_DEBIAN,
 			package.name,
-			package.version,
-			package.archive_fullpath
+			package.version
 		)
-
-	def mkdir(self, *sub_folder):
-		path = self._subpath(*sub_folder)
-		os.makedirs(
-			path,
-			mode = 0o755,
-			exist_ok = True
-		)
-		return path
+		print(f"| Adding package '{package.name}/{package.version}' to '{self.POOL_RELPATH_DEBIAN}'.")
 
 	def _api_call(self, url, resp_name):
-		api_response_cached = self._subpath(
+		api_response_cached = self.pool.subpath(
 			self.POOL_RELPATH_TMP,
 			f"api-resp-{resp_name}.json"
 		)
 		print(f"| Search cache pool for existing API response.")
 		try:
-			response = self.get(api_response_cached)
+			response = self.pool.get(api_response_cached)
 			print(f"| API call result found in cache at {api_response_cached}.")
 		except FileNotFoundError:
 			print(f"| API call result not found in cache. Making an API call...")
@@ -224,46 +212,10 @@ class AlienMatcher:
 
 		return Package(name = cur_package_name, version = best_version)
 
-	def _subpath(self, *sub_folders):
-		if sub_folders:
-			return os.path.join(self.pool_path, *sub_folders)
-		return self.pool_path
-
-	def _add(self, pool_relpath, package_name, package_version, archive_fullpath):
-		path = self._subpath(
-			pool_relpath,
-			package_name,
-			package_version
-		)
-		self.mkdir(path)
-		archive_filename = os.path.basename(archive_fullpath)
-		self._copy(
-			archive_fullpath,
-			os.path.join(path, archive_filename)
-		)
-		print(f"| Adding package '{package_name}/{package_version}' to '{pool_relpath}'.")
-
-	def get(self, *path_args):
-		return self._get(False, *path_args)
-
-	def get_binary(self, *path_args):
-		return self._get(True, *path_args)
-
-	def _get(self, binary, *path_args):
-		path = self._subpath(*path_args)
-		flag = "b" if binary else ""
-		with open(path, f'r{flag}') as f:
-			return f.read()
-
-	def _copy(self, src_filename, dst_filename):
-		with open(src_filename, 'rb') as fr:
-			with open(dst_filename, 'wb') as fw:
-				fw.write(fr.read())
-
 	def download_to_debian(self, package_name, package_version, filename):
 		print(f"# Retrieving file from Debian: '{package_name}/{package_version}/{filename}'.")
 		try:
-			response = self.get_binary(
+			response = self.pool.get_binary(
 				self.POOL_RELPATH_DEBIAN,
 				package_name,
 				package_version,
@@ -318,13 +270,13 @@ class AlienMatcher:
 				continue
 			debian_control_files.append(elem)
 			self.download_to_debian(package.name, package.version.str, elem[2])
-			debian_path = self._subpath(
+			debian_path = self.pool.subpath(
 				self.POOL_RELPATH_DEBIAN,
 				package.name,
 				package.version.str,
 				elem[2]
 			)
-			chksum = io_file_checksum(debian_path)
+			chksum = sha1sum(debian_path)
 			if chksum != elem[0]:
 				raise AlienMatcherError("ERROR: Checksum mismatch")
 			try:

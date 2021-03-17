@@ -5,12 +5,6 @@ import requests
 import hashlib
 from typing import List, Tuple, Type, Dict, Union, NoReturn
 
-class UtilsError(Exception):
-	pass
-
-def md5(string: str) -> str:
-	return hashlib.md5(string.encode('utf-8')).hexdigest()
-
 def bash(
 	command: str, cwd: str = None, exception: Type[Exception] = Exception
 ) -> Tuple[str, str]:
@@ -71,9 +65,25 @@ def bash_live(
 		if rc != 0:
 			raise exception(f"{prefix} (ERROR) >>> Command {command} failed! Return code = {rc}")
 
-
-def io_file_checksum(file_path):
+def sha1sum(file_path):
 	stdout, stderr = bash(
 		f'sha1sum {file_path}'
 	)
 	return stdout.split(' ', 1)[0]
+
+def copy(src_filename, dst_filename):
+	with open(src_filename, 'rb') as fr:
+		with open(dst_filename, 'wb') as fw:
+			fw.write(fr.read())
+
+def mkdir(*sub_folders):
+	path = os.path.join(*sub_folders)
+	os.makedirs(
+		path,
+		mode = 0o755,
+		exist_ok = True
+	)
+	return path
+
+def md5(string: str) -> str:
+	return hashlib.md5(string.encode('utf-8')).hexdigest()

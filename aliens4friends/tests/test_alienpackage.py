@@ -12,4 +12,4 @@ def test1():
 	)
 
 	ap = AlienPackage(ap_path)
-	ap.print_stats()
+	ap.print_info()

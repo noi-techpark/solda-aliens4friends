@@ -11,10 +11,10 @@ def test_all():
 		os.getcwd(),
 		"tmp",
 		"alberto",
-		"SCA"
+		"SCA2"
 	)
 	for filename in os.listdir(path):
-		if not filename.endswith("tar.gz"):
+		if not filename.endswith("aliensrc"):
 			continue
 		package_path = os.path.join(path, filename)
 		try:
