@@ -18,7 +18,7 @@ def _setup():
 
 def _run(matcher, package_path, filename):
 	try:
-		print(f"{filename:<60}", end="")
+		print(f"{filename:<80}", end="")
 		package = AlienPackage(os.path.join(package_path, filename))
 		debsrc_debian, debsrc_orig, errors = matcher.match(package)
 		if debsrc_debian and debsrc_orig:
@@ -42,4 +42,22 @@ def test_all():
 
 def test_single():
 	matcher, path = _setup()
-	_run(matcher, path, "alien-libpcre-8.44.aliensrc")
+	_run(matcher, path, "alien-python3-six-1.14.0.aliensrc")
+
+
+def test_list():
+	matcher, path = _setup()
+
+	packages = [
+		"alien-libmodulemd-v1-1.8.16.aliensrc",
+		"alien-libx11-compose-data-1.6.8.aliensrc",
+		#"alien-linux-yocto-5.4.69+gitAUTOINC+7f765dcb29_cfcdd63145.aliensrc",
+		"alien-openobex-1.7.2.aliensrc",
+		"alien-opkg-utils-0.4.2.aliensrc",
+		"alien-psplash-0.1+gitAUTOINC+0a902f7cd8.aliensrc",
+		"alien-update-rc.d-0.8.aliensrc",
+		"alien-wpa-supplicant-2.9.aliensrc"
+	]
+
+	for p in packages:
+		_run(matcher, path, p)

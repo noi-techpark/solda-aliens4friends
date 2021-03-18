@@ -110,23 +110,47 @@ class AlienMatcher:
 
 		return json.loads(response)
 
-	def _similar_package_name(self, original, package_name):
+	# XXX Very stupid rule set: Use regexp or something better here, also add
+	# weights, since not all matches are equally good (maybe Levensthein?)
+	def _similar_package_name(self, apiresp, package_name):
 		# 1) Library/API version at the end of the package name
-		if original.startswith(package_name):
-			try:
-				int(original[len(package_name):])
-				return True
-			except ValueError:
-				pass
+		if apiresp.rstrip("0123456789").startswith(package_name.rstrip("0123456789")):
+			return True
 
 		# 2) Prefixed with the abbreviation isc- (Internet Software Consortium)
 		#	Possibly postfixed with -client or -server
-		if original.startswith(f"isc-{package_name}"):
+		if apiresp.startswith(f"isc-{package_name}"):
 			return True
 
 		# 3) Sometimes we just have a dash mismatch
-		if original.startswith(package_name.replace("-", "")):
+		if apiresp.replace("-", "") == package_name.replace("-", ""):
 			return True
+
+		# 4) Package that ends with -1.0 version strings
+		if apiresp.rstrip("0123456789-.") == package_name.rstrip("0123456789-."):
+			return True
+
+		# 5) Major Python version mismatch: python3-iniparse vs. python-iniparse
+		if (
+			(apiresp.startswith("python3") or package_name.startswith("python3"))
+			and apiresp.replace("python3", "python") == package_name.replace("python3", "python")
+		):
+			return True
+
+		# 6) Some Python packages do not have a "python...-" prefix
+		if (
+			package_name.startswith("python")
+			and package_name.replace("python3", "").replace("python", "").replace("-", "").rstrip("0123456789.") == apiresp
+		):
+			return True
+
+
+		# 7) Fonts always start with fonts- in Debian
+		if "fonts" in package_name and "fonts" in apiresp:
+			a = package_name.replace("-", "").replace("fonts", "")
+			b = apiresp.replace("-", "").replace("fonts", "")
+			if a.rstrip("0123456789.") == b.rstrip("0123456789."):
+				return True
 
 		# x) Not matching
 		return False
