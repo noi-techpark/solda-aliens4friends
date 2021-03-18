@@ -19,6 +19,7 @@ import json
 import os
 import sys
 import logging
+from urllib.parse import quote as url_encode
 
 from enum import Enum
 from typing import Union
@@ -146,7 +147,7 @@ class AlienMatcher:
 
 		fallback = False
 		renamings = set()
-		json_response = self._api_call(self.API_URL_SRCPKG + package.name, package.name)
+		json_response = self._api_call(self.API_URL_SRCPKG + url_encode(package.name), package.name)
 		if not json_response:
 			logger.debug(f"| No API response for package '{package.name}'.")
 			logger.debug(f"# Fallback search on all source packages:")
@@ -176,7 +177,7 @@ class AlienMatcher:
 			logger.debug(f"| Package with name {package.name} not found. Trying with {cur_package_name}.")
 			if len(renamings) > 0:
 				logger.debug(f"| Warning: We have more than one similarily named package for {package.name}: {renamings}.")
-			json_response = self._api_call(self.API_URL_SRCPKG + cur_package_name, cur_package_name)
+			json_response = self._api_call(self.API_URL_SRCPKG + url_encode(cur_package_name), cur_package_name)
 			if not json_response: # Needed? Could we not simply use the all sources API call for all packages from the start?
 				logger.debug(f"| No API response for package name {cur_package_name}. No fallbacks remaining...")
 				logger.debug(f"+-- FAILURE.")

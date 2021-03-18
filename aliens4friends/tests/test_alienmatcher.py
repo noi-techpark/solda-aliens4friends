@@ -19,7 +19,7 @@ def _setup():
 def _run(matcher, package_path, filename):
 	try:
 		print(f"{filename:<60}", end="")
-		package = AlienPackage(package_path)
+		package = AlienPackage(os.path.join(package_path, filename))
 		debsrc_debian, debsrc_orig, errors = matcher.match(package)
 		if debsrc_debian and debsrc_orig:
 			print(f"{'MATCH':<10}{os.path.basename(debsrc_debian):<60}{os.path.basename(debsrc_orig):<60}{errors if errors else ''}")
@@ -42,4 +42,4 @@ def test_all():
 
 def test_single():
 	matcher, path = _setup()
-	_run(matcher, path, "alien-gtk+3-3.24.14.aliensrc")
+	_run(matcher, path, "alien-libpcre-8.44.aliensrc")
