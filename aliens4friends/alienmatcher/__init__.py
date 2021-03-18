@@ -42,13 +42,12 @@ from aliens4friends.commons.pool import Pool
 
 logger = logging.getLogger(__name__)
 
-VERSION = "0.1"
-
 class AlienMatcherError(Exception):
 	pass
 
 class AlienMatcher:
 
+	VERSION = "0.1"
 	PATH_TMP = "apiresponse"
 	PATH_DEB = "debian"
 	PATH_USR = "userland"
@@ -57,12 +56,13 @@ class AlienMatcher:
 	API_URL_ALLSRC = "https://api.ftp-master.debian.org/all_sources"
 
 	def __init__(self, path_to_pool):
-		logger.debug(f"# Initializing ALIENMATCHER v{VERSION} with cache pool at {path_to_pool}.")
+		logger.debug(f"# Initializing ALIENMATCHER v{self.VERSION} with cache pool at {path_to_pool}.")
 		super().__init__()
 		self.pool = Pool(path_to_pool)
 		self.debian_path = self.pool.mkdir(self.PATH_DEB)
 		self.userland_path = self.pool.mkdir(self.PATH_USR)
 		self.tmp_path = self.pool.mkdir(self.PATH_TMP)
+		self.errors = []
 
 		logger.debug(f"| Pool directory structure created:")
 		logger.debug(f"|   - Debian Path          : {self.debian_path}")
@@ -137,7 +137,7 @@ class AlienMatcher:
 
 		if package.version.has_flag(Version.FLAG_DEB_VERSION_ERROR):
 			raise AlienMatcherError(
-				f"'{package.name}' has no parseable debian version: {package.version.str}."
+				f"No parseable debian version: {package.version.str}."
 			)
 		logger.debug(f"| Package version {package.version.str} has a valid Debian versioning format.")
 		candidate_list = [
@@ -148,13 +148,15 @@ class AlienMatcher:
 		renamings = set()
 		json_response = self._api_call(self.API_URL_SRCPKG + package.name, package.name)
 		if not json_response:
-			logger.debug(f"| No API response for package name {package.name}.")
+			logger.debug(f"| No API response for package '{package.name}'.")
 			logger.debug(f"# Fallback search on all source packages:")
 			json_response = self._api_call(self.API_URL_ALLSRC, "--ALL-SOURCES--")
 			if not json_response:
 				logger.debug("| Fallback call did not produce a response.")
 				logger.debug(f"+-- FAILURE.")
-				return None
+				raise AlienMatcherError(
+					f"No API response for package '{package.name}' / Fallback failed too."
+				)
 			fallback = True
 			for key in json_response:
 				if self._similar_package_name(key["source"], package.name):
@@ -164,7 +166,9 @@ class AlienMatcher:
 			if fallback:
 				logger.debug("| Fallback did not find a similar package.")
 				logger.debug(f"+-- FAILURE.")
-				return None
+				raise AlienMatcherError(
+					f"Can't find a similar package on Debian repos"
+				)
 			else:
 				cur_package_name = package.name
 		else:
@@ -176,7 +180,9 @@ class AlienMatcher:
 			if not json_response: # Needed? Could we not simply use the all sources API call for all packages from the start?
 				logger.debug(f"| No API response for package name {cur_package_name}. No fallbacks remaining...")
 				logger.debug(f"+-- FAILURE.")
-				return None
+				raise AlienMatcherError(
+					f"No API response for package '{cur_package_name}' / No fallbacks remaining..."
+				)
 
 		logger.debug(f"| API call result OK. Find nearest neighbor of {cur_package_name}/{package.version.str}.")
 
@@ -263,7 +269,7 @@ class AlienMatcher:
 
 		if not debian_control['Format'].startswith('3.0'):
 			raise AlienMatcherError(
-				f"ERROR: We support only Debian Source Control files of format 3.0 at the moment: {debian_control['Format']} given."
+				f"Debian Source Control file of version {debian_control['Format']} given. Only 3.0 is supported."
 			)
 
 		debian_control_files = []
@@ -281,7 +287,7 @@ class AlienMatcher:
 			)
 			chksum = sha1sum(debian_path)
 			if chksum != elem[0]:
-				raise AlienMatcherError("ERROR: Checksum mismatch")
+				raise AlienMatcherError(f"Checksum mismatch for {debian_path}.")
 			try:
 				archive = Archive(elem[2])
 				if debian_control['Format'] == "3.0 (quilt)":
@@ -305,7 +311,7 @@ class AlienMatcher:
 		match = self.search(apkg)
 
 		if not match:
-			return None
+			return None, None, self.errors
 
 		# It will use the cache, but we need the package also if the
 		# SPDX was already generated from the Debian sources.
@@ -314,4 +320,4 @@ class AlienMatcher:
 		logger.debug(f"| Done. Match found and stored in {debsrc_debian} and {debsrc_orig}.")
 		logger.debug(f"+-- SUCCESS.")
 
-		return debsrc_debian, debsrc_orig
+		return debsrc_debian, debsrc_orig, None

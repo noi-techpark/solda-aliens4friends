@@ -10,9 +10,9 @@ if __name__ == "__main__":
 
 	logging.basicConfig(level = logging.WARNING)
 
-	logger = logging.getLogger('aliens4friends.alienmatcher')
-	logger.setLevel(logging.DEBUG)
+	# logger = logging.getLogger('aliens4friends.alienmatcher')
+	# logger.setLevel(logging.DEBUG)
 
 	# test_debian2spdx.test()
-	test_alienmatcher.test_single()
+	test_alienmatcher.test_all()
 	# test_alienpackage.test1()

@@ -110,7 +110,7 @@ class AlienPackage(Package):
 					archive.in_archive_checksums(f'files/{self.internal_archive_name}')
 				)
 		if not self.internal_archive_name:
-			raise PackageError(f"Found no internal archive in {full_archive_path}")
+			raise PackageError(f"No internal archive")
 
 	def print_info(self):
 		print(f"| Package:")
