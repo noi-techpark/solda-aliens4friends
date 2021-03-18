@@ -3,9 +3,9 @@ from aliens4friends.alienmatcher import AlienMatcher, AlienMatcherError, VERSION
 from aliens4friends.commons.package import AlienPackage, PackageError
 
 def test_all():
-	print(f"##########################################################################")
+	print("#" * 100)
 	print(f"### ALIENMATCHER v{VERSION}")
-	print(f"##########################################################################")
+	print("#" * 100)
 
 	path = os.path.join(
 		os.getcwd(),
@@ -27,21 +27,21 @@ def test_all():
 			matcher = AlienMatcher(pool_path)
 			matcher.match(package)
 		except (AlienMatcherError, PackageError) as ex:
-			print(f"##########################################################################")
+			print("#" * 100)
 			print(f"ERROR: {filename} not matchable! --> {ex}")
-			print(f"##########################################################################")
+			print("#" * 100)
 
 def test_single():
-	print(f"##########################################################################")
+	print("#" * 100)
 	print(f"### ALIENMATCHER v{VERSION}")
-	print(f"##########################################################################")
+	print("#" * 100)
 
 	package_path = os.path.join(
 		os.getcwd(),
 		"tmp",
 		"alberto",
 		"SCA2",
-		"alien-acl-2.2.53.aliensrc"
+		"alien-file-5.38.aliensrc"
 		# "alienlibusb1-1.0.22.tar.gz"
 	)
 	package = AlienPackage(package_path)

@@ -18,6 +18,8 @@ import collections as col
 import json
 import os
 import sys
+import logging
+
 from enum import Enum
 from typing import Union
 
@@ -38,6 +40,8 @@ from aliens4friends.commons.package import AlienPackage, Package, PackageError
 from aliens4friends.commons.version import Version
 from aliens4friends.commons.pool import Pool
 
+logger = logging.getLogger(__name__)
+
 VERSION = "0.1"
 
 class AlienMatcherError(Exception):
@@ -53,17 +57,17 @@ class AlienMatcher:
 	API_URL_ALLSRC = "https://api.ftp-master.debian.org/all_sources"
 
 	def __init__(self, path_to_pool):
-		print(f"# Initializing ALIENMATCHER v{VERSION} with cache pool at {path_to_pool}.")
+		logger.debug(f"# Initializing ALIENMATCHER v{VERSION} with cache pool at {path_to_pool}.")
 		super().__init__()
 		self.pool = Pool(path_to_pool)
 		self.debian_path = self.pool.mkdir(self.PATH_DEB)
 		self.userland_path = self.pool.mkdir(self.PATH_USR)
 		self.tmp_path = self.pool.mkdir(self.PATH_TMP)
 
-		print(f"| Pool directory structure creat6ed:")
-		print(f"|   - Debian Path          : {self.debian_path}")
-		print(f"|   - Userland Path	       : {self.userland_path}")
-		print(f"|   - Temporary Files Path : {self.tmp_path}")
+		logger.debug(f"| Pool directory structure created:")
+		logger.debug(f"|   - Debian Path          : {self.debian_path}")
+		logger.debug(f"|   - Userland Path	       : {self.userland_path}")
+		logger.debug(f"|   - Temporary Files Path : {self.tmp_path}")
 
 	def add_to_userland(self, alienpackage: AlienPackage):
 		if not isinstance(alienpackage, AlienPackage):
@@ -74,7 +78,7 @@ class AlienMatcher:
 			alienpackage.name,
 			alienpackage.version.str
 		)
-		print(f"| Adding package '{alienpackage.name}/{alienpackage.version.str}' to '{self.PATH_USR}'.")
+		logger.debug(f"| Adding package '{alienpackage.name}/{alienpackage.version.str}' to '{self.PATH_USR}'.")
 
 	def add_to_debian(self, package: Package):
 		if not isinstance(package, Package):
@@ -85,19 +89,19 @@ class AlienMatcher:
 			package.name,
 			package.version
 		)
-		print(f"| Adding package '{package.name}/{package.version}' to '{self.PATH_DEB}'.")
+		logger.debug(f"| Adding package '{package.name}/{package.version}' to '{self.PATH_DEB}'.")
 
 	def _api_call(self, url, resp_name):
 		api_response_cached = self.pool.subpath(
 			self.PATH_TMP,
 			f"api-resp-{resp_name}.json"
 		)
-		print(f"| Search cache pool for existing API response.")
+		logger.debug(f"| Search cache pool for existing API response.")
 		try:
 			response = self.pool.get(api_response_cached)
-			print(f"| API call result found in cache at {api_response_cached}.")
+			logger.debug(f"| API call result found in cache at {api_response_cached}.")
 		except FileNotFoundError:
-			print(f"| API call result not found in cache. Making an API call...")
+			logger.debug(f"| API call result not found in cache. Making an API call...")
 			response = requests.get(url)
 			with open(api_response_cached, "w") as f:
 				f.write(response.text)
@@ -127,7 +131,7 @@ class AlienMatcher:
 		return False
 
 	def search(self, package: Package):
-		print(f"# Search for similar packages with {self.API_URL_SRCPKG}.")
+		logger.debug(f"# Search for similar packages with {self.API_URL_SRCPKG}.")
 		if not isinstance(package, Package):
 			raise TypeError("Parameter must be a Package.")
 
@@ -135,7 +139,7 @@ class AlienMatcher:
 			raise AlienMatcherError(
 				f"'{package.name}' has no parseable debian version: {package.version.str}."
 			)
-		print(f"| Package version {package.version.str} has a valid Debian versioning format.")
+		logger.debug(f"| Package version {package.version.str} has a valid Debian versioning format.")
 		candidate_list = [
 			[package.version, 0, True]
 		]
@@ -144,12 +148,12 @@ class AlienMatcher:
 		renamings = set()
 		json_response = self._api_call(self.API_URL_SRCPKG + package.name, package.name)
 		if not json_response:
-			print(f"| No API response for package name {package.name}.")
-			print(f"# Fallback search on all source packages:")
+			logger.debug(f"| No API response for package name {package.name}.")
+			logger.debug(f"# Fallback search on all source packages:")
 			json_response = self._api_call(self.API_URL_ALLSRC, "--ALL-SOURCES--")
 			if not json_response:
-				print("| Fallback call did not produce a response.")
-				print(f"+-- FAILURE.")
+				logger.debug("| Fallback call did not produce a response.")
+				logger.debug(f"+-- FAILURE.")
 				return None
 			fallback = True
 			for key in json_response:
@@ -158,23 +162,23 @@ class AlienMatcher:
 
 		if len(renamings) == 0:
 			if fallback:
-				print("| Fallback did not find a similar package.")
-				print(f"+-- FAILURE.")
+				logger.debug("| Fallback did not find a similar package.")
+				logger.debug(f"+-- FAILURE.")
 				return None
 			else:
 				cur_package_name = package.name
 		else:
 			cur_package_name = renamings.pop()
-			print(f"| Package with name {package.name} not found. Trying with {cur_package_name}.")
+			logger.debug(f"| Package with name {package.name} not found. Trying with {cur_package_name}.")
 			if len(renamings) > 0:
-				print(f"| Warning: We have more than one similarily named package for {package.name}: {renamings}.")
+				logger.debug(f"| Warning: We have more than one similarily named package for {package.name}: {renamings}.")
 			json_response = self._api_call(self.API_URL_SRCPKG + cur_package_name, cur_package_name)
 			if not json_response: # Needed? Could we not simply use the all sources API call for all packages from the start?
-				print(f"| No API response for package name {cur_package_name}. No fallbacks remaining...")
-				print(f"+-- FAILURE.")
+				logger.debug(f"| No API response for package name {cur_package_name}. No fallbacks remaining...")
+				logger.debug(f"+-- FAILURE.")
 				return None
 
-		print(f"| API call result OK. Find nearest neighbor of {cur_package_name}/{package.version.str}.")
+		logger.debug(f"| API call result OK. Find nearest neighbor of {cur_package_name}/{package.version.str}.")
 
 		seen = set()
 		j = json_response[0]
@@ -208,12 +212,12 @@ class AlienMatcher:
 
 		best_version = nn1[0] if nn1[1] < nn2[1] else nn2[0]
 
-		print(f"| Nearest neighbor on Debian is {cur_package_name}/{best_version.str}.")
+		logger.debug(f"| Nearest neighbor on Debian is {cur_package_name}/{best_version.str}.")
 
 		return Package(name = cur_package_name, version = best_version)
 
 	def download_to_debian(self, package_name, package_version, filename):
-		print(f"# Retrieving file from Debian: '{package_name}/{package_version}/{filename}'.")
+		logger.debug(f"# Retrieving file from Debian: '{package_name}/{package_version}/{filename}'.")
 		try:
 			response = self.pool.get_binary(
 				self.PATH_DEB,
@@ -221,7 +225,7 @@ class AlienMatcher:
 				package_version,
 				filename
 			)
-			print(f"| Found in Debian cache pool.")
+			logger.debug(f"| Found in Debian cache pool.")
 		except FileNotFoundError:
 			pooldir = package_name[0:4] if package_name.startswith('lib') else package_name[0]
 			full_url = "/".join([
@@ -230,7 +234,7 @@ class AlienMatcher:
 				package_name,
 				filename
 			])
-			print(f"| Not found in Debian cache pool. Downloading from {full_url}.")
+			logger.debug(f"| Not found in Debian cache pool. Downloading from {full_url}.")
 			r = requests.get(full_url)
 			if r.status_code != 200:
 				raise AlienMatcherError(f"Error {r.status_code} in downloading {full_url}")
@@ -241,7 +245,7 @@ class AlienMatcher:
 				package_version,
 				filename
 			)
-			print(f"| Result cached in {local_path}.")
+			logger.debug(f"| Result cached in {local_path}.")
 			response = r.content
 		return response
 
@@ -295,7 +299,7 @@ class AlienMatcher:
 		return debsrc_debian, debsrc_orig
 
 	def match(self, apkg: AlienPackage, ignore_cache = False):
-		print("# Find a matching package on Debian repositories.")
+		logger.debug("# Find a matching package on Debian repositories.")
 
 		self.add_to_userland(apkg)
 		match = self.search(apkg)
@@ -307,7 +311,7 @@ class AlienMatcher:
 		# SPDX was already generated from the Debian sources.
 		debsrc_debian, debsrc_orig = self.fetch_debian_sources(match)
 
-		print(f"| Done. Match found and stored in {debsrc_debian} and {debsrc_orig}.")
-		print(f"+-- SUCCESS.")
+		logger.debug(f"| Done. Match found and stored in {debsrc_debian} and {debsrc_orig}.")
+		logger.debug(f"+-- SUCCESS.")
 
 		return debsrc_debian, debsrc_orig

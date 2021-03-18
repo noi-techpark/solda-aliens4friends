@@ -28,7 +28,7 @@ class Pool:
 
 	def write(self, contents, *path_args):
 		dest_folder = self.subpath(*path_args[:-1])
-		dest = os.path.join(dest_folder, *path_args[-1])
+		dest = os.path.join(dest_folder, path_args[-1])
 		self.mkdir(dest_folder)
 		with open(dest, 'wb+') as f:
 			f.write(contents)
