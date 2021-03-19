@@ -119,8 +119,7 @@ class AlienMatcher:
 	def _clean_name(name):
 		return name.rstrip("0123456789.~+").replace("-v", "").replace("-", "")
 
-	# XXX Very stupid rule set: Use regexp or something better here, also add
-	# weights, since not all matches are equally good (maybe Levensthein?)
+	# XXX Add an edit-distance, since not all similar matches are equally good (Levensthein)
 	def _similar_package_name(self, given, new):
 
 		if given == new:
@@ -172,7 +171,7 @@ class AlienMatcher:
 		if n.startswith(g):
 			return 50
 
-		# x) Not matching
+		# --> Not matching at all
 		return 0
 
 	def search(self, package: Package):
@@ -289,14 +288,15 @@ class AlienMatcher:
 			dsc_filename
 		)
 
-		debsrc_orig = ""
-		debsrc_debian = ""
+		debsrc_orig = None
+		debsrc_debian = None
+		debsrc_diff = None
 		debian_control = Deb822(dsc_file_content)
 
-		if not debian_control['Format'].startswith('3.0'):
-			raise AlienMatcherError(
-				f"Debian Source Control file of version {debian_control['Format']} given. Only 3.0 is supported."
-			)
+		# if not debian_control['Format'].startswith('3.0'):
+		# 	raise AlienMatcherError(
+		# 		f"Debian Source Control file of version {debian_control['Format']} given. Only 3.0 is supported."
+		# 	)
 
 		debian_control_files = []
 		for line in debian_control['Checksums-Sha1'].split('\n'):
@@ -316,19 +316,25 @@ class AlienMatcher:
 				raise AlienMatcherError(f"Checksum mismatch for {debian_path}.")
 			try:
 				archive = Archive(elem[2])
-				if debian_control['Format'] == "3.0 (quilt)":
+				if debian_control['Format'] == "1.0":
+					if 'diff' in archive.path:
+						debsrc_diff = debian_path
+					elif 'orig' in archive.path:
+						debsrc_orig = debian_path
+					else: # XXX Assume archives without patterns in name are from Debian
+						debsrc_debian = debian_path
+				elif debian_control['Format'] == "3.0 (quilt)":
 					if 'debian' in archive.path:
 						debsrc_debian = debian_path
 					elif 'orig' in archive.path:
 						debsrc_orig = debian_path
 				elif debian_control['Format'] == "3.0 (native)":
 					debsrc_orig = debian_path
-					debsrc_debian = None
 			except ArchiveError:
 				# Ignore if not supported, it is another file and will be handled later
 				pass
 
-		return debsrc_debian, debsrc_orig
+		return debsrc_debian, debsrc_orig, debsrc_diff
 
 	def match(self, apkg: AlienPackage, ignore_cache = False):
 		logger.debug("# Find a matching package on Debian repositories.")
@@ -337,13 +343,13 @@ class AlienMatcher:
 		match = self.search(apkg)
 
 		if not match:
-			return None, None, self.errors
+			return None, None, None, self.errors
 
 		# It will use the cache, but we need the package also if the
 		# SPDX was already generated from the Debian sources.
-		debsrc_debian, debsrc_orig = self.fetch_debian_sources(match)
+		debsrc_debian, debsrc_orig, debsrc_diff = self.fetch_debian_sources(match)
 
-		logger.debug(f"| Done. Match found and stored in {debsrc_debian} and {debsrc_orig}.")
+		logger.debug(f"| Done. Match found and stored in {debsrc_debian} and {debsrc_orig} and {debsrc_diff}.")
 		logger.debug(f"+-- SUCCESS.")
 
-		return debsrc_debian, debsrc_orig, None
+		return debsrc_debian, debsrc_orig, debsrc_diff, None
