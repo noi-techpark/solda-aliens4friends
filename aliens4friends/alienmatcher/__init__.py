@@ -57,7 +57,8 @@ class AlienMatcher:
 	API_URL_ALLSRC = "https://api.ftp-master.debian.org/all_sources"
 
 	KNOWN_PACKAGE_ALIASES = {
-		"wpa-supplicant" : "wpa"
+		"wpa-supplicant" : "wpa",
+		"linux-yocto" : "linux"
 	}
 
 	def __init__(self, path_to_pool):
@@ -125,24 +126,30 @@ class AlienMatcher:
 		if given == new:
 			return 100
 
+		# Rename known packages to their Debian counterpart
+		if given in self.KNOWN_PACKAGE_ALIASES:
+			given = self.KNOWN_PACKAGE_ALIASES[given]
+
+		if given == new:
+			return 95
+
 		g = AlienMatcher._clean_name(given)
 		n = AlienMatcher._clean_name(new)
 
-		# Rename known packages to their Debian counterpart
-		if given in self.KNOWN_PACKAGE_ALIASES:
-			g = self.KNOWN_PACKAGE_ALIASES[given]
-
 		if n == g:
 			return 90
-
-		# Library/API version at the end of the package name
-		if n.startswith(g):
-			return 80
 
 		# Prefixed with the abbreviation isc- (Internet Software Consortium)
 		# Possibly postfixed with -client or -server
 		if n.startswith(f"isc{g}"):
 			return 80
+
+		# Some libraries may lack a lib prefix
+		if (
+			(g.startswith("lib") or n.startswith("lib"))
+			and g.replace("lib", "") == n.replace("lib", "")
+		):
+			return 70
 
 		# Major Python version mismatch: python3-iniparse vs. python-iniparse
 		# Some python packages do not have a python[23]- prefix
@@ -153,20 +160,17 @@ class AlienMatcher:
 			nn = n.replace("python3", "python")
 			gg = g.replace("python3", "python")
 			if nn == gg:
-				return 80
-			if nn.replace("python", "") == gg.replace("python", ""):
 				return 70
+			if nn.replace("python", "") == gg.replace("python", ""):
+				return 60
 
 		# Fonts may start with "fonts-" in Debian
 		if g.replace("fonts", "") == n.replace("fonts", ""):
-			return 70
+			return 60
 
-		# Some libraries may lack a lib prefix
-		if (
-			(g.startswith("lib") or n.startswith("lib"))
-			and g.replace("lib", "") == n.replace("lib", "")
-		):
-			return 70
+		# Library/API version at the end of the package name
+		if n.startswith(g):
+			return 50
 
 		# x) Not matching
 		return 0
