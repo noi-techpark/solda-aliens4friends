@@ -290,7 +290,6 @@ class AlienMatcher:
 
 		debsrc_orig = None
 		debsrc_debian = None
-		debsrc_diff = None
 		debian_control = Deb822(dsc_file_content)
 
 		# if not debian_control['Format'].startswith('3.0'):
@@ -317,9 +316,7 @@ class AlienMatcher:
 			try:
 				archive = Archive(elem[2])
 				if debian_control['Format'] == "1.0":
-					if 'diff' in archive.path:
-						debsrc_diff = debian_path
-					elif 'orig' in archive.path:
+					if 'orig' in archive.path:
 						debsrc_orig = debian_path
 					else: # XXX Assume archives without patterns in name are from Debian
 						debsrc_debian = debian_path
@@ -334,7 +331,7 @@ class AlienMatcher:
 				# Ignore if not supported, it is another file and will be handled later
 				pass
 
-		return debsrc_debian, debsrc_orig, debsrc_diff
+		return debsrc_debian, debsrc_orig
 
 	def match(self, apkg: AlienPackage, ignore_cache = False):
 		logger.debug("# Find a matching package on Debian repositories.")
@@ -347,9 +344,9 @@ class AlienMatcher:
 
 		# It will use the cache, but we need the package also if the
 		# SPDX was already generated from the Debian sources.
-		debsrc_debian, debsrc_orig, debsrc_diff = self.fetch_debian_sources(match)
+		debsrc_debian, debsrc_orig = self.fetch_debian_sources(match)
 
-		logger.debug(f"| Done. Match found and stored in {debsrc_debian} and {debsrc_orig} and {debsrc_diff}.")
+		logger.debug(f"| Done. Match found and stored in {debsrc_debian} and {debsrc_orig}.")
 		logger.debug(f"+-- SUCCESS.")
 
-		return debsrc_debian, debsrc_orig, debsrc_diff, None
+		return debsrc_debian, debsrc_orig, None

@@ -3,6 +3,8 @@ from aliens4friends.alienmatcher import AlienMatcher, AlienMatcherError
 from aliens4friends.commons.package import AlienPackage, PackageError, Package
 
 def _setup():
+	print(f"{'ALIENSRC':<80}{'OUTCOME':<10}{'DEBSRC_DEBIAN':<60}{'DEBSRC_ORIG':<60}ERRORS")
+	print("-"*300)
 	return AlienMatcher(
 		os.path.join(
 			os.getcwd(),
@@ -20,19 +22,18 @@ def _run(matcher, package_path, filename):
 	try:
 		print(f"{filename:<80}", end="")
 		package = AlienPackage(os.path.join(package_path, filename))
-		debsrc_debian, debsrc_orig, debsrc_diff, errors = matcher.match(package)
+		debsrc_debian, debsrc_orig, errors = matcher.match(package)
 		debsrc_debian = os.path.basename(debsrc_debian) if debsrc_debian else ''
 		debsrc_orig = os.path.basename(debsrc_orig) if debsrc_orig else ''
-		debsrc_diff = os.path.basename(debsrc_diff) if debsrc_diff else ''
 		outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'
-		if not debsrc_debian and not debsrc_orig and not debsrc_diff:
+		if not debsrc_debian and not debsrc_orig:
 			errors = errors if errors else 'FATAL: NO MATCH without errors'
-		print(f"{outcome:<10}{debsrc_debian:<60}{debsrc_orig:<60}{debsrc_diff:<60}{errors if errors else ''}")
+		print(f"{outcome:<10}{debsrc_debian:<60}{debsrc_orig:<60}{errors if errors else ''}")
 	except (AlienMatcherError, PackageError) as ex:
 		if str(ex) == "No internal archive":
-			print(f"{'IGNORED':<10}{'':<60}{'':<60}{'':<60}{ex}")
+			print(f"{'IGNORED':<10}{'':<60}{'':<60}{ex}")
 		else:
-			print(f"{'ERROR':<10}{'':<60}{'':<60}{'':<60}{ex}")
+			print(f"{'ERROR':<10}{'':<60}{'':<60}{ex}")
 
 
 def test_all():
