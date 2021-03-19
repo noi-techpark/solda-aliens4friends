@@ -15,7 +15,8 @@ if __name__ == "__main__":
 
 	# test_debian2spdx.test()
 	# test_alienmatcher.test_all()
+	test_alienmatcher.test_list()
 	# test_alienmatcher.test_single()
-	test_alienmatcher.test_search()
+	# test_alienmatcher.test_search()
 	# test_alienpackage.test1()
 

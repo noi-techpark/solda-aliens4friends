@@ -56,6 +56,10 @@ class AlienMatcher:
 	API_URL_SRCPKG = "https://api.ftp-master.debian.org/madison?f&a=source&package="
 	API_URL_ALLSRC = "https://api.ftp-master.debian.org/all_sources"
 
+	KNOWN_PACKAGE_ALIASES = {
+		"wpa-supplicant" : "wpa"
+	}
+
 	def __init__(self, path_to_pool):
 		logger.debug(f"# Initializing ALIENMATCHER v{self.VERSION} with cache pool at {path_to_pool}.")
 		super().__init__()
@@ -112,7 +116,7 @@ class AlienMatcher:
 
 	@staticmethod
 	def _clean_name(name):
-		return name.replace("-", "").rstrip("0123456789.~+")
+		return name.rstrip("0123456789.~+").replace("-v", "").replace("-", "")
 
 	# XXX Very stupid rule set: Use regexp or something better here, also add
 	# weights, since not all matches are equally good (maybe Levensthein?)
@@ -123,6 +127,10 @@ class AlienMatcher:
 
 		g = AlienMatcher._clean_name(given)
 		n = AlienMatcher._clean_name(new)
+
+		# Rename known packages to their Debian counterpart
+		if given in self.KNOWN_PACKAGE_ALIASES:
+			g = self.KNOWN_PACKAGE_ALIASES[given]
 
 		if n == g:
 			return 90
@@ -151,6 +159,13 @@ class AlienMatcher:
 
 		# Fonts may start with "fonts-" in Debian
 		if g.replace("fonts", "") == n.replace("fonts", ""):
+			return 70
+
+		# Some libraries may lack a lib prefix
+		if (
+			(g.startswith("lib") or n.startswith("lib"))
+			and g.replace("lib", "") == n.replace("lib", "")
+		):
 			return 70
 
 		# x) Not matching
