@@ -110,50 +110,51 @@ class AlienMatcher:
 
 		return json.loads(response)
 
+	@staticmethod
+	def _clean_name(name):
+		return name.replace("-", "").rstrip("0123456789.~+")
+
 	# XXX Very stupid rule set: Use regexp or something better here, also add
 	# weights, since not all matches are equally good (maybe Levensthein?)
-	def _similar_package_name(self, apiresp, package_name):
-		# 1) Library/API version at the end of the package name
-		if apiresp.rstrip("0123456789").startswith(package_name.rstrip("0123456789")):
-			return True
+	def _similar_package_name(self, given, new):
 
-		# 2) Prefixed with the abbreviation isc- (Internet Software Consortium)
-		#	Possibly postfixed with -client or -server
-		if apiresp.startswith(f"isc-{package_name}"):
-			return True
+		if given == new:
+			return 100
 
-		# 3) Sometimes we just have a dash mismatch
-		if apiresp.replace("-", "") == package_name.replace("-", ""):
-			return True
+		g = AlienMatcher._clean_name(given)
+		n = AlienMatcher._clean_name(new)
 
-		# 4) Package that ends with -1.0 version strings
-		if apiresp.rstrip("0123456789-.") == package_name.rstrip("0123456789-."):
-			return True
+		if n == g:
+			return 90
 
-		# 5) Major Python version mismatch: python3-iniparse vs. python-iniparse
+		# Library/API version at the end of the package name
+		if n.startswith(g):
+			return 80
+
+		# Prefixed with the abbreviation isc- (Internet Software Consortium)
+		# Possibly postfixed with -client or -server
+		if n.startswith(f"isc{g}"):
+			return 80
+
+		# Major Python version mismatch: python3-iniparse vs. python-iniparse
+		# Some python packages do not have a python[23]- prefix
 		if (
-			(apiresp.startswith("python3") or package_name.startswith("python3"))
-			and apiresp.replace("python3", "python") == package_name.replace("python3", "python")
+			n.startswith("python3")
+			or g.startswith("python3")
 		):
-			return True
+			nn = n.replace("python3", "python")
+			gg = g.replace("python3", "python")
+			if nn == gg:
+				return 80
+			if nn.replace("python", "") == gg.replace("python", ""):
+				return 70
 
-		# 6) Some Python packages do not have a "python...-" prefix
-		if (
-			package_name.startswith("python")
-			and package_name.replace("python3", "").replace("python", "").replace("-", "").rstrip("0123456789.") == apiresp
-		):
-			return True
-
-
-		# 7) Fonts always start with fonts- in Debian
-		if "fonts" in package_name and "fonts" in apiresp:
-			a = package_name.replace("-", "").replace("fonts", "")
-			b = apiresp.replace("-", "").replace("fonts", "")
-			if a.rstrip("0123456789.") == b.rstrip("0123456789."):
-				return True
+		# Fonts may start with "fonts-" in Debian
+		if g.replace("fonts", "") == n.replace("fonts", ""):
+			return 70
 
 		# x) Not matching
-		return False
+		return 0
 
 	def search(self, package: Package):
 		logger.debug(f"# Search for similar packages with {self.API_URL_SRCPKG}.")
@@ -165,63 +166,44 @@ class AlienMatcher:
 				f"No parseable debian version: {package.version.str}."
 			)
 		logger.debug(f"| Package version {package.version.str} has a valid Debian versioning format.")
-		candidate_list = [
-			[package.version, 0, True]
-		]
 
-		fallback = False
-		renamings = set()
-		json_response = self._api_call(self.API_URL_SRCPKG + url_encode(package.name), package.name)
+		candidates = []
+		json_response = self._api_call(self.API_URL_ALLSRC, "--ALL-SOURCES--")
 		if not json_response:
-			logger.debug(f"| No API response for package '{package.name}'.")
-			logger.debug(f"# Fallback search on all source packages:")
-			json_response = self._api_call(self.API_URL_ALLSRC, "--ALL-SOURCES--")
-			if not json_response:
-				logger.debug("| Fallback call did not produce a response.")
-				logger.debug(f"+-- FAILURE.")
-				raise AlienMatcherError(
-					f"No API response for package '{package.name}' / Fallback failed too."
-				)
-			fallback = True
-			for key in json_response:
-				if self._similar_package_name(key["source"], package.name):
-					renamings.add(key["source"])
+			raise AlienMatcherError(
+				f"No API response for package '{package.name}'."
+			)
+		for pkg in json_response:
+			similarity = self._similar_package_name(package.name, pkg["source"])
+			if similarity > 0:
+				candidates.append([similarity, pkg["source"], pkg["version"]])
 
-		if len(renamings) == 0:
-			if fallback:
-				logger.debug("| Fallback did not find a similar package.")
-				logger.debug(f"+-- FAILURE.")
-				raise AlienMatcherError(
-					f"Can't find a similar package on Debian repos"
-				)
-			else:
-				cur_package_name = package.name
-		else:
-			cur_package_name = renamings.pop()
-			logger.debug(f"| Package with name {package.name} not found. Trying with {cur_package_name}.")
-			if len(renamings) > 0:
-				logger.debug(f"| Warning: We have more than one similarily named package for {package.name}: {renamings}.")
-			json_response = self._api_call(self.API_URL_SRCPKG + url_encode(cur_package_name), cur_package_name)
-			if not json_response: # Needed? Could we not simply use the all sources API call for all packages from the start?
-				logger.debug(f"| No API response for package name {cur_package_name}. No fallbacks remaining...")
-				logger.debug(f"+-- FAILURE.")
-				raise AlienMatcherError(
-					f"No API response for package '{cur_package_name}' / No fallbacks remaining..."
-				)
+		if len(candidates) == 0:
+			raise AlienMatcherError(
+				f"Can't find a similar package on Debian repos"
+			)
+
+		candidates = sorted(candidates, reverse=True)
+
+		cur_package_name = candidates[0][1]
+		logger.debug(f"| Package with name {package.name} not found. Trying with {cur_package_name}.")
+		if len(candidates) > 0:
+			logger.debug(f"| Warning: We have more than one similarily named package for {package.name}: {candidates}.")
 
 		logger.debug(f"| API call result OK. Find nearest neighbor of {cur_package_name}/{package.version.str}.")
 
+		candidate_list = [
+			[package.version, 0, True]
+		]
 		seen = set()
-		j = json_response[0]
-		for revision in j[cur_package_name]:
-			for vers_str in j[cur_package_name][revision]:
-				if vers_str in seen:
+		for c in candidates:
+			if c[1] == cur_package_name:
+				if c[2] in seen:
 					continue
-				version = Version(vers_str)
+				version = Version(c[2])
 				ver_distance = version.distance(package.version)
 				candidate_list.append([version, ver_distance, False])
-				seen.add(vers_str)
-
+				seen.add(c[2])
 
 		candidate_list = sorted(candidate_list, reverse=True)
 

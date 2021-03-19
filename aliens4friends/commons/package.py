@@ -45,6 +45,11 @@ class Package:
 			self.archive_name = None
 			self.archive_path = None
 
+	def __str__(self):
+		return f"{self.name} v{self.version.str}"
+
+	def __repr__(self):
+		return self.__str__()
 
 class DebianPackage(Package):
 
@@ -111,6 +116,7 @@ class AlienPackage(Package):
 				)
 		if not self.internal_archive_name:
 			raise PackageError(f"No internal archive")
+
 
 	def print_info(self):
 		print(f"| Package:")

@@ -18,7 +18,7 @@ def _setup():
 
 def _run(matcher, package_path, filename):
 	try:
-		print(f"{filename:<80}", end="")
+		print(f"{filename:<0}", end="")
 		package = AlienPackage(os.path.join(package_path, filename))
 		debsrc_debian, debsrc_orig, errors = matcher.match(package)
 		if debsrc_debian and debsrc_orig:
@@ -44,6 +44,11 @@ def test_single():
 	matcher, path = _setup()
 	_run(matcher, path, "alien-python3-six-1.14.0.aliensrc")
 
+def test_search():
+	matcher, path = _setup()
+	package = AlienPackage(os.path.join(path, "alien-python3-six-1.14.0.aliensrc"))
+	package_match = matcher.search(package)
+	print(package_match)
 
 def test_list():
 	matcher, path = _setup()
