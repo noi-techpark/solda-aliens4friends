@@ -26,12 +26,14 @@ def _run(matcher, package_path, filename):
 		debsrc_debian = os.path.basename(debsrc_debian) if debsrc_debian else ''
 		debsrc_orig = os.path.basename(debsrc_orig) if debsrc_orig else ''
 		outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'
-		if not debsrc_debian and not debsrc_orig:
-			errors = errors if errors else 'FATAL: NO MATCH without errors'
+		if not debsrc_debian and not debsrc_orig and not errors:
+			errors = 'FATAL: NO MATCH without errors'
 		print(f"{outcome:<10}{debsrc_debian:<60}{debsrc_orig:<60}{errors if errors else ''}")
 	except (AlienMatcherError, PackageError) as ex:
 		if str(ex) == "No internal archive":
 			print(f"{'IGNORED':<10}{'':<60}{'':<60}{ex}")
+		elif str(ex) == "Can't find a similar package on Debian repos":
+			print(f"{'NO MATCH':<10}{'':<60}{'':<60}{ex}")
 		else:
 			print(f"{'ERROR':<10}{'':<60}{'':<60}{ex}")
 
