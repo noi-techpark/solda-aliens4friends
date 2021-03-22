@@ -91,6 +91,9 @@ class AlienPackage(Package):
 			full_archive_path
 		)
 
+		self.manager = info_yaml['source_package'].get('manager')
+		self.metadata = info_yaml['source_package'].get('metadata')
+
 		self.package_files = info_yaml['source_package']['files']
 
 		checksums = archive.checksums("files/")
@@ -127,6 +130,7 @@ class AlienPackage(Package):
 				self.internal_archive_checksums = (
 					archive.in_archive_checksums(f'files/{self.internal_archive_name}')
 				)
+				self.internal_archive_src_uri = rec['src_uri']
 		if not self.internal_archive_name:
 			raise PackageError(f"No internal archive")
 
