@@ -2,7 +2,7 @@ import os
 from aliens4friends.alienmatcher import AlienMatcher, AlienMatcherError
 from aliens4friends.commons.package import AlienPackage, PackageError, Package, DebianPackage
 
-IGNORE_CACHE = False
+IGNORE_CACHE = True
 
 def _setup():
 	print(f"{'ALIENSRC':<80}{'OUTCOME':<10}{'DEBSRC_DEBIAN':<60}{'DEBSRC_ORIG':<60}ERRORS")
@@ -26,15 +26,24 @@ def _run(matcher, package_path, filename):
 		package = AlienPackage(os.path.join(package_path, filename))
 		match = matcher.match(package, IGNORE_CACHE)
 		errors = match["errors"]
-		debsrc_debian = match["debian"]["match"]["debsrc_debian"]
-		debsrc_debian = os.path.basename(debsrc_debian) if debsrc_debian else ''
-		debsrc_orig = match["debian"]["match"]["debsrc_orig"]
-		debsrc_orig = os.path.basename(debsrc_orig) if debsrc_orig else ''
+
+		try:
+			debsrc_debian = match["debian"]["match"]["debsrc_debian"]
+			debsrc_debian = os.path.basename(debsrc_debian) if debsrc_debian else ''
+		except KeyError:
+			debsrc_debian = ""
+
+		try:
+			debsrc_orig = match["debian"]["match"]["debsrc_orig"]
+			debsrc_orig = os.path.basename(debsrc_orig) if debsrc_orig else ''
+		except KeyError:
+			debsrc_orig = ""
+
 		outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'
 		if not debsrc_debian and not debsrc_orig and not errors:
 			errors = 'FATAL: NO MATCH without errors'
 		print(f"{outcome:<10}{debsrc_debian:<60}{debsrc_orig:<60}{errors if errors else ''}")
-	except (AlienMatcherError, PackageError, KeyError) as ex:
+	except (AlienMatcherError, PackageError) as ex:
 		if str(ex) == "No internal archive":
 			print(f"{'IGNORED':<10}{'':<60}{'':<60}{ex}")
 		elif str(ex) == "Can't find a similar package on Debian repos":
@@ -53,7 +62,7 @@ def test_all():
 
 def test_single():
 	matcher, path = _setup()
-	_run(matcher, path, "alien-libxkbcommon-0.10.0.aliensrc")
+	_run(matcher, path, "alien-packagegroup-base-1.0.aliensrc")
 
 def test_search():
 	matcher, path = _setup()

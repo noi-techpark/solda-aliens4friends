@@ -344,7 +344,7 @@ class AlienMatcher:
 				json_data["debian"]["match"]["dsc_format"]
 			)
 			logger.debug("| Result already exists, skipping.")
-		except FileNotFoundError:
+		except (FileNotFoundError, KeyError):
 
 			json_data = {
 				"tool": {
@@ -359,38 +359,39 @@ class AlienMatcher:
 					"files": apkg.package_files
 				},
 				"debian": {
-					"match": {}
 				}
 			}
 
 			try:
-				match = self.search(apkg)
+				if apkg.has_internal_archive():
 
-				# It will use the cache, but we need the package also if the
-				# SPDX was already generated from the Debian sources.
-				debpkg = self.fetch_debian_sources(match)
+					match = self.search(apkg)
 
-				json_data["debian"]["match"] = {
-					"name": debpkg.name,
-					"version": debpkg.version.str,
-					"debsrc_debian": debpkg.debsrc_debian,
-					"debsrc_orig": debpkg.debsrc_orig,
-					"dsc_format": debpkg.format,
-					"version_candidates": [
-						{
-							"version" : c[0].str,
-							"distance": c[1],
-							"is_aliensrc": c[2]
-						} for c in self.candidate_list
-					],
-				}
-				self.pool.write_json(json_data, resultpath)
-				logger.debug(f"| Result written to {resultpath}.")
-				logger.debug(f"+-- SUCCESS.")
+					# It will use the cache, but we need the package also if the
+					# SPDX was already generated from the Debian sources.
+					debpkg = self.fetch_debian_sources(match)
+
+					json_data["debian"]["match"] = {
+						"name": debpkg.name,
+						"version": debpkg.version.str,
+						"debsrc_debian": debpkg.debsrc_debian,
+						"debsrc_orig": debpkg.debsrc_orig,
+						"dsc_format": debpkg.format,
+						"version_candidates": [
+							{
+								"version" : c[0].str,
+								"distance": c[1],
+								"is_aliensrc": c[2]
+							} for c in self.candidate_list
+						],
+					}
+				else:
+					self.errors.append("No internal archive")
 
 			except AlienMatcherError as ex:
-				logger.debug(f"| No match found: {ex}")
-				logger.debug(f"+-- FAILURE.")
+				self.errors.append(str(ex))
 
 		json_data["errors"] = self.errors
+		self.pool.write_json(json_data, resultpath)
+		logger.debug(f"| Result written to {resultpath}.")
 		return json_data

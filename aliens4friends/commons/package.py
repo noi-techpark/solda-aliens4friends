@@ -131,9 +131,9 @@ class AlienPackage(Package):
 					archive.in_archive_checksums(f'files/{self.internal_archive_name}')
 				)
 				self.internal_archive_src_uri = rec['src_uri']
-		if not self.internal_archive_name:
-			raise PackageError(f"No internal archive")
-
+	
+	def has_internal_archive(self):
+		return self.internal_archive_name and len(self.internal_archive_name) > 0
 
 	def print_info(self):
 		print(f"| Package:")

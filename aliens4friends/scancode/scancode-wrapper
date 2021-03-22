@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# How to use this script?
+# --> link this script as "scancode" into your $PATH
+# --> You need to always run it inside the folder you want to scan
+# --> Access files or directories of scancode with /userland/something
+# --> Example:
+#     cd the-source-you-want-to-scan && \
+#     scancode-wrapper -n4 -cli --json /userland/scanresult.json /userland
+
+docker run -v "$PWD":/userland --rm -it scancode "$@"
