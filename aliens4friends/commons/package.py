@@ -53,8 +53,21 @@ class Package:
 
 class DebianPackage(Package):
 
-	def __init__(self):
-		super().__init__()
+	SUPPORTED_DSC_FORMATS = [
+		"1.0",
+		"3.0 (quilt)",
+		"3.0 (native)"
+	]
+
+	def __init__(self, name, version, debsrc_orig, debsrc_debian, dsc_format = None):
+
+		if dsc_format and dsc_format not in self.SUPPORTED_DSC_FORMATS:
+			raise PackageError(f"Unknown Debian Source Control File Format: {dsc_format}.")
+
+		super().__init__(name, version)
+		self.debsrc_orig = debsrc_orig
+		self.debsrc_debian = debsrc_debian
+		self.format = dsc_format
 
 
 class AlienPackage(Package):

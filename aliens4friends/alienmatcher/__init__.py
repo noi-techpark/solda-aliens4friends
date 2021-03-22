@@ -37,7 +37,7 @@ from spdx.writers.tagvalue import write_document
 
 from aliens4friends.commons.archive import Archive, ArchiveError
 from aliens4friends.commons.utils import sha1sum, md5, copy
-from aliens4friends.commons.package import AlienPackage, Package, PackageError
+from aliens4friends.commons.package import AlienPackage, Package, PackageError, DebianPackage
 from aliens4friends.commons.version import Version
 from aliens4friends.commons.pool import Pool
 
@@ -76,40 +76,31 @@ class AlienMatcher:
 
 	def _reset(self):
 		self.errors = []
-		self.cur_usr_path = None
-		self.cur_usr_archive = None
-		self.cur_deb_path = None
 
 	def add_to_userland(self, alienpackage: AlienPackage):
 		if not isinstance(alienpackage, AlienPackage):
 			raise TypeError("Parameter must be a AlienPackage.")
-		self.cur_usr_path = self.pool.subpath(
+		self.pool.add(
+			alienpackage.archive_fullpath,
 			self.PATH_USR,
 			alienpackage.name,
 			alienpackage.version.str
-		)
-		self.pool.add(
-			alienpackage.archive_fullpath,
-			self.cur_usr_path
 		)
 		logger.debug(f"| Adding package '{alienpackage.name}/{alienpackage.version.str}' to '{self.PATH_USR}'.")
 
 	def add_to_debian(self, package: Package):
 		if not isinstance(package, Package):
 			raise TypeError("Parameter must be a Package.")
-		self.cur_deb_path = self.pool.subpath(
+		self.pool.add(
+			package.archive_fullpath,
 			self.PATH_DEB,
 			package.name,
 			package.version
 		)
-		self.pool.add(
-			package.archive_fullpath,
-			self.cur_deb_path
-		)
 		logger.debug(f"| Adding package '{package.name}/{package.version}' to '{self.PATH_DEB}'.")
 
 	def _api_call(self, url, resp_name):
-		api_response_cached = self.pool.subpath(
+		api_response_cached = self.pool.abspath(
 			self.PATH_TMP,
 			f"api-resp-{resp_name}.json"
 		)
@@ -261,7 +252,7 @@ class AlienMatcher:
 	def download_to_debian(self, package_name, package_version, filename):
 		logger.debug(f"# Retrieving file from Debian: '{package_name}/{package_version}/{filename}'.")
 		try:
-			response = self.pool.get_binary(self.cur_deb_path, filename)
+			response = self.pool.get_binary(self.PATH_DEB, package_name, package_version, filename)
 			logger.debug(f"| Found in Debian cache pool.")
 		except FileNotFoundError:
 			pooldir = package_name[0:4] if package_name.startswith('lib') else package_name[0]
@@ -275,7 +266,7 @@ class AlienMatcher:
 			r = requests.get(full_url)
 			if r.status_code != 200:
 				raise AlienMatcherError(f"Error {r.status_code} in downloading {full_url}")
-			local_path = self.pool.write(r.content, self.cur_deb_path, filename)
+			local_path = self.pool.write(r.content, self.PATH_DEB, package_name, package_version, filename)
 			logger.debug(f"| Result cached in {local_path}.")
 			response = r.content
 		return response
@@ -299,72 +290,92 @@ class AlienMatcher:
 				continue
 			debian_control_files.append(elem)
 			self.download_to_debian(package.name, package.version.str, elem[2])
-			debian_path = self.pool.subpath(self.cur_deb_path, elem[2])
-			chksum = sha1sum(debian_path)
-			if chksum != elem[0]:
-				raise AlienMatcherError(f"Checksum mismatch for {debian_path}.")
+
+			debian_relpath = self.pool.relpath(self.PATH_DEB, package.name, package.version.str, elem[2])
+
+			if sha1sum(self.pool.abspath(debian_relpath)) != elem[0]:
+				raise AlienMatcherError(f"Checksum mismatch for {debian_relpath}.")
+
 			try:
 				archive = Archive(elem[2])
 				if debian_control['Format'] == "1.0":
 					if 'orig' in archive.path:
-						debsrc_orig = debian_path
+						debsrc_orig = debian_relpath
 					else: # XXX Assume archives without patterns in name are from Debian
-						debsrc_debian = debian_path
+						debsrc_debian = debian_relpath
 				elif debian_control['Format'] == "3.0 (quilt)":
 					if 'debian' in archive.path:
-						debsrc_debian = debian_path
+						debsrc_debian = debian_relpath
 					elif 'orig' in archive.path:
-						debsrc_orig = debian_path
+						debsrc_orig = debian_relpath
 				elif debian_control['Format'] == "3.0 (native)":
-					debsrc_orig = debian_path
+					debsrc_orig = debian_relpath
 			except ArchiveError:
 				# Ignore if not supported, it is another file and will be handled later
 				pass
 
-		return debsrc_debian, debsrc_orig
+		return DebianPackage(
+			package.name,
+			package.version,
+			debsrc_orig,
+			debsrc_debian,
+			debian_control['Format']
+		)
 
 	def match(self, apkg: AlienPackage, ignore_cache = False):
 		logger.debug("# Find a matching package on Debian repositories.")
 		self._reset()
 		self.add_to_userland(apkg)
-		match = self.search(apkg)
-		if match:
-			self.cur_deb_path = self.pool.subpath(
-				self.PATH_DEB,
-				match.name,
-				match.version.str
+		resultpath = self.pool.abspath(
+			self.PATH_USR,
+			apkg.name,
+			apkg.version.str,
+			f"{apkg.name}_{apkg.version.str}.alienmatcher.json"
+		)
+		try:
+			if ignore_cache:
+				raise FileNotFoundError()
+			json_data = self.pool.get_json(resultpath)
+			debpkg = DebianPackage(
+				json_data["debian"]["match"]["name"],
+				json_data["debian"]["match"]["version"],
+				json_data["debian"]["match"]["debsrc_orig"],
+				json_data["debian"]["match"]["debsrc_debian"],
+				json_data["debian"]["match"]["dsc_format"]
 			)
-			# It will use the cache, but we need the package also if the
-			# SPDX was already generated from the Debian sources.
-			debsrc_debian, debsrc_orig = self.fetch_debian_sources(match)
+			logger.debug("| Result already exists, skipping.")
+		except FileNotFoundError:
 
-			logger.debug(f"| Done. Match found and stored in {debsrc_debian} and {debsrc_orig}.")
-			logger.debug(f"+-- SUCCESS.")
-		else:
-			debsrc_debian = None
-			debsrc_orig = None
-			logger.debug(f"| Done. No match found.")
-			logger.debug(f"+-- FAILURE.")
+			json_data = {
+				"tool": {
+					"name": __name__,
+					"version": self.VERSION
+				},
+				"aliensrc": {
+					"name": apkg.name,
+					"version": apkg.version.str,
+					"alternative_names": apkg.alternative_names,
+					"internal_archive_name": apkg.internal_archive_name,
+					"files": apkg.package_files
+				},
+				"debian": {
+					"match": {}
+				}
+			}
 
-		json_data = {
-			"tool": {
-				"name": __name__,
-				"version": self.VERSION
-			},
-			"aliensrc": {
-				"name": apkg.name,
-				"version": apkg.version.str,
-				"alternative_names": apkg.alternative_names,
-				"internal_archive_name": apkg.internal_archive_name,
-				"files": apkg.package_files
-			},
-			"debian": {
-				"match": {
-					"name": match.name,
-					"version": match.version.str,
-					"debsrc_debian": os.path.basename(debsrc_debian) if debsrc_debian else None,
-					"debsrc_orig": os.path.basename(debsrc_orig) if debsrc_orig else None,
-					"errors": self.errors,
+			try:
+				match = self.search(apkg)
+
+				# It will use the cache, but we need the package also if the
+				# SPDX was already generated from the Debian sources.
+				debpkg = self.fetch_debian_sources(match)
+
+				json_data["debian"]["match"] = {
+					"name": debpkg.name,
+					"version": debpkg.version.str,
+					"debsrc_debian": debpkg.debsrc_debian,
+					"debsrc_orig": debpkg.debsrc_orig,
+					"dsc_format": debpkg.format,
 					"version_candidates": [
 						{
 							"version" : c[0].str,
@@ -373,14 +384,13 @@ class AlienMatcher:
 						} for c in self.candidate_list
 					],
 				}
-			}
-		}
-		local_path = self.pool.subpath(
-			self.cur_usr_path,
-			f"{apkg.name}_{apkg.version.str}.alienmatcher.json"
-		)
-		with open(local_path, "w") as outfile:
-			json.dump(json_data, outfile)
-		logger.debug(f"| Result written to {local_path}.")
+				self.pool.write_json(json_data, resultpath)
+				logger.debug(f"| Result written to {resultpath}.")
+				logger.debug(f"+-- SUCCESS.")
 
-		return debsrc_debian, debsrc_orig, self.errors
+			except AlienMatcherError as ex:
+				logger.debug(f"| No match found: {ex}")
+				logger.debug(f"+-- FAILURE.")
+
+		json_data["errors"] = self.errors
+		return json_data
