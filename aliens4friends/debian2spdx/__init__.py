@@ -372,7 +372,7 @@ class Debian2SPDX:
 		spdx_pkg.license_declared = spdx_pkg.conc_lics
 		spdx_pkg.comment = self.deb_copyright.header.comment
 		for path, spdx_file in self.spdx_files.items():
-			spdx_file.name = f"./{deb_pkg_name}-{upstream_ver}/{spdx_file.name}"
+			spdx_file.name = f"./{spdx_file.name}"
 			spdx_file.copyright = spdx_file.copyright or SPDXNone()
 			spdx_pkg.add_file(spdx_file)
 		spdx_pkg.verif_code = spdx_pkg.calc_verif_code()
