@@ -47,4 +47,4 @@ def test_list():
 	]
 
 	for p in packages:
-		_run(matcher, path, p)
+		matcher.run(os.path.join(path, p))

@@ -431,9 +431,7 @@ class AlienMatcher:
 				print(f"{'ERROR':<10}{'':<60}{'':<60}{ex}")
 
 	@staticmethod
-	def execute(glob_for_alienpackages):
+	def execute(alienpackage_list):
 		matcher = AlienMatcher()
-		glob = os.path.basename(glob_for_alienpackages)
-		path = os.path.dirname(glob_for_alienpackages)
-		for p in matcher.pool.absglob(glob, path):
+		for p in alienpackage_list:
 			matcher.run(p)
