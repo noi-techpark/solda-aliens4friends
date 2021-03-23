@@ -58,7 +58,7 @@ if __name__ == "__main__":
     # last positional argument FILE is mandatory. Hence, the parser would exit
     # with an error (There is no meaningful exception to catch, except for
     # SystemExit).
-	if sys.argv[1] == '--help' or sys.argv[1] == '-h':
+	if len(sys.argv) < 2 or sys.argv[1] == '--help' or sys.argv[1] == '-h':
 		docparts = __doc__.split(
 			"Usage\n-----\n(automatically printed from `argparse` module)\n", 1
 		)
