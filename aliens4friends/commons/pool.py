@@ -1,5 +1,6 @@
 import os
 from json import dump as jsondump, load as jsonload
+from pathlib import Path
 from .utils import copy, mkdir
 
 class Pool:
@@ -64,3 +65,11 @@ class Pool:
 		flag = "b" if binary else ""
 		with open(path, f'r{flag}') as f:
 			return f.read()
+
+	def absglob(self, glob, *path_args):
+		path = self.abspath(*path_args)
+		return Path(path).rglob(glob)
+
+	def relglob(self, glob, *path_args):
+		path = self.relpath(*path_args)
+		return Path(path).rglob(glob)

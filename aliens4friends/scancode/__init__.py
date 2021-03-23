@@ -18,8 +18,8 @@ def run_scancode(pool : Pool, archive : Archive, package_name, package_version_s
 		print(f"| Skipping because result already exists: {scancode_result}")
 	else:
 		bash_live(
-			f"cd {archive_unpacked} && scancode -n4 -cli --json /userland/scanresult.json /userland",
-    		prefix = "SCANCODE"
+			f"cd {archive_unpacked} && scancode -n8 -cli --json /userland/scanresult.json /userland",
+			prefix = "SCANCODE"
 		)
 		# Move scanresults into parent directory
 		os.rename(os.path.join(archive_unpacked, "scanresult.json"), scancode_result)

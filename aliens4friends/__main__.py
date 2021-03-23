@@ -20,5 +20,6 @@ if __name__ == "__main__":
 	# test_alienmatcher.test_single()
 	# test_alienmatcher.test_search()
 	# test_alienpackage.test1()
-	test_scancode.test_single()
+	# test_scancode.test_single()
+	test_scancode.test_single_from_matcheroutput()
 
