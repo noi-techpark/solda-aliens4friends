@@ -18,3 +18,8 @@ class Settings:
 	except KeyError:
 		LOGLEVEL = DOTENV["A4F_LOGLEVEL"] = "INFO"
 
+	try:
+		SCANCODE_WRAPPER = DOTENV["A4F_SCANCODE"].upper() == "WRAPPER"
+	except KeyError:
+		SCANCODE_WRAPPER = DOTENV["A4F_SCANCODE"] = "NATIVE"
+

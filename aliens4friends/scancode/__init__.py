@@ -37,12 +37,19 @@ class Scancode:
 		if os.path.exists(scancode_result):
 			logger.info(f"| Skipping because result already exists: {scancode_result}")
 		else:
-			bash_live(
-				f"cd {archive_unpacked} && scancode -n8 -cli --strip-root --json /userland/scanresult.json /userland",
-				prefix = "SCANCODE"
-			)
-			# Move scanresults into parent directory
-			os.rename(os.path.join(archive_unpacked, "scanresult.json"), scancode_result)
+			if Settings.SCANCODE_WRAPPER:
+				bash_live(
+					f"cd {archive_unpacked}" +
+					f"&& scancode-wrapper -n8 -cli --strip-root --json /userland/scanresult.json /userland",
+					prefix = "SCANCODE (wrapper)"
+				)
+				# Move scanresults into parent directory
+				os.rename(os.path.join(archive_unpacked, "scanresult.json"), scancode_result)
+			else:
+				bash_live(
+					f"scancode -n8 -cli --strip-root --json {scancode_result} {archive_unpacked}",
+					prefix = "SCANCODE (native)"
+				)
 		return scancode_result
 
 	@staticmethod
