@@ -6,15 +6,15 @@ class Settings:
 	try:
 		POOLPATH = DOTENV["A4F_POOL"]
 	except KeyError:
-		POOLPATH = "/tmp/aliens4friends/"
+		POOLPATH = DOTENV["A4F_POOL"] = "/tmp/aliens4friends/"
 
 	try:
 		POOLCACHED = bool(DOTENV["A4F_CACHE"])
 	except KeyError:
-		POOLCACHED = True
+		POOLCACHED = DOTENV["A4F_CACHE"] = True
 
 	try:
 		LOGLEVEL = DOTENV["A4F_LOGLEVEL"].upper()
 	except KeyError:
-		LOGLEVEL = "INFO"
+		LOGLEVEL = DOTENV["A4F_LOGLEVEL"] = "INFO"
 
