@@ -7,18 +7,7 @@ IGNORE_CACHE = True
 def _setup():
 	print(f"{'ALIENSRC':<80}{'OUTCOME':<10}{'DEBSRC_DEBIAN':<60}{'DEBSRC_ORIG':<60}ERRORS")
 	print("-"*300)
-	return AlienMatcher(
-		os.path.join(
-			os.getcwd(),
-			"tmp",
-			"pool"
-		)
-	), os.path.join(
-		os.getcwd(),
-		"tmp",
-		"alberto",
-		"SCA"
-	)
+	return AlienMatcher(), os.path.join(os.getcwd(), "tmp", "alberto", "SCA")
 
 def test_all():
 	_, path = _setup()
