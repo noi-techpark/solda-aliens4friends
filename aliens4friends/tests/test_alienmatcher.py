@@ -20,49 +20,14 @@ def _setup():
 		"SCA"
 	)
 
-def _run(matcher, package_path, filename):
-	try:
-		print(f"{filename:<80}", end="")
-		package = AlienPackage(os.path.join(package_path, filename))
-		match = matcher.match(package, IGNORE_CACHE)
-		errors = match["errors"]
-
-		try:
-			debsrc_debian = match["debian"]["match"]["debsrc_debian"]
-			debsrc_debian = os.path.basename(debsrc_debian) if debsrc_debian else ''
-		except KeyError:
-			debsrc_debian = ""
-
-		try:
-			debsrc_orig = match["debian"]["match"]["debsrc_orig"]
-			debsrc_orig = os.path.basename(debsrc_orig) if debsrc_orig else ''
-		except KeyError:
-			debsrc_orig = ""
-
-		outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'
-		if not debsrc_debian and not debsrc_orig and not errors:
-			errors = 'FATAL: NO MATCH without errors'
-		print(f"{outcome:<10}{debsrc_debian:<60}{debsrc_orig:<60}{errors if errors else ''}")
-	except (AlienMatcherError, PackageError) as ex:
-		if str(ex) == "No internal archive":
-			print(f"{'IGNORED':<10}{'':<60}{'':<60}{ex}")
-		elif str(ex) == "Can't find a similar package on Debian repos":
-			print(f"{'NO MATCH':<10}{'':<60}{'':<60}{ex}")
-		else:
-			print(f"{'ERROR':<10}{'':<60}{'':<60}{ex}")
-
-
 def test_all():
-	matcher, path = _setup()
-	for filename in os.listdir(path):
-		if not filename.endswith("aliensrc"):
-			continue
-		_run(matcher, path, filename)
+	_, path = _setup()
+	AlienMatcher.execute(os.path.join(path, "*.aliensrc"))
 
 
 def test_single():
 	matcher, path = _setup()
-	_run(matcher, path, "alien-packagegroup-base-1.0.aliensrc")
+	matcher.run(os.path.join(path, "alien-packagegroup-base-1.0.aliensrc"))
 
 def test_search():
 	matcher, path = _setup()

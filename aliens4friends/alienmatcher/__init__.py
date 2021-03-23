@@ -40,6 +40,7 @@ from aliens4friends.commons.utils import sha1sum, md5, copy
 from aliens4friends.commons.package import AlienPackage, Package, PackageError, DebianPackage
 from aliens4friends.commons.version import Version
 from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +49,7 @@ class AlienMatcherError(Exception):
 
 class AlienMatcher:
 
-	VERSION = "0.1"
+	VERSION = "0.2"
 	PATH_TMP = "apiresponse"
 	PATH_DEB = "debian"
 	PATH_USR = "userland"
@@ -61,15 +62,16 @@ class AlienMatcher:
 		"linux-yocto" : "linux"
 	}
 
-	def __init__(self, path_to_pool):
+	def __init__(self, path_to_pool = None, ignore_cache = None):
 		logger.debug(f"# Initializing ALIENMATCHER v{self.VERSION} with cache pool at {path_to_pool}.")
 		super().__init__()
+		self.ignore_cache = ignore_cache if isinstance(ignore_cache, bool) else Settings.POOLCACHED
 		self.errors = []
-		self.pool = Pool(path_to_pool)
+		self.pool = Pool(path_to_pool) if path_to_pool else Pool(Settings.POOLPATH)
 		basepath_deb = self.pool.mkdir(self.PATH_DEB)
 		basepath_usr = self.pool.mkdir(self.PATH_USR)
 		basepath_tmp = self.pool.mkdir(self.PATH_TMP)
-		logger.debug(f"| Pool directory structure created:")
+		logger.debug(f"| Pool directory structure created (ignore_cache = {ignore_cache}):")
 		logger.debug(f"|   - Debian Path          : {basepath_deb}")
 		logger.debug(f"|   - Userland Path	      : {basepath_usr}")
 		logger.debug(f"|   - Temporary Files Path : {basepath_tmp}")
@@ -322,7 +324,7 @@ class AlienMatcher:
 			debian_control['Format']
 		)
 
-	def match(self, apkg: AlienPackage, ignore_cache = False):
+	def match(self, apkg: AlienPackage):
 		logger.debug("# Find a matching package on Debian repositories.")
 		self._reset()
 		self.add_to_userland(apkg)
@@ -333,7 +335,7 @@ class AlienMatcher:
 			f"{apkg.name}_{apkg.version.str}.alienmatcher.json"
 		)
 		try:
-			if ignore_cache:
+			if self.ignore_cache:
 				raise FileNotFoundError()
 			json_data = self.pool.get_json(resultpath)
 			debpkg = DebianPackage(
@@ -395,3 +397,43 @@ class AlienMatcher:
 		self.pool.write_json(json_data, resultpath)
 		logger.debug(f"| Result written to {resultpath}.")
 		return json_data
+
+	def run(self, package_path):
+		try:
+			filename = os.path.basename(package_path)
+			print(f"{filename:<80}", end="")
+			package = AlienPackage(package_path)
+			match = self.match(package)
+			errors = match["errors"]
+
+			try:
+				debsrc_debian = match["debian"]["match"]["debsrc_debian"]
+				debsrc_debian = os.path.basename(debsrc_debian) if debsrc_debian else ''
+			except KeyError:
+				debsrc_debian = ""
+
+			try:
+				debsrc_orig = match["debian"]["match"]["debsrc_orig"]
+				debsrc_orig = os.path.basename(debsrc_orig) if debsrc_orig else ''
+			except KeyError:
+				debsrc_orig = ""
+
+			outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'
+			if not debsrc_debian and not debsrc_orig and not errors:
+				errors = 'FATAL: NO MATCH without errors'
+			print(f"{outcome:<10}{debsrc_debian:<60}{debsrc_orig:<60}{errors if errors else ''}")
+		except (AlienMatcherError, PackageError) as ex:
+			if str(ex) == "No internal archive":
+				print(f"{'IGNORED':<10}{'':<60}{'':<60}{ex}")
+			elif str(ex) == "Can't find a similar package on Debian repos":
+				print(f"{'NO MATCH':<10}{'':<60}{'':<60}{ex}")
+			else:
+				print(f"{'ERROR':<10}{'':<60}{'':<60}{ex}")
+
+	@staticmethod
+	def execute(glob_for_alienpackages):
+		matcher = AlienMatcher()
+		glob = os.path.basename(glob_for_alienpackages)
+		path = os.path.dirname(glob_for_alienpackages)
+		for p in matcher.pool.absglob(glob, path):
+			matcher.run(p)
