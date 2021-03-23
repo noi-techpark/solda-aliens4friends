@@ -65,7 +65,7 @@ class AlienMatcher:
 	def __init__(self, path_to_pool = None, ignore_cache = None):
 		logger.debug(f"# Initializing ALIENMATCHER v{self.VERSION} with cache pool at {path_to_pool}.")
 		super().__init__()
-		self.ignore_cache = ignore_cache if isinstance(ignore_cache, bool) else Settings.POOLCACHED
+		self.ignore_cache = ignore_cache if isinstance(ignore_cache, bool) else not Settings.POOLCACHED
 		self.errors = []
 		self.pool = Pool(path_to_pool) if path_to_pool else Pool(Settings.POOLPATH)
 		basepath_deb = self.pool.mkdir(self.PATH_DEB)

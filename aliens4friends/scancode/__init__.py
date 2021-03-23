@@ -17,7 +17,7 @@ class Scancode:
 
 	def __init__(self, path_to_pool = None, ignore_cache = None):
 		super().__init__()
-		self.ignore_cache = ignore_cache if isinstance(ignore_cache, bool) else Settings.POOLCACHED
+		self.ignore_cache = ignore_cache if isinstance(ignore_cache, bool) else not Settings.POOLCACHED
 		self.pool = Pool(path_to_pool) if path_to_pool else Pool(Settings.POOLPATH)
 
 	def run(self, archive : Archive, package_name, package_version_str):
