@@ -6,6 +6,8 @@ from aliens4friends.scancode import run_scancode
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.archive import Archive
 
+CLEAN = True
+
 def test_single():
 	pool = Pool(
 		os.path.join(
@@ -42,6 +44,6 @@ def test_single_from_matcheroutput():
 				j = json.load(jsonfile)
 			m = j["debian"]["match"]
 			a = Archive(pool.abspath(m["debsrc_orig"]))
-			run_scancode(pool, a, m["name"], m["version"])
+			run_scancode(pool, a, m["name"], m["version"], CLEAN)
 		except Exception as ex:
 			print(f"######### ERROR: {path} --> {ex} ###################################################")

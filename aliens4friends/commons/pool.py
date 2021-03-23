@@ -1,6 +1,7 @@
 import os
 from json import dump as jsondump, load as jsonload
 from pathlib import Path
+from shutil import rmtree
 from .utils import copy, mkdir
 
 class Pool:
@@ -73,3 +74,10 @@ class Pool:
 	def relglob(self, glob, *path_args):
 		path = self.relpath(*path_args)
 		return Path(path).rglob(glob)
+
+	def rm(self, *path_args):
+		path = self.relpath(*path_args)
+		if os.path.isdir(path):
+			rmtree(path)
+		elif os.path.isfile(path) or os.path.islink(path):
+			os.remove(path)
