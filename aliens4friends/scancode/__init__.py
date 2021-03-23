@@ -47,7 +47,7 @@ class Scancode:
 				os.rename(os.path.join(archive_unpacked, "scanresult.json"), scancode_result)
 			else:
 				bash_live(
-					f"scancode -n8 -cli --strip-root --json {scancode_result} {archive_unpacked}",
+					f"scancode -n8 -cli --strip-root --json {scancode_result} {archive_unpacked} 2>&1",
 					prefix = "SCANCODE (native)"
 				)
 		return scancode_result
