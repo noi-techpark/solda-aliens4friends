@@ -26,6 +26,7 @@ import sys
 
 from aliens4friends.commons.settings import Settings
 from aliens4friends.alienmatcher import AlienMatcher
+from aliens4friends.scancode import Scancode
 
 from aliens4friends.tests import test_debian2spdx
 from aliens4friends.tests import test_alienmatcher
@@ -87,7 +88,12 @@ if __name__ == "__main__":
 		]
 		AlienMatcher.execute(file_list)
 	elif args.CMD == "scancode":
-		print("Not implemented yet")
+		logger = logging.getLogger('aliens4friends.scancode')
+		logger.setLevel(Settings.LOGLEVEL)
+		file_list = [
+			f.name for f in args.FILES
+		]
+		Scancode.execute(file_list)
 	elif args.CMD == "deltacode":
 		print("Not implemented yet")
 	elif args.CMD == "config":

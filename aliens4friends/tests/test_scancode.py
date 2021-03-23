@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import json
 
-from aliens4friends.scancode import run_scancode
+from aliens4friends.scancode import Scancode
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.archive import Archive
 
@@ -25,7 +25,7 @@ def test_single():
 
 	archive = Archive(archive_path)
 
-	res = run_scancode(pool, archive, package_name, package_version_str)
+	res = Scancode.execute(archive, package_name, package_version_str)
 
 	print(res)
 
@@ -38,12 +38,4 @@ def test_single_from_matcheroutput():
 		)
 	)
 
-	for path in pool.absglob("*.alienmatcher.json"):
-		try:
-			with open(path, "r") as jsonfile:
-				j = json.load(jsonfile)
-			m = j["debian"]["match"]
-			a = Archive(pool.abspath(m["debsrc_orig"]))
-			run_scancode(pool, a, m["name"], m["version"], CLEAN)
-		except Exception as ex:
-			print(f"######### ERROR: {path} --> {ex} ###################################################")
+	Scancode.execute(pool.absglob("*.alienmatcher.json"))
