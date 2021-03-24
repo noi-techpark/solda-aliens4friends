@@ -5,7 +5,7 @@ import json
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.archive import Archive
-from aliens4friends.commons.utils import bash_live
+from aliens4friends.commons.utils import bash, bash_live
 from aliens4friends.commons.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -53,11 +53,16 @@ class Scancode:
 		if os.path.exists(scancode_result):
 			logger.info(f"| Skipping because result already exists (cache enabled): {scancode_result}")
 		else:
+			out, err = bash('grep "cpu cores" /proc/cpuinfo | uniq | cut -d" " -f3')
+			cores = int(out)
+			out, err = bash("cat /proc/meminfo | grep MemTotal | grep -oP '\d+'")
+			memory = int(out)
+			max_in_mem = int(memory/810) # rule of the thumb to optimize this setting
 			try:
 				if Settings.SCANCODE_WRAPPER:
 					bash_live(
 						f"cd {archive_unpacked}" +
-						f"&& scancode-wrapper -n8 -cli --strip-root --json /userland/scanresult.json /userland",
+						f"&& scancode-wrapper -n {cores} --max-in-memory {max_in_mem} -cli --strip-root --json /userland/scanresult.json /userland",
 						prefix = "SCANCODE (wrapper)",
 						exception = ScancodeError
 					)
@@ -65,7 +70,7 @@ class Scancode:
 					os.rename(os.path.join(archive_unpacked, "scanresult.json"), scancode_result)
 				else:
 					bash_live(
-						f"scancode -n8 -cli --strip-root --json {scancode_result} {archive_unpacked} 2>&1",
+						f"scancode -n {cores} --max-in-memory {max_in_mem} -cli --strip-root --json {scancode_result} {archive_unpacked} 2>&1",
 						prefix = "SCANCODE (native)",
 						exception = ScancodeError
 					)
