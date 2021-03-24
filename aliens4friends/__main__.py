@@ -28,6 +28,8 @@ from aliens4friends.commons.settings import Settings
 from aliens4friends.alienmatcher import AlienMatcher
 from aliens4friends.scancode import Scancode
 from aliens4friends.deltacodeng import DeltaCodeNG
+from aliens4friends.debian2spdx import Debian2SPDX
+from aliens4friends.debian2alienspdx import Debian2AlienSPDX
 
 from aliens4friends.tests import test_debian2spdx
 from aliens4friends.tests import test_alienmatcher
@@ -36,7 +38,7 @@ from aliens4friends.tests import test_alienpackage
 from aliens4friends.tests import test_scancode
 
 PROGNAME = "aliens4friends"
-SUPPORTED_COMMANDS = ["match", "scancode", "deltacode", "config"]
+SUPPORTED_COMMANDS = ["match", "scancode", "deltacode", "debian2spdx", "debian2alienspdx" "config"]
 
 if __name__ == "__main__":
 
@@ -102,6 +104,20 @@ if __name__ == "__main__":
 			f.name for f in args.FILES
 		]
 		DeltaCodeNG.execute(file_list)
+	elif args.CMD == "debian2spdx":
+		logger = logging.getLogger('aliens4friends.debian2spdx')
+		logger.setLevel(Settings.LOGLEVEL)
+		file_list = [
+			f.name for f in args.FILES
+		]
+		Debian2SPDX.execute(file_list)
+	elif args.CMD == "debian2alienspdx":
+		logger = logging.getLogger('aliens4friends.debian2alienspdx')
+		logger.setLevel(Settings.LOGLEVEL)
+		file_list = [
+			f.name for f in args.FILES
+		]
+		Debian2AlienSPDX.execute(file_list)
 	elif args.CMD == "config":
 		for k, v in Settings.DOTENV.items():
 			print(f"{k}={v}")
@@ -117,4 +133,3 @@ if __name__ == "__main__":
 	# test_alienpackage.test1()
 	# test_scancode.test_single()
 	# test_scancode.test_single_from_matcheroutput()
-
