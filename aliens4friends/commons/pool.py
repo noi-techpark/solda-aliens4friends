@@ -47,7 +47,7 @@ class Pool:
 		dest = os.path.join(dest_folder, path_args[-1])
 		self.mkdir(dest_folder)
 		with open(dest, 'w') as f:
-			jsondump(contents, f)
+			jsondump(contents, f, indent = 2)
 		return dest
 
 	def get(self, *path_args):

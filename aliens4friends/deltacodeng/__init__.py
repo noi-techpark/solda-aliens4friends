@@ -5,10 +5,16 @@
 import json
 import re
 import sys
+import logging
 from datetime import datetime
 import difflib
 
 from deepdiff import DeepDiff
+
+from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.settings import Settings
+
+logger = logging.getLogger(__name__)
 
 SCANCODE_VERSION = '3.2.3'
 
@@ -218,3 +224,43 @@ class DeltaCodeNG:
 	def write_results(self):
 		with open(self.result_file, "w") as f:
 			json.dump(self.res, f, indent=2)
+
+	@staticmethod
+	def execute(alienmatcher_json_list):
+
+		pool = Pool(Settings.POOLPATH)
+
+		for path in alienmatcher_json_list:
+			try:
+				with open(path, "r") as jsonfile:
+					j = json.load(jsonfile)
+			except Exception as ex:
+				logger.error(f"Unable to load json from {path}.")
+				continue
+
+			try:
+				m = j["debian"]["match"]
+				a = j["aliensrc"]
+				deltacode = DeltaCodeNG(
+					pool.abspath(
+						"debian",
+						m["name"],
+						m["version"],
+						f'{m["name"]}_{m["version"]}.scancode.json'
+					),
+					pool.abspath(
+						"userland",
+						a["name"],
+						a["version"],
+						f'{a["name"]}_{a["version"]}.scancode.json'
+					),
+					pool.abspath(
+						"userland",
+						a["name"],
+						a["version"],
+						f'{a["name"]}_{a["version"]}.deltacode.json'
+					))
+				deltacode.compare()
+				deltacode.write_results()
+			except Exception as ex:
+				logger.error(f"{path} --> {ex}")
