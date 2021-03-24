@@ -218,8 +218,12 @@ class DeltaCodeNG:
 			self.res['header']['stats'].update({k: len(v)})
 
 	def print_stats(self):
+		for stat in self.get_stats():
+			print(stat)
+
+	def get_stats(self):
 		for k,v in self.res['body'].items():
-			print(f'{k}: {len(v)}')
+			yield (f'{k}: {len(v)}')
 
 	def write_results(self):
 		with open(self.result_file, "w") as f:
@@ -241,6 +245,12 @@ class DeltaCodeNG:
 			try:
 				m = j["debian"]["match"]
 				a = j["aliensrc"]
+				result_path = pool.abspath(
+					"userland",
+					a["name"],
+					a["version"],
+					f'{a["name"]}_{a["version"]}.deltacode.json'
+				)
 				deltacode = DeltaCodeNG(
 					pool.abspath(
 						"debian",
@@ -254,13 +264,13 @@ class DeltaCodeNG:
 						a["version"],
 						f'{a["name"]}_{a["version"]}.scancode.json'
 					),
-					pool.abspath(
-						"userland",
-						a["name"],
-						a["version"],
-						f'{a["name"]}_{a["version"]}.deltacode.json'
-					))
+					result_path
+				)
 				deltacode.compare()
 				deltacode.write_results()
+				logger.info(f'Results written to {result_path}')
+				logger.info('Stats:')
+				for stat in deltacode.get_stats():
+					logger.info(stat)
 			except Exception as ex:
 				logger.error(f"{path} --> {ex}")
