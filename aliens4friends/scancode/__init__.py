@@ -106,7 +106,7 @@ class Scancode:
 						f"alien-{m['name']}-{m['version']}.aliensrc"
 					)
 				)
-				scancode.run(a, m["name"], m["version"], m["internal_archive_name"])
+				scancode.run(a, m["name"], m["version"], os.path.join("files", m["internal_archive_name"]))
 			except Exception as ex:
 				logger.error(f"{path} --> {ex}")
 
