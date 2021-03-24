@@ -12,6 +12,7 @@
 
 import os
 import re
+import json
 import logging
 from uuid import uuid4
 from typing import List, Tuple, Type, Dict, Union
@@ -39,6 +40,11 @@ from flanker.addresslib import address as email_address
 
 from aliens4friends.commons.utils import bash, md5
 from aliens4friends.commons.archive import Archive
+
+from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.settings import Settings
+
+logger = logging.getLogger(__name__)
 
 # Conversion table from DEP5 to SPDX license identifiers
 # https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/#license-specification
@@ -418,3 +424,34 @@ class Debian2SPDX:
 		filename = filename or f"{self.spdx_doc.name}.spdx"
 		with open(filename, "w") as f:
 			write_document(self.spdx_doc, f, validate=False)
+
+
+	@staticmethod
+	def execute(alienmatcher_json_list):
+
+		pool = Pool(Settings.POOLPATH)
+
+		for path in alienmatcher_json_list:
+			try:
+				with open(path, "r") as jsonfile:
+					j = json.load(jsonfile)
+			except Exception as ex:
+				logger.error(f"Unable to load json from {path}.")
+				continue
+
+			try:
+				m = j["debian"]["match"]
+				debsrc_orig = pool.abspath(m["debsrc_orig"])
+				debsrc_debian = pool.abspath(m["debsrc_debian"])
+				debian_spdx_filename = pool.abspath(
+					"debian",
+					m["name"],
+					m["version"],
+					f'{m["name"]}_{m["version"]}.spdx'
+				)
+				d2s = Debian2SPDX(debsrc_orig, debsrc_debian)
+				d2s.generate_SPDX()
+				d2s.write_SPDX(debian_spdx_filename)
+
+			except Exception as ex:
+				logger.error(f"{path} --> {ex}")
