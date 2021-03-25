@@ -454,4 +454,4 @@ class Debian2SPDX:
 				d2s.write_SPDX(debian_spdx_filename)
 
 			except Exception as ex:
-				logger.error(f"{path} --> {ex}")
+				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")

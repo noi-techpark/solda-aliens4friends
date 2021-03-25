@@ -101,7 +101,7 @@ class Scancode:
 				if Settings.PRINTRESULT:
 					print(result)
 			except Exception as ex:
-				logger.error(f"{path} --> {ex}")
+				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
 
 			try:
 				m = j["aliensrc"]
@@ -122,5 +122,5 @@ class Scancode:
 				if Settings.PRINTRESULT:
 					print(json.dumps(json.loads(result), indent=2))
 			except Exception as ex:
-				logger.error(f"{path} --> {ex}")
+				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
 

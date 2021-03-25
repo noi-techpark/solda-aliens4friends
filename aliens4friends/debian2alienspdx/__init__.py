@@ -128,7 +128,7 @@ class Debian2AlienSPDX:
 					f'{a["internal_archive_name"]}.spdx'
 				)
 			except Exception as ex:
-				logger.error(f"{path} --> {ex}")
+				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
 
 			try:
 				debian_spdx, err = parse_spdx_tv(debian_spdx_filename)

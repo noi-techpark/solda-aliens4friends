@@ -276,4 +276,4 @@ class DeltaCodeNG:
 				if Settings.PRINTRESULT:
 					print(json.dumps(result, indent=2))
 			except Exception as ex:
-				logger.error(f"{path} --> {ex}")
+				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
