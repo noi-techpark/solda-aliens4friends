@@ -212,6 +212,7 @@ class DeltaCodeNG:
 				else:
 					self.res['body']['new_files_with_license_or_copyright'].append(path)
 		self.add_stats()
+		return self.res
 
 	def add_stats(self):
 		for k,v in self.res['body'].items():
@@ -266,11 +267,13 @@ class DeltaCodeNG:
 					),
 					result_path
 				)
-				deltacode.compare()
+				result = deltacode.compare()
 				deltacode.write_results()
 				logger.info(f'Results written to {result_path}')
 				logger.info('Stats:')
 				for stat in deltacode.get_stats():
 					logger.info(stat)
+				if Settings.PRINTRESULT:
+					print(json.dumps(result, indent=2))
 			except Exception as ex:
 				logger.error(f"{path} --> {ex}")

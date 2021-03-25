@@ -14,10 +14,12 @@ Configuration
 Use a .env file to configure this script, we will take defaults, if
 nothing has been set.
 
-- A4F_POOL  : Path to the cache pool
-- A4F_CACHE : True/False if cache should be used or overwritten
-- A4F_DEBUG : Debug level as seen inside the "logging" package
-
+- A4F_POOL        : Path to the cache pool
+- A4F_CACHE       : True/False, if cache should be used or overwritten (default = True)
+- A4F_DEBUG       : Debug level as seen inside the "logging" package (default = INFO)
+- A4F_SCANCODE    : wrapper/native, whether we use a natively installed scancode or
+                    run it from our docker wrapper (default = native)
+- A4F_PRINTRESULT : Print results also to stdout
 """
 
 import logging
@@ -38,7 +40,14 @@ from aliens4friends.tests import test_alienpackage
 from aliens4friends.tests import test_scancode
 
 PROGNAME = "aliens4friends"
-SUPPORTED_COMMANDS = ["match", "scancode", "deltacode", "debian2spdx", "debian2alienspdx" "config"]
+SUPPORTED_COMMANDS = [
+	"match",
+	"scancode",
+	"deltacode",
+	"debian2spdx",
+	"debian2alienspdx",
+	"config"
+]
 
 if __name__ == "__main__":
 
@@ -47,8 +56,43 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(conflict_handler='resolve', prog=PROGNAME)
 
 	parser.add_argument(
+		"-i",
+		"--ignore-cache",
+		action = "store_true",
+		default = False,
+		help = f"Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var."
+	)
+
+	group = parser.add_mutually_exclusive_group()
+
+	group.add_argument(
+		"-v",
+		"--verbose",
+		action = "store_true",
+		default = False,
+		help = "Show debug output. This overrides the A4F_LOGLEVEL env var."
+	)
+
+	group.add_argument(
+		"-q",
+		"--quiet",
+		action = "store_true",
+		default = False,
+		help = "Show only warnings and errors. This overrides the A4F_LOGLEVEL env var."
+	)
+
+	parser.add_argument(
+		"-p",
+		"--print",
+		action = "store_true",
+		default = False,
+		help = "Print result also to stdout."
+	)
+
+	parser.add_argument(
 		"CMD",
-		help = f"The main command: {SUPPORTED_COMMANDS}"
+		help = f"The main command",
+		choices = SUPPORTED_COMMANDS
 	)
 
 	parser.add_argument(
@@ -82,6 +126,18 @@ if __name__ == "__main__":
 
 	# Now parse regular command line arguments
 	args = parser.parse_args()
+
+	if args.ignore_cache:
+		Settings.DOTENV["A4F_CACHE"] = Settings.POOLCACHED = False
+
+	if args.verbose:
+		Settings.DOTENV["A4F_LOGLEVEL"] = Settings.LOGLEVEL = "DEBUG"
+
+	if args.quiet:
+		Settings.DOTENV["A4F_LOGLEVEL"] = Settings.LOGLEVEL = "WARNING"
+
+	if args.print:
+		Settings.DOTENV["A4F_PRINTRESULT"] = Settings.PRINTRESULT = True
 
 	if args.CMD == "match":
 		logger = logging.getLogger('aliens4friends.alienmatcher')

@@ -23,3 +23,7 @@ class Settings:
 	except KeyError:
 		SCANCODE_WRAPPER = DOTENV["A4F_SCANCODE"] = False
 
+	try:
+		PRINTRESULT = bool(DOTENV["A4F_PRINTRESULT"])
+	except KeyError:
+		PRINTRESULT = DOTENV["A4F_PRINTRESULT"] = True

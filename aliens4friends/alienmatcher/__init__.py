@@ -63,7 +63,6 @@ class AlienMatcher:
 	}
 
 	def __init__(self, path_to_pool = None, ignore_cache = None):
-		logger.debug(f"# Initializing ALIENMATCHER v{self.VERSION} with cache pool at {path_to_pool}.")
 		super().__init__()
 		self.ignore_cache = ignore_cache if isinstance(ignore_cache, bool) else not Settings.POOLCACHED
 		self.errors = []
@@ -71,9 +70,10 @@ class AlienMatcher:
 		basepath_deb = self.pool.mkdir(self.PATH_DEB)
 		basepath_usr = self.pool.mkdir(self.PATH_USR)
 		basepath_tmp = self.pool.mkdir(self.PATH_TMP)
+		logger.debug(f"# Initializing ALIENMATCHER v{self.VERSION} with cache pool")
 		logger.debug(f"| Pool directory structure created (ignore_cache = {ignore_cache}):")
 		logger.debug(f"|   - Debian Path          : {basepath_deb}")
-		logger.debug(f"|   - Userland Path	      : {basepath_usr}")
+		logger.debug(f"|   - Userland Path        : {basepath_usr}")
 		logger.debug(f"|   - Temporary Files Path : {basepath_tmp}")
 
 	def _reset(self):
@@ -358,6 +358,7 @@ class AlienMatcher:
 					"version": apkg.version.str,
 					"alternative_names": apkg.alternative_names,
 					"internal_archive_name": apkg.internal_archive_name,
+					"filename": apkg.archive_name,
 					"files": apkg.package_files
 				},
 				"debian": {
@@ -401,7 +402,7 @@ class AlienMatcher:
 	def run(self, package_path):
 		try:
 			filename = os.path.basename(package_path)
-			print(f"{filename:<80}", end="")
+			logging.info(f"{filename:<80}", end="")
 			package = AlienPackage(package_path)
 			match = self.match(package)
 			errors = match["errors"]
@@ -421,17 +422,20 @@ class AlienMatcher:
 			outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'
 			if not debsrc_debian and not debsrc_orig and not errors:
 				errors = 'FATAL: NO MATCH without errors'
-			print(f"{outcome:<10}{debsrc_debian:<60}{debsrc_orig:<60}{errors if errors else ''}")
+			logging.info(f"{outcome:<10}{debsrc_debian:<60}{debsrc_orig:<60}{errors if errors else ''}")
 		except (AlienMatcherError, PackageError) as ex:
 			if str(ex) == "No internal archive":
-				print(f"{'IGNORED':<10}{'':<60}{'':<60}{ex}")
+				logging.warning(f"{'IGNORED':<10}{'':<60}{'':<60}{ex}")
 			elif str(ex) == "Can't find a similar package on Debian repos":
-				print(f"{'NO MATCH':<10}{'':<60}{'':<60}{ex}")
+				logging.warning(f"{'NO MATCH':<10}{'':<60}{'':<60}{ex}")
 			else:
-				print(f"{'ERROR':<10}{'':<60}{'':<60}{ex}")
+				logging.error(f"{'ERROR':<10}{'':<60}{'':<60}{ex}")
+		return match
 
 	@staticmethod
 	def execute(alienpackage_list):
 		matcher = AlienMatcher()
 		for p in alienpackage_list:
-			matcher.run(p)
+			result = matcher.run(p)
+			if Settings.PRINTRESULT:
+				print(json.dumps(result, indent=2))
