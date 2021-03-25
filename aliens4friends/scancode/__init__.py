@@ -110,10 +110,15 @@ class Scancode:
 						"userland",
 						m["name"],
 						m["version"],
-						f"alien-{m['name']}-{m['version']}.aliensrc"
+						m["filename"]
 					)
 				)
-				result = scancode.run(a, m["name"], m["version"], os.path.join("files", m["internal_archive_name"]))
+				result = scancode.run(
+					a,
+					m["name"],
+					m["version"],
+					os.path.join("files", m["internal_archive_name"])
+				)
 				if Settings.PRINTRESULT:
 					print(json.dumps(json.loads(result), indent=2))
 			except Exception as ex:

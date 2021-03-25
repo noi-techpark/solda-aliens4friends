@@ -119,7 +119,7 @@ class Debian2AlienSPDX:
 					"userland",
 					a["name"],
 					a["version"],
-					f'alien-{a["name"]}-{a["version"]}.aliensrc'	 #FIME: the alienpackage name should be added to alienmatcher!
+					a["filename"]
 				)
 				alien_spdx_filename = pool.abspath(
 					"userland",
