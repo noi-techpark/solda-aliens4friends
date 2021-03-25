@@ -21,7 +21,7 @@ from aliens4friends.commons.settings import Settings
 
 logger = logging.getLogger(__name__)
 
-class Debian2AlienSPDXException:
+class Debian2AlienSPDXException(Exception):
 	pass
 
 class Debian2AlienSPDX:
@@ -55,7 +55,7 @@ class Debian2AlienSPDX:
 					deb2alien_file.chk_sum = SPDXAlgorithm("SHA1", alien_file_sha1)
 					alien_spdx_files.append(deb2alien_file)
 				else:
-					raise Exception(
+					raise Debian2AlienSPDXException(
 						f"Something's wrong, can't find {alien_spdx_file} in SPDX doc"
 					)
 			else:
