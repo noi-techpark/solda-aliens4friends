@@ -20,6 +20,10 @@ nothing has been set.
 - A4F_SCANCODE    : wrapper/native, whether we use a natively installed scancode or
                     run it from our docker wrapper (default = native)
 - A4F_PRINTRESULT : Print results also to stdout
+- SPDX_TOOLS_CMD  : command to invoke java spdx tools (default =
+                    'java -jar /usr/local/lib/spdx-tools-2.2.5-jar-with-dependencies.jar')
+- FOSSY_USER, FOSSY_PASSWORD, FOSSY_GROUP_ID, FOSSY_SERVER: parameters to access fossology
+                    server (defaults: 'fossy', 'fossy', 3, 'http://localhost/repo').
 """
 
 import logging
@@ -32,6 +36,7 @@ from aliens4friends.scancode import Scancode
 from aliens4friends.deltacodeng import DeltaCodeNG
 from aliens4friends.debian2spdx import Debian2SPDX
 from aliens4friends.debian2alienspdx import Debian2AlienSPDX
+from aliens4friends.alienspdx2fossy import AlienSPDX2Fossy
 
 from aliens4friends.tests import test_debian2spdx
 from aliens4friends.tests import test_alienmatcher
@@ -46,6 +51,7 @@ SUPPORTED_COMMANDS = [
 	"deltacode",
 	"debian2spdx",
 	"debian2alienspdx",
+	"alienspdx2fossy",
 	"config"
 ]
 
@@ -174,6 +180,13 @@ if __name__ == "__main__":
 			f.name for f in args.FILES
 		]
 		Debian2AlienSPDX.execute(file_list)
+	elif args.CMD == "alienspdx2fossy":
+		logger = logging.getLogger('aliens4friends.alienspdx2fossy')
+		logger.setLevel(Settings.LOGLEVEL)
+		file_list = [
+			f.name for f in args.FILES
+		]
+		AlienSPDX2Fossy.execute(file_list)
 	elif args.CMD == "config":
 		for k, v in Settings.DOTENV.items():
 			print(f"{k}={v}")

@@ -48,6 +48,18 @@ class Archive:
 		stdout, _ = self._make_tar_cmd(f'{archive_in_archive} --to-command="{internal_cmd}"')
 		return Archive._parse_sha1sum(stdout)
 
+	def in_archive_rootfolder(self, archive_in_archive):
+		"""Get internal archive rootfolder, eg. 'foo-1.0.0/'"""
+		internal_cmd = f"tar {Archive._get_tar_param(archive_in_archive)}tf -"
+		stdout, _ = self._make_tar_cmd(f'{archive_in_archive} --to-command="{internal_cmd}" | grep -E "^[^\\/]+/$"')
+		r = stdout.split('\n')
+		r.remove('')
+		if len(r) > 1:
+			raise ArchiveError("more than one root folders in internal archive {archive_in_archive}")
+		elif len(r) == 0:
+			raise ArchiveError("no root folder in internal archive {archive_in_archive}")
+		return r[0].replace('/', '')
+
 	def extract(self, dest):
 		return self._make_tar_cmd(f'-C {dest} --strip 1')
 
