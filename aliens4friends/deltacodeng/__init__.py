@@ -252,6 +252,9 @@ class DeltaCodeNG:
 					a["version"],
 					f'{a["name"]}_{a["version"]}.deltacode.json'
 				)
+				if os.path.isfile(result_path) and Settings.POOLCACHED:
+					logger.debug(f"{result_path} already existing, skipping")
+					continue
 				deltacode = DeltaCodeNG(
 					pool.abspath(
 						"debian",
