@@ -18,7 +18,7 @@ class Archive:
 			"tarparam": "j"
 		},
 		".aliensrc": {
-			"tarparam": "z"
+			"tarparam": ""
 		}
 	}
 
