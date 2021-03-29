@@ -398,9 +398,9 @@ class AlienMatcher:
 			except AlienMatcherError as ex:
 				self.errors.append(str(ex))
 
-		json_data["errors"] = self.errors
-		self.pool.write_json(json_data, resultpath)
-		logger.debug(f"| Result written to {resultpath}.")
+			json_data["errors"] = self.errors
+			self.pool.write_json(json_data, resultpath)
+			logger.debug(f"| Result written to {resultpath}.")
 		return json_data
 
 	def run(self, package_path):
@@ -427,6 +427,7 @@ class AlienMatcher:
 			if not debsrc_debian and not debsrc_orig and not errors:
 				errors = 'FATAL: NO MATCH without errors'
 			logging.info(f"{outcome:<10}{debsrc_debian:<60}{debsrc_orig:<60}{errors if errors else ''}")
+			return match
 		except (AlienMatcherError, PackageError) as ex:
 			if str(ex) == "No internal archive":
 				logging.warning(f"{'IGNORED':<10}{'':<60}{'':<60}{ex}")
@@ -434,7 +435,8 @@ class AlienMatcher:
 				logging.warning(f"{'NO MATCH':<10}{'':<60}{'':<60}{ex}")
 			else:
 				logging.error(f"{'ERROR':<10}{'':<60}{'':<60}{ex}")
-		return match
+			return None
+
 
 	@staticmethod
 	def execute(alienpackage_list):
