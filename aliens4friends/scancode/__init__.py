@@ -40,11 +40,15 @@ class Scancode:
 	def run(self, archive : Archive, package_name, package_version_str, archive_in_archive = None):
 
 		result_filename = f"{package_name}_{package_version_str}.scancode.json"
+		spdx_filename = f"{package_name}_{package_version_str}.scancode.spdx"
 		scancode_result = os.path.join(
 			os.path.dirname(archive.path),
 			result_filename
 		)
-
+		scancode_spdx = os.path.join(
+			os.path.dirname(archive.path),
+			spdx_filename
+		)
 		if self.ignore_cache:
 			self.pool.rm(scancode_result)
 
@@ -62,15 +66,16 @@ class Scancode:
 				if Settings.SCANCODE_WRAPPER:
 					bash_live(
 						f"cd {archive_unpacked}" +
-						f"&& scancode-wrapper -n {cores} --max-in-memory {max_in_mem} -cli --strip-root --json /userland/scanresult.json /userland",
+						f"&& scancode-wrapper -n {cores} --max-in-memory {max_in_mem} -cli --strip-root --json /userland/scanresult.json --spdx-tv /userland/scancode.spdx /userland",
 						prefix = "SCANCODE (wrapper)",
 						exception = ScancodeError
 					)
 					# Move scanresults into parent directory
 					os.rename(os.path.join(archive_unpacked, "scanresult.json"), scancode_result)
+					os.rename(os.path.join(archive_unpacked, "scancode.spdx"), scancode_spdx)
 				else:
 					bash_live(
-						f"scancode -n {cores} --max-in-memory {max_in_mem} -cli --strip-root --json {scancode_result} {archive_unpacked} 2>&1",
+						f"scancode -n {cores} --max-in-memory {max_in_mem} -cli --strip-root --json {scancode_result} --spdx-tv {scancode_spdx} {archive_unpacked} 2>&1",
 						prefix = "SCANCODE (native)",
 						exception = ScancodeError
 					)
