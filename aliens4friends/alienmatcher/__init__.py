@@ -248,7 +248,10 @@ class AlienMatcher:
 
 		best_version = nn1[0] if nn1[1] < nn2[1] else nn2[0]
 
-		logger.debug(f"| Nearest neighbor on Debian is {cur_package_name}/{best_version.str}.")
+		if best_version:
+			logger.debug(f"| Nearest neighbor on Debian is {cur_package_name}/{best_version.str}.")
+		else:
+			logger.debug(f"| Found no neighbor on Debian.")
 
 		return Package(name = cur_package_name, version = best_version)
 
