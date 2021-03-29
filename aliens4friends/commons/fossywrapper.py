@@ -48,7 +48,7 @@ class FossyWrapper:
 				token_scope=TokenScope.WRITE,
 				token_expire=token_expire,
 			)
-		except:
+		except Exception:
 			raise FossyWrapperException(
 				"something is wrong with "
 				"fossology server; I can connect to WebUI but I can't generate "
@@ -59,7 +59,7 @@ class FossyWrapper:
 		self._get_fossy_token()
 		try:
 			return Fossology(Settings.FOSSY_SERVER, self.fossy_token, Settings.FOSSY_USER)
-		except:
+		except Exception:
 			raise FossyWrapperException(
 				"something is wrong with "
 				"fossology server; I can generate a token but I can't connect "
@@ -74,7 +74,7 @@ class FossyWrapper:
 			sleep(10)
 			try:
 				jobs = self.fossology.list_jobs(upload=upload, page_size=2000)
-			except:
+			except Exception:
 				pass
 			if jobs:
 				all_completed = True
