@@ -447,10 +447,15 @@ class Debian2SPDX:
 					"debian",
 					m["name"],
 					m["version"],
-					f'{m["name"]}_{m["version"]}.spdx'
+					f'{m["name"]}_{m["version"]}.debian.spdx'
 				)
+				if os.path.isfile(debian_spdx_filename) and Settings.POOLCACHED:
+					logger.debug(f"{debian_spdx_filename} already existing, skipping")
+					continue
+				logger.info(f"generating spdx from {debsrc_orig} and {debsrc_debian}")
 				d2s = Debian2SPDX(debsrc_orig, debsrc_debian)
 				d2s.generate_SPDX()
+				logger.info(f"writing spdx to {debian_spdx_filename}")
 				d2s.write_SPDX(debian_spdx_filename)
 
 			except Exception as ex:
