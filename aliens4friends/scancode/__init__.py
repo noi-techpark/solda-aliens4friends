@@ -54,7 +54,7 @@ class Scancode:
 
 		archive_unpacked = self._unpack(archive, archive_in_archive)
 		logger.info(f"# Run SCANCODE on {archive_unpacked}... This may take a while!")
-		if os.path.exists(scancode_result):
+		if os.path.exists(scancode_result): # FIXME cache controls should be moved to Pool
 			logger.info(f"| Skipping because result already exists (cache enabled): {scancode_result}")
 		else:
 			out, err = bash('grep "cpu cores" /proc/cpuinfo | uniq | cut -d" " -f3')

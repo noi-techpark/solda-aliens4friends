@@ -1,6 +1,9 @@
 import json
 import yaml
 import logging
+import os
+
+from datetime import datetime
 
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.settings import Settings
@@ -37,10 +40,23 @@ class TinfoilHat2Dashboard:
 		return result
 
 	@staticmethod
+	def _parse_metadata(cur):
+		SKIP_LIST = [
+			"license",
+			"compiled_source_dir"
+		]
+		result = {}
+		for k, v in cur.items():
+			if k in SKIP_LIST:
+				continue
+			result[k] = v
+		return result
+
+	@staticmethod
 	def _parse_package(cur):
 		return {
 			"package": {
-				"metadata": cur["package"]["metadata"],
+				"metadata": TinfoilHat2Dashboard._parse_metadata(cur["package"]["metadata"]),
 				# "files": cur["package"]["files"] <-- XXX Re-add it after first MVP
 			},
 			"tags": cur["tags"]
@@ -49,7 +65,7 @@ class TinfoilHat2Dashboard:
 	@staticmethod
 	def _parse_recipe(cur):
 		return {
-			"metadata": cur["metadata"],
+			"metadata": TinfoilHat2Dashboard._parse_metadata(cur["metadata"]),
 			"source_files": cur["source_files"]
 		}
 
@@ -73,14 +89,19 @@ class TinfoilHat2Dashboard:
 			)
 
 		pool = Pool(Settings.POOLPATH)
-		result_path = pool.abspath(
-					"userland",
-					"__dashboard"
-					f'xxx.dashboard.json'
-				)
+		result_path = pool.abspath("stats")
 
+		pool.mkdir(result_path)
 
-		tfh = TinfoilHat2Dashboard(yaml_files[0], result_path)
+		result_file = f'{datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}.dashboard.json'
+
+		tfh = TinfoilHat2Dashboard(
+			yaml_files[0],
+			os.path.join(
+				result_path,
+				result_file
+			)
+		)
 		tfh.readfile()
 
 		tfh.write_results()
