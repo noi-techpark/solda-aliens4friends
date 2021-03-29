@@ -15,18 +15,25 @@ class TinfoilHat2DashboardException(Exception):
 
 class TinfoilHat2Dashboard:
 
-	def __init__(self, tinfoilhat_yaml : str, result_file : str):
+	def __init__(self, tinfoilhat_yaml_files, result_file : str):
 		super().__init__()
-		self.inputfile = tinfoilhat_yaml
+		self.inputfiles = tinfoilhat_yaml_files
 		self.result_file = result_file
 		self.yaml = None
 		self.result = {}
 
 
 	def readfile(self):
-		with open(self.inputfile) as f:
-			self.yaml = yaml.safe_load(f)
-		self.result = TinfoilHat2Dashboard._parse_main(self.yaml)
+		for path in self.inputfiles:
+			with open(path) as f:
+				logger.debug(f"Parsing {path}...")
+				recipe = TinfoilHat2Dashboard._parse_main(yaml.safe_load(f))
+				for k,v in recipe.items():
+					if k in self.result:
+						raise TinfoilHat2DashboardException(
+							f"Recipe with name {k} already exists!"
+						)
+					self.result[k] = v
 
 	def write_results(self):
 		with open(self.result_file, "w") as f:
@@ -83,11 +90,6 @@ class TinfoilHat2Dashboard:
 	@staticmethod
 	def execute(yaml_files):
 
-		if len(yaml_files) > 1:
-			raise TinfoilHat2DashboardException(
-				"We support currently only a single TinfoildHat YAML input file."
-			)
-
 		pool = Pool(Settings.POOLPATH)
 		result_path = pool.abspath("stats")
 
@@ -96,7 +98,7 @@ class TinfoilHat2Dashboard:
 		result_file = f'{datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}.dashboard.json'
 
 		tfh = TinfoilHat2Dashboard(
-			yaml_files[0],
+			yaml_files,
 			os.path.join(
 				result_path,
 				result_file
