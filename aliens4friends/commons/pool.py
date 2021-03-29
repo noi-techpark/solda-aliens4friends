@@ -3,6 +3,7 @@ from json import dump as jsondump, load as jsonload
 from pathlib import Path
 from shutil import rmtree
 from .utils import copy, mkdir
+from .settings import Settings
 
 class Pool:
 
@@ -30,6 +31,8 @@ class Pool:
 
 	def add(self, src, *path_args):
 		dest = self.abspath(*path_args)
+		if os.path.isfile(os.path.join(dest, os.path.basename(src))) and Settings.POOLCACHED:
+			return dest
 		self.mkdir(dest)
 		copy(src, os.path.join(dest, os.path.basename(src)))
 		return dest

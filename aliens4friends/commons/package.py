@@ -100,7 +100,8 @@ class AlienPackage(Package):
 
 		if len(checksums) != len(self.package_files):
 			raise PackageError(
-				f"We do not have the same number of archive-files and checksums inside {self.ALIEN_MATCHER_YAML}."
+				"We do not have the same number of archive-files and checksums"
+				f" inside {self.ALIEN_MATCHER_YAML} of package {self.name}-{self.version.str}"
 			)
 
 		arch_count = 0
@@ -129,9 +130,12 @@ class AlienPackage(Package):
 				self.internal_archive_name = rec['name']
 				self.internal_archive_checksums = (
 					archive.in_archive_checksums(f'files/{self.internal_archive_name}')
+				) # FIXME: optimize in order to untar internal archive only once
+				self.internal_archive_rootfolder = archive.in_archive_rootfolder(
+					f'files/{self.internal_archive_name}'
 				)
 				self.internal_archive_src_uri = rec['src_uri']
-	
+
 	def has_internal_archive(self):
 		return self.internal_archive_name and len(self.internal_archive_name) > 0
 

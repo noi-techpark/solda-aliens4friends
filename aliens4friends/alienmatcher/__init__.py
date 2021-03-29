@@ -82,13 +82,14 @@ class AlienMatcher:
 	def add_to_userland(self, alienpackage: AlienPackage):
 		if not isinstance(alienpackage, AlienPackage):
 			raise TypeError("Parameter must be a AlienPackage.")
+		logger.debug(f"| Adding package '{alienpackage.name}/{alienpackage.version.str}' to '{self.PATH_USR}'.")
 		self.pool.add(
 			alienpackage.archive_fullpath,
 			self.PATH_USR,
 			alienpackage.name,
 			alienpackage.version.str
 		)
-		logger.debug(f"| Adding package '{alienpackage.name}/{alienpackage.version.str}' to '{self.PATH_USR}'.")
+
 
 	def add_to_debian(self, package: Package):
 		if not isinstance(package, Package):
@@ -345,7 +346,7 @@ class AlienMatcher:
 				json_data["debian"]["match"]["debsrc_debian"],
 				json_data["debian"]["match"]["dsc_format"]
 			)
-			logger.debug("| Result already exists, skipping.")
+			logger.info("| Result already exists, skipping.")
 		except (FileNotFoundError, KeyError):
 
 			json_data = {

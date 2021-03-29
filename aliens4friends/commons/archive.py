@@ -18,7 +18,7 @@ class Archive:
 			"tarparam": "j"
 		},
 		".aliensrc": {
-			"tarparam": "z"
+			"tarparam": ""
 		}
 	}
 
@@ -47,6 +47,17 @@ class Archive:
 		internal_cmd = f"tar {Archive._get_tar_param(archive_in_archive)}xvf - {file_path} --to-command=sha1sum"
 		stdout, _ = self._make_tar_cmd(f'{archive_in_archive} --to-command="{internal_cmd}"')
 		return Archive._parse_sha1sum(stdout)
+
+	def in_archive_rootfolder(self, archive_in_archive):
+		"""Get internal archive rootfolder, eg. 'foo-1.0.0/'"""
+		internal_cmd = f"tar {Archive._get_tar_param(archive_in_archive)}tf -"
+		stdout, _ = self._make_tar_cmd(f'{archive_in_archive} --to-command="{internal_cmd}" | grep -v -E "^files/" | cut -d"/" -f 1 | uniq')
+		r = stdout.split('\n')
+		if '' in r:
+			r.remove('')
+		if len(r) != 1:
+			return None
+		return r[0]
 
 	def extract(self, dest):
 		return self._make_tar_cmd(f'-C {dest} --strip 1')
