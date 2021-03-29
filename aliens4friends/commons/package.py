@@ -100,7 +100,8 @@ class AlienPackage(Package):
 
 		if len(checksums) != len(self.package_files):
 			raise PackageError(
-				f"We do not have the same number of archive-files and checksums inside {self.ALIEN_MATCHER_YAML}."
+				"We do not have the same number of archive-files and checksums"
+				f" inside {self.ALIEN_MATCHER_YAML} of package {self.name}-{self.version.str}"
 			)
 
 		arch_count = 0
