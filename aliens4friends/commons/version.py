@@ -1,3 +1,5 @@
+import re
+
 from debian.debian_support import Version as DebVersion
 from packaging.version import Version as PkgVersion, parse, InvalidVersion
 
@@ -48,6 +50,7 @@ class Version:
 
 	def _version_simplify(self):
 		result = self._remove_epoc(self.str)
+		result = self._fix_tcp_wrappers_version(result) #FIXME generalize
 		countdots = 0
 		for i, ch in enumerate(result):
 			if ch.isalpha() or ch in "+-~":
@@ -140,4 +143,12 @@ class Version:
 				break
 		if i > 0 and i + 1 < len(vers_str) and vers_str[i] == ':':
 			return vers_str[i+1:]
+		return vers_str
+
+	@staticmethod
+	def _fix_tcp_wrappers_version(vers_str):
+		p = re.compile('(\d+\.\d+\.)q-(\d+)')
+		m = p.match(vers_str)
+		if m:
+			return ''.join(m.groups())
 		return vers_str
