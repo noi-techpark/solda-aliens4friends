@@ -36,6 +36,7 @@ from aliens4friends.scancode import Scancode
 from aliens4friends.deltacodeng import DeltaCodeNG
 from aliens4friends.debian2spdx import Debian2SPDX
 from aliens4friends.debian2alienspdx import Debian2AlienSPDX
+from aliens4friends.tinfoilhat2dashboard import TinfoilHat2Dashboard
 from aliens4friends.alienspdx2fossy import AlienSPDX2Fossy
 
 from aliens4friends.tests import test_debian2spdx
@@ -52,7 +53,8 @@ SUPPORTED_COMMANDS = [
 	"debian2spdx",
 	"debian2alienspdx",
 	"alienspdx2fossy",
-	"config"
+	"config",
+	"tinfoilhat2dashboard"
 ]
 
 if __name__ == "__main__":
@@ -187,6 +189,13 @@ if __name__ == "__main__":
 			f.name for f in args.FILES
 		]
 		AlienSPDX2Fossy.execute(file_list)
+	elif args.CMD == "tinfoilhat2dashboard":
+		logger = logging.getLogger('aliens4friends.tinfoilhat2dashboard')
+		logger.setLevel(Settings.LOGLEVEL)
+		file_list = [
+			f.name for f in args.FILES
+		]
+		TinfoilHat2Dashboard.execute(file_list)
 	elif args.CMD == "config":
 		for k, v in Settings.DOTENV.items():
 			print(f"{k}={v}")
