@@ -15,9 +15,11 @@ class HarvestException(Exception):
 
 class Harvest:
 
-	def __init__(self, tinfoilhat_yaml_files, result_file : str):
+	def __init__(self, input_files, result_file : str):
 		super().__init__()
-		self.inputfiles = tinfoilhat_yaml_files
+		for filename in input_files:
+			if filename.endswith(".tinfoilhat.yml"):
+				self.input_files["tinfoilhat"][] =
 		self.result_file = result_file
 		self.yaml = None
 		self.result = {}

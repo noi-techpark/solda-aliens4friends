@@ -28,7 +28,7 @@ class UploadAliens2Fossy:
 	):
 		self.fossy = fossy
 		if not alien_package.internal_archive_name:
-			raise AlienSPDX2FossyException(
+			raise UploadAliens2FossyException(
 				"AlienPackage {alien_package.archive_fullpath} does not contain"
 				" any internal archive"
 			)

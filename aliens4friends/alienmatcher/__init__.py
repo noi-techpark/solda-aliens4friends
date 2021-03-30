@@ -49,7 +49,6 @@ class AlienMatcherError(Exception):
 
 class AlienMatcher:
 
-	VERSION = "0.2"
 	PATH_TMP = "apiresponse"
 	PATH_DEB = "debian"
 	PATH_USR = "userland"
@@ -355,7 +354,7 @@ class AlienMatcher:
 			json_data = {
 				"tool": {
 					"name": __name__,
-					"version": self.VERSION
+					"version": Settings.VERSION
 				},
 				"aliensrc": {
 					"name": apkg.name,

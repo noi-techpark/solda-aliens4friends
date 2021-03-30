@@ -1,6 +1,8 @@
 from dotenv import dotenv_values, find_dotenv # pip install -U python-dotenv
 
 class Settings:
+	VERSION = "0.2"
+
 	DOTENV = dotenv_values(find_dotenv())
 
 	# TODO: loop thru a dictionary of default settings instead,

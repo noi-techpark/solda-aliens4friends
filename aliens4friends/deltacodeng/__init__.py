@@ -132,6 +132,10 @@ class DeltaCodeNG:
 		self.new_sha1_map = { v['sha1']: path for path, v in self.new.items() }
 		# TODO: create a model class for results
 		self.res = {
+			"tool": {
+				"name": __name__,
+				"version": Settings.VERSION
+			},
 			'header': {
 				'compared_json_files': {
 					'old_scan_out_file': old_scan_out_file,
