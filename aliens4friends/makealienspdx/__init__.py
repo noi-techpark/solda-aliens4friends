@@ -52,7 +52,7 @@ class Scancode2AlienSPDX:
 		self.alien_spdx = self._scancode_spdx
 		for f in self.alien_spdx.files:
 			if not f.chk_sum:
-				f.chk_sum(SPDXAlgorithm("SHA1", EMPTY_FILE_SHA1))
+				f.chk_sum = SPDXAlgorithm("SHA1", EMPTY_FILE_SHA1)
 			elif not f.chk_sum.value:
 				f.chk_sum.value = EMPTY_FILE_SHA1
 		self.set_package_and_document_metadata()
