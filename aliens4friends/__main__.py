@@ -56,6 +56,15 @@ SUPPORTED_COMMANDS = [
 	"config",
 	"tinfoilhat2dashboard"
 ]
+LOGGERS = {
+	"match"                : 'aliens4friends.alienmatcher',
+	"scancode"             : 'aliens4friends.scancode',
+	"deltacode"            : 'aliens4friends.deltacodeng',
+	"debian2spdx"          : 'aliens4friends.debian2spdx',
+	"makealienspdx"        : 'aliens4friends.makealienspdx',
+	"uploadaliens2fossy"   : 'aliens4friends.uploadaliens2fossy',
+	"tinfoilhat2dashboard" : 'aliens4friends.tinfoilhat2dashboard'
+}
 
 if __name__ == "__main__":
 
@@ -158,34 +167,22 @@ if __name__ == "__main__":
 		file_list = [
 			f.name for f in args.FILES
 		]
+		logger = logging.getLogger(LOGGERS[args.CMD])
+		logger.setLevel(Settings.LOGLEVEL)
 
 	if args.CMD == "match":
-		logger = logging.getLogger('aliens4friends.alienmatcher')
-		logger.setLevel(Settings.LOGLEVEL)
 		AlienMatcher.execute(file_list)
 	elif args.CMD == "scancode":
-		logger = logging.getLogger('aliens4friends.scancode')
-		logger.setLevel(Settings.LOGLEVEL)
 		Scancode.execute(file_list)
 	elif args.CMD == "deltacode":
-		logger = logging.getLogger('aliens4friends.deltacodeng')
-		logger.setLevel(Settings.LOGLEVEL)
 		DeltaCodeNG.execute(file_list)
 	elif args.CMD == "debian2spdx":
-		logger = logging.getLogger('aliens4friends.debian2spdx')
-		logger.setLevel(Settings.LOGLEVEL)
 		Debian2SPDX.execute(file_list)
 	elif args.CMD == "makealienspdx":
-		logger = logging.getLogger('aliens4friends.makealienspdx')
-		logger.setLevel(Settings.LOGLEVEL)
 		MakeAlienSPDX.execute(file_list)
 	elif args.CMD == "uploadaliens2fossy":
-		logger = logging.getLogger('aliens4friends.uploadaliens2fossy')
-		logger.setLevel(Settings.LOGLEVEL)
 		UploadAliens2Fossy.execute(file_list)
 	elif args.CMD == "tinfoilhat2dashboard":
-		logger = logging.getLogger('aliens4friends.tinfoilhat2dashboard')
-		logger.setLevel(Settings.LOGLEVEL)
 		TinfoilHat2Dashboard.execute(file_list)
 
 
