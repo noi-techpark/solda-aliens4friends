@@ -36,7 +36,7 @@ from aliens4friends.scancode import Scancode
 from aliens4friends.deltacodeng import DeltaCodeNG
 from aliens4friends.debian2spdx import Debian2SPDX
 from aliens4friends.makealienspdx import MakeAlienSPDX
-from aliens4friends.tinfoilhat2dashboard import TinfoilHat2Dashboard
+from aliens4friends.harvest import Harvest
 from aliens4friends.uploadaliens2fossy import UploadAliens2Fossy
 
 from aliens4friends.tests import test_debian2spdx
@@ -54,7 +54,7 @@ SUPPORTED_COMMANDS = [
 	"makealienspdx",
 	"uploadaliens2fossy",
 	"config",
-	"tinfoilhat2dashboard"
+	"harvest"
 ]
 LOGGERS = {
 	"match"                : 'aliens4friends.alienmatcher',
@@ -63,7 +63,7 @@ LOGGERS = {
 	"debian2spdx"          : 'aliens4friends.debian2spdx',
 	"makealienspdx"        : 'aliens4friends.makealienspdx',
 	"uploadaliens2fossy"   : 'aliens4friends.uploadaliens2fossy',
-	"tinfoilhat2dashboard" : 'aliens4friends.tinfoilhat2dashboard'
+	"harvest"              : 'aliens4friends.harvest'
 }
 
 if __name__ == "__main__":
@@ -182,8 +182,8 @@ if __name__ == "__main__":
 		MakeAlienSPDX.execute(file_list)
 	elif args.CMD == "uploadaliens2fossy":
 		UploadAliens2Fossy.execute(file_list)
-	elif args.CMD == "tinfoilhat2dashboard":
-		TinfoilHat2Dashboard.execute(file_list)
+	elif args.CMD == "harvest":
+		Harvest.execute(file_list)
 
 
 	# test_debian2spdx.test()

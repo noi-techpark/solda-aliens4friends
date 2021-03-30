@@ -10,10 +10,10 @@ from aliens4friends.commons.settings import Settings
 
 logger = logging.getLogger(__name__)
 
-class TinfoilHat2DashboardException(Exception):
+class HarvestException(Exception):
 	pass
 
-class TinfoilHat2Dashboard:
+class Harvest:
 
 	def __init__(self, tinfoilhat_yaml_files, result_file : str):
 		super().__init__()
@@ -27,10 +27,10 @@ class TinfoilHat2Dashboard:
 		for path in self.inputfiles:
 			with open(path) as f:
 				logger.debug(f"Parsing {path}...")
-				recipe = TinfoilHat2Dashboard._parse_main(yaml.safe_load(f))
+				recipe = Harvest._parse_main(yaml.safe_load(f))
 				for k,v in recipe.items():
 					if k in self.result:
-						raise TinfoilHat2DashboardException(
+						raise HarvestException(
 							f"Recipe with name {k} already exists!"
 						)
 					self.result[k] = v
@@ -43,7 +43,7 @@ class TinfoilHat2Dashboard:
 	def _parse_packages(cur):
 		result = {}
 		for name, package in cur.items():
-			result[name] = TinfoilHat2Dashboard._parse_package(package)
+			result[name] = Harvest._parse_package(package)
 		return result
 
 	@staticmethod
@@ -63,7 +63,7 @@ class TinfoilHat2Dashboard:
 	def _parse_package(cur):
 		return {
 			"package": {
-				"metadata": TinfoilHat2Dashboard._parse_metadata(cur["package"]["metadata"]),
+				"metadata": Harvest._parse_metadata(cur["package"]["metadata"]),
 				# "files": cur["package"]["files"] <-- XXX Re-add it after first MVP
 			},
 			"tags": cur["tags"]
@@ -72,7 +72,7 @@ class TinfoilHat2Dashboard:
 	@staticmethod
 	def _parse_recipe(cur):
 		return {
-			"metadata": TinfoilHat2Dashboard._parse_metadata(cur["metadata"]),
+			"metadata": Harvest._parse_metadata(cur["metadata"]),
 			"source_files": cur["source_files"]
 		}
 
@@ -81,8 +81,8 @@ class TinfoilHat2Dashboard:
 		result = {}
 		for recipe_name, main in cur.items():
 			result[recipe_name] = {
-				"packages": TinfoilHat2Dashboard._parse_packages(main["packages"]),
-				"recipe": TinfoilHat2Dashboard._parse_recipe(main["recipe"]),
+				"packages": Harvest._parse_packages(main["packages"]),
+				"recipe": Harvest._parse_recipe(main["recipe"]),
 				"tags": main["tags"]
 			}
 		return result
@@ -97,7 +97,7 @@ class TinfoilHat2Dashboard:
 
 		result_file = f'{datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}.dashboard.json'
 
-		tfh = TinfoilHat2Dashboard(
+		tfh = Harvest(
 			yaml_files,
 			os.path.join(
 				result_path,
