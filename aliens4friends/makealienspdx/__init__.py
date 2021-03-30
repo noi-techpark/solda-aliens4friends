@@ -15,7 +15,7 @@ from spdx.document import Document as SPDXDocument
 from aliens4friends.commons.archive import Archive
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.utils import md5
-from aliens4friends.commons.spdxutils import parse_spdx_tv, write_spdx_tv
+from aliens4friends.commons.spdxutils import parse_spdx_tv, write_spdx_tv, EMPTY_FILE_SHA1
 
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.settings import Settings
@@ -50,6 +50,11 @@ class Scancode2AlienSPDX:
 
 	def process(self):
 		self.alien_spdx = self._scancode_spdx
+		for f in self.alien_spdx.files:
+			if not f.chk_sum:
+				f.chk_sum(SPDXAlgorithm("SHA1", EMPTY_FILE_SHA1))
+			elif not f.chk_sum.value:
+				f.chk_sum.value = EMPTY_FILE_SHA1
 		self.set_package_and_document_metadata()
 
 

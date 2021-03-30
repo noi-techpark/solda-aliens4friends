@@ -12,6 +12,8 @@ from spdx.writers.tagvalue import write_document as tv_write_document
 from aliens4friends.commons.utils import bash
 from aliens4friends.commons.settings import Settings
 
+EMPTY_FILE_SHA1 = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
+
 class SPDXWriterLogger:
 	def log(self, msg):
 		logging.debug(msg)
