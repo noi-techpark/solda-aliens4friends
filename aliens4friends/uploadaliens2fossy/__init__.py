@@ -6,7 +6,7 @@ import json
 import tempfile
 import logging
 from aliens4friends.commons.pool import Pool
-from aliens4friends.commons.utils import bash
+from aliens4friends.commons.utils import bash, copy
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.fossywrapper import FossyWrapper
@@ -14,11 +14,11 @@ from aliens4friends.commons.spdxutils import fix_spdxtv, spdxtv2rdf
 
 logger = logging.getLogger(__name__)
 
-class AlienSPDX2FossyException(Exception):
+class UploadAliens2FossyException(Exception):
 	pass
 
 
-class AlienSPDX2Fossy:
+class UploadAliens2Fossy:
 
 	def __init__(
 		self,
@@ -34,10 +34,34 @@ class AlienSPDX2Fossy:
 			)
 		self.alien_package = alien_package
 		m = alien_package.metadata
-		self.upload = fossy.get_upload(m['name'], m['version'], m['revision'])
+		self.uploadname = (m['name'], m['version'], m['revision'])
 		self.alien_spdx_filename = alien_spdx_filename
 
-	def do_import(self):
+	def get_or_do_upload(self):
+		self.uploadname = f'{self.alien_package.name}-{self.alien_package.version.str}'
+		upload = self.fossy.check_already_uploaded(self.uploadname)
+		if upload:
+			self.upload = upload
+			return
+		apath = self.alien_package.archive_fullpath
+		copy(f'{apath}', f'{apath}.tar')
+		folder = self.fossy.get_or_create_folder('aliensrc') # FIXME do not harcode it
+		self.upload = self.fossy.upload(
+			f'{apath}.tar',
+			folder,
+			'uploaded by aliens4friends'
+		)
+		self.fossy.rename_upload(
+			self.upload,
+			self.uploadname
+		)
+		self.upload.uploadname = self.uploadname
+		os.remove(f'{apath}.tar')
+
+	def run_fossy_scanners(self):
+			self.fossy.schedule_fossy_scanners(self.upload)
+
+	def import_spdx(self):
 		fix_spdxtv(self.alien_spdx_filename)
 		tmpdir_obj = tempfile.TemporaryDirectory()
 		tmpdir = tmpdir_obj.name
@@ -45,9 +69,15 @@ class AlienSPDX2Fossy:
 		spdxrdf = os.path.join(tmpdir, spdxrdf_basename)
 		spdxtv2rdf(self.alien_spdx_filename, spdxrdf)
 		uploadname = self.upload.uploadname
+		archive_name = self.alien_package.internal_archive_name
 		rootfolder = self.alien_package.internal_archive_rootfolder
+		n, e = os.path.splitext(archive_name)
+		if e and n.endswith('.tar'):
+			archive_name = os.path.join(archive_name, n)
+		fossy_internal_archive_path = os.path.join(uploadname, 'files', archive_name, rootfolder)
+		fossy_internal_archive_path = fossy_internal_archive_path.replace('/', '\\/')
 		bash(
-			f"sed -i -E 's/fileName>\\.\\//fileName>{uploadname}\\/{rootfolder}\\//g' {spdxrdf}"
+			f"sed -i -E 's/fileName>\\.\\//fileName>{fossy_internal_archive_path}\\//g' {spdxrdf}"
 		)
 		# filepaths must match Fossology's internal filepaths otherwise
 		# Fossology's reportImport apparently succeeds but does nothing
@@ -85,7 +115,7 @@ class AlienSPDX2Fossy:
 					"userland",
 					a["name"],
 					a["version"],
-					f'{a["internal_archive_name"]}.spdx'
+					f'{a["internal_archive_name"]}.alien.spdx'
 				)
 				apkg = AlienPackage(alien_package_filename)
 				m = apkg.metadata
@@ -96,8 +126,10 @@ class AlienSPDX2Fossy:
 					a["version"],
 					f'{apkg_fullname}.fossy.json'
 				)
-				a2f = AlienSPDX2Fossy(apkg, alien_spdx_filename, fossy)
-				a2f.do_import()
+				a2f = UploadAliens2Fossy(apkg, alien_spdx_filename, fossy)
+				a2f.get_or_do_upload()
+				a2f.run_fossy_scanners()
+				a2f.import_spdx()
 				fossy_json = a2f.get_fossy_json()
 				with open(alien_fossy_json_filename, "w") as f:
 					json.dump(fossy_json, f)

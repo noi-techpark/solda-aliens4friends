@@ -56,7 +56,7 @@ class Archive:
 		if '' in r:
 			r.remove('')
 		if len(r) != 1:
-			return None
+			return '' # suited to be used with (and ignored by) os.path.join
 		return r[0]
 
 	def extract(self, dest):

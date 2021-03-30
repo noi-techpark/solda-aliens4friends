@@ -37,7 +37,7 @@ from aliens4friends.deltacodeng import DeltaCodeNG
 from aliens4friends.debian2spdx import Debian2SPDX
 from aliens4friends.makealienspdx import MakeAlienSPDX
 from aliens4friends.tinfoilhat2dashboard import TinfoilHat2Dashboard
-from aliens4friends.alienspdx2fossy import AlienSPDX2Fossy
+from aliens4friends.uploadaliens2fossy import UploadAliens2Fossy
 
 from aliens4friends.tests import test_debian2spdx
 from aliens4friends.tests import test_alienmatcher
@@ -52,7 +52,7 @@ SUPPORTED_COMMANDS = [
 	"deltacode",
 	"debian2spdx",
 	"makealienspdx",
-	"alienspdx2fossy",
+	"uploadaliens2fossy",
 	"config",
 	"tinfoilhat2dashboard"
 ]
@@ -182,13 +182,13 @@ if __name__ == "__main__":
 			f.name for f in args.FILES
 		]
 		MakeAlienSPDX.execute(file_list)
-	elif args.CMD == "alienspdx2fossy":
-		logger = logging.getLogger('aliens4friends.alienspdx2fossy')
+	elif args.CMD == "uploadaliens2fossy":
+		logger = logging.getLogger('aliens4friends.uploadaliens2fossy')
 		logger.setLevel(Settings.LOGLEVEL)
 		file_list = [
 			f.name for f in args.FILES
 		]
-		AlienSPDX2Fossy.execute(file_list)
+		UploadAliens2Fossy.execute(file_list)
 	elif args.CMD == "tinfoilhat2dashboard":
 		logger = logging.getLogger('aliens4friends.tinfoilhat2dashboard')
 		logger.setLevel(Settings.LOGLEVEL)

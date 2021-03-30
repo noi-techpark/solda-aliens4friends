@@ -84,6 +84,89 @@ class FossyWrapper:
 						all_completed = False
 						break
 
+	def get_or_create_folder(self, folder):
+		logger.info(f'get or create folder "{folder}"')
+		parent = self.fossology.rootFolder
+		components = folder.split("/")
+		for component in components:
+			parent = self.fossology.create_folder(parent, component)
+		return parent
+
+	def check_already_uploaded(self, uploadname):
+		logger.info(f"checking if '{uploadname}' has already been uploaded")
+		# FIXME upstream: page_size missing in fossology-python 0.2.0, wait that
+		# fossology-python 1.x is made backwards compatibile with API 1.0.16 -
+		# Fossology 3.9.0 (latest release), and upgrade it
+		# https://github.com/fossology/fossology-python/pull/51
+		uploads = {u.uploadname: u for u in self.fossology.list_uploads()}
+		if uploadname in uploads:
+			return uploads[uploadname]
+		return None
+
+	def upload(self, filename, folder, description=''):
+		logger.info(f"uploading {filename} to Fossology")
+		try:
+			upload = self.fossology.upload_file(
+				folder,
+				file=filename,
+				ignore_scm=True,
+				description=description
+			)
+		except RetryError:
+			raise FossyWrapperException(
+				"Can't upload package to fossology. Is fossology scheduler running?"
+			)
+		logger.info(f"upload id is {upload.id}")
+		return upload
+
+	def rename_upload(self, upload, newuploadname):
+		self.fossyUI_login()
+		res = self.fossy_session.post(
+			(
+				f"{Settings.FOSSY_SERVER}/?mod=upload_properties"
+				f"&folder={upload.folderid}&upload={upload.id}"
+			),
+			data={
+				"oldfolderid": f"{upload.folderid}",
+				"upload_pk": f"{upload.id}",
+				"uploadselect": f"{upload.id}",
+				"newname": f"{newuploadname}",
+				"newdesc": f"{upload.description}",
+			},
+		)
+		if "Upload Properties successfully changed" not in res.text:
+			raise FossyWrapperException("upload renaming failed")
+
+	def schedule_fossy_scanners(self, upload):
+		logger.info(f"scheduling fossology scanners for package {upload.uploadname}")
+		specs = {
+			"analysis": {
+				"copyright_email_author": True,
+				"ecc": True,
+				"keyword": True,
+				"nomos": True,
+				"monk": True,
+				"ojo": True,
+				"package": True,
+			},
+			"decider": {"ojo_decider": True},
+		}
+		try:
+			folder = self.fossology.detail_folder(upload.folderid)
+			scanjob = self.fossology.schedule_jobs(
+				folder, upload, specs, wait=True
+			)
+		except RetryError:
+			raise FossyWrapperException(
+				"Can't schedule jobs on fossology. " "Is fossology scheduler running?"
+			)
+		logger.info(
+			"waiting for scanner job completion "
+			"(it may take a lot of time, if upload size is big)"
+		)
+		self._wait_for_jobs_completion(upload)
+
+
 	def report_import(self, upload: Upload, spdxrdf_path: str):
 		"""import SPDX RDF report file into Fossology, via webUI"""
 		# TODO: upstream: add missing REST API for reportImport in Fossology
