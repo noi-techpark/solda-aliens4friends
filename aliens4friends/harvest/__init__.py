@@ -16,6 +16,14 @@ class HarvestException(Exception):
 
 class Harvest:
 
+	SUPPORTED_FILES = [
+		".summary.fossy.json",
+		".fossy.json",
+		".tinfoilhat.yml",
+		".alienmatcher.json",
+		".deltacode.json"
+	]
+
 	def __init__(self, input_files, result_file : str, package_id_ext : str = "solda21src"):
 		super().__init__()
 		self.input_files = sorted(input_files)
@@ -43,6 +51,8 @@ class Harvest:
 		elif rest.endswith(".deltacode"):
 			ext = f".deltacode{mainext}"
 			package_id = rest.split(".deltacode")[0]
+		else:
+			raise HarvestException("Unsupported file extension")
 		return package_id, ext
 
 	def readfile(self):
@@ -58,7 +68,12 @@ class Harvest:
 		for path in self.input_files:
 			with open(path) as f:
 				logger.debug(f"Parsing {path}... ")
-				package_id, ext = Harvest._filename_split(path)
+				try:
+					package_id, ext = Harvest._filename_split(path)
+				except HarvestException as ex:
+					if str(ex) == "Unsupported file extension":
+						logger.warning(f"File {path} is not supported. Skipping...")
+						continue
 				package_id = package_id.replace("_", "-")
 				if not p_revision.match(package_id):
 					package_id += "-r0"
@@ -79,6 +94,7 @@ class Harvest:
 					Harvest._parse_alienmatcher_main(json.load(f), source_package)
 				elif ext == ".deltacode.json":
 					Harvest._parse_deltacode_main(json.load(f), source_package)
+
 		self.result["source_packages"] = source_packages
 
 	def write_results(self):

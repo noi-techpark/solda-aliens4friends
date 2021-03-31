@@ -14,21 +14,15 @@ Configuration
 Use a .env file to configure this script, we will take defaults, if
 nothing has been set.
 
-- A4F_POOL        : Path to the cache pool
-- A4F_CACHE       : True/False, if cache should be used or overwritten (default = True)
-- A4F_DEBUG       : Debug level as seen inside the "logging" package (default = INFO)
-- A4F_SCANCODE    : wrapper/native, whether we use a natively installed scancode or
-                    run it from our docker wrapper (default = native)
-- A4F_PRINTRESULT : Print results also to stdout
-- SPDX_TOOLS_CMD  : command to invoke java spdx tools (default =
-                    'java -jar /usr/local/lib/spdx-tools-2.2.5-jar-with-dependencies.jar')
-- FOSSY_USER, FOSSY_PASSWORD, FOSSY_GROUP_ID, FOSSY_SERVER: parameters to access fossology
-                    server (defaults: 'fossy', 'fossy', 3, 'http://localhost/repo').
+See config -h for details, or just "config" to print the current
+settings.
+
 """
 
 import logging
 import argparse
 import sys
+from textwrap import dedent
 
 from aliens4friends.commons.settings import Settings
 from aliens4friends.alienmatcher import AlienMatcher
@@ -48,23 +42,23 @@ from aliens4friends.tests import test_scancode
 PROGNAME = "aliens4friends"
 SUPPORTED_COMMANDS = [
 	"match",
-	"scancode",
-	"deltacode",
-	"debian2spdx",
-	"makealienspdx",
-	"uploadaliens2fossy",
+	"scan",
+	"delta",
+	"spdxdebian",
+	"spdxalien",
+	"upload",
 	"config",
 	"harvest",
 	"help"
 ]
 LOGGERS = {
-	"match"                : 'aliens4friends.alienmatcher',
-	"scancode"             : 'aliens4friends.scancode',
-	"deltacode"            : 'aliens4friends.deltacodeng',
-	"debian2spdx"          : 'aliens4friends.debian2spdx',
-	"makealienspdx"        : 'aliens4friends.makealienspdx',
-	"uploadaliens2fossy"   : 'aliens4friends.uploadaliens2fossy',
-	"harvest"              : 'aliens4friends.harvest'
+	"match"      : 'aliens4friends.alienmatcher',
+	"scan"       : 'aliens4friends.scancode',
+	"delta"      : 'aliens4friends.deltacodeng',
+	"spdxdebian" : 'aliens4friends.debian2spdx',
+	"spdxalien"  : 'aliens4friends.makealienspdx',
+	"upload"     : 'aliens4friends.uploadaliens2fossy',
+	"harvest"    : 'aliens4friends.harvest'
 }
 
 class Aliens4Friends:
@@ -92,8 +86,8 @@ class Aliens4Friends:
 		# SystemExit).
 		if (
 			len(sys.argv) < 2
-			and (sys.argv[1] == '--help'
-			or sys.argv[1] == '-h')
+			or sys.argv[1] == '--help'
+			or sys.argv[1] == '-h'
 		):
 			self.help()
 
@@ -188,7 +182,24 @@ class Aliens4Friends:
 	def parser_config(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
-			help="Print .env configs or defaults"
+			formatter_class=argparse.RawTextHelpFormatter,
+			help="Print .env configs or defaults",
+			description=dedent("""\
+				Environmental variables:
+				  - A4F_POOL        : Path to the cache pool
+				  - A4F_CACHE       : True/False, if cache should be used or overwritten (default = True)
+				  - A4F_DEBUG       : Debug level as seen inside the "logging" package (default = INFO)
+				  - A4F_SCANCODE    : wrapper/native, whether we use a natively installed scancode or
+				  					  run it from our docker wrapper (default = native)
+				  - A4F_PRINTRESULT : Print results also to stdout
+				  - SPDX_TOOLS_CMD  : command to invoke java spdx tools (default =
+									  'java -jar /usr/local/lib/spdx-tools-2.2.5-jar-with-dependencies.jar')
+				  - FOSSY_USER,
+				    FOSSY_PASSWORD,
+					FOSSY_GROUP_ID,
+					FOSSY_SERVER    : parameters to access fossology server
+					                  (defaults: 'fossy', 'fossy', 3, 'http://localhost/repo').
+				""")
 		)
 
 	def parser_match(self, cmd):
@@ -201,7 +212,7 @@ class Aliens4Friends:
 			"The Alien Packages (also wildcards allowed)"
 		)
 
-	def parser_scancode(self, cmd):
+	def parser_scan(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Scan a source code folder and find license/copyright information"
@@ -211,33 +222,38 @@ class Aliens4Friends:
 			"The paths to source code folders"
 		)
 
-	def parser_deltacode(self, cmd):
+	def parser_delta(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Understand differences between two scancode results"
 		)
 		self._add_default_args(self.parsers[cmd])
 
-	def parser_debian2spdx(self, cmd):
+	def parser_spdxdebian(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Translate Debian dep5 license information into SPDX files"
 		)
 		self._add_default_args(self.parsers[cmd])
 
-	def parser_makealienspdx(self, cmd):
+	def parser_spdxalien(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
-			help="Generate SPDX files out of Alien Package information"
+			help="Generate SPDX files out of Alien Package and Deltacode information"
 		)
-		self._add_default_args(self.parsers[cmd])
+		self._add_default_args(
+			self.parsers[cmd],
+		)
 
-	def parser_uploadaliens2fossy(self, cmd):
+	def parser_upload(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Upload Alien Packages to Fossology"
 		)
-		self._add_default_args(self.parsers[cmd])
+		self._add_default_args(
+			self.parsers[cmd],
+			"Alien package files"
+		)
 
 	def parser_harvest(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -245,30 +261,40 @@ class Aliens4Friends:
 			help="Harvest tinfoilhat, alienmatcher, deltacode, fossy and " \
 			     "fossy-summary outputs and create a report for the dashboard"
 		)
-		self._add_default_args(self.parsers[cmd])
+		self._add_default_args(
+			self.parsers[cmd],
+			f"Various files are supported: {Harvest.SUPPORTED_FILES}"
+		)
+		self.parsers[cmd].add_argument(
+			"-f",
+			"--full-report",
+			action = "store_true",
+			default = False,
+			help = "Add more information to the report while harvesting."
+		)
 
 
 	def match(self):
 		file_list = self._subcommand_args()
 		AlienMatcher.execute(file_list)
 
-	def scancode(self):
+	def scan(self):
 		file_list = self._subcommand_args()
 		Scancode.execute(file_list)
 
-	def deltacode(self):
+	def delta(self):
 		file_list = self._subcommand_args()
 		DeltaCodeNG.execute(file_list)
 
-	def debian2spdx(self):
+	def spdxdebian(self):
 		file_list = self._subcommand_args()
 		Debian2SPDX.execute(file_list)
 
-	def makealienspdx(self):
+	def spdxalien(self):
 		file_list = self._subcommand_args()
 		MakeAlienSPDX.execute(file_list)
 
-	def uploadaliens2fossy(self):
+	def upload(self):
 		file_list = self._subcommand_args()
 		UploadAliens2Fossy.execute(file_list)
 
