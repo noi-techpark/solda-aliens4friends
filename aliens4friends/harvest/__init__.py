@@ -2,6 +2,7 @@ import json
 import yaml
 import logging
 import os
+import re
 
 from datetime import datetime
 
@@ -39,9 +40,13 @@ class Harvest:
 		elif rest.endswith(".alienmatcher"):
 			ext = f".alienmatcher{mainext}"
 			package_id = rest.split(".alienmatcher")[0]
+		elif rest.endswith(".deltacode"):
+			ext = f".deltacode{mainext}"
+			package_id = rest.split(".deltacode")[0]
 		return package_id, ext
 
 	def readfile(self):
+		p_revision = re.compile("^.*-r[0-9]+$", flags=re.IGNORECASE)
 		self.result = {
 			"tool": {
 				"name": __name__,
@@ -53,17 +58,17 @@ class Harvest:
 		for path in self.input_files:
 			with open(path) as f:
 				logger.debug(f"Parsing {path}... ")
-
 				package_id, ext = Harvest._filename_split(path)
+				package_id = package_id.replace("_", "-")
+				if not p_revision.match(package_id):
+					package_id += "-r0"
 				package_id += f"+{self.package_id_ext}"
-
 				if not cur_package_id or package_id != cur_package_id:
 					cur_package_id = package_id
 					source_package = {
 						"id" : package_id
 					}
 					source_packages.append(source_package)
-
 				if ext == ".summary.fossy.json":
 					Harvest._parse_summary_fossy_main(json.load(f), source_package)
 				elif ext == ".fossy.json":
@@ -71,21 +76,47 @@ class Harvest:
 				elif ext == ".tinfoilhat.yml":
 					Harvest._parse_tinfoilhat_main(yaml.safe_load(f), source_package)
 				elif ext == ".alienmatcher.json":
-					source_package = Harvest._parse_alienmatcher_main()
-
-				#source_packages.append(source_package)
-				# for k,v in source_packages.items():
-				# 	if k in self.result:
-				# 		raise HarvestException(
-				# 			f"Source package with name {k} already exists!"
-				# 		)
-				# 	self.result[k] = v
+					Harvest._parse_alienmatcher_main(json.load(f), source_package)
+				elif ext == ".deltacode.json":
+					Harvest._parse_deltacode_main(json.load(f), source_package)
 		self.result["source_packages"] = source_packages
-		# print (json.dumps(result, indent=2))
 
 	def write_results(self):
 		with open(self.result_file, "w") as f:
 			json.dump(self.result, f, indent=2)
+
+	@staticmethod
+	def _parse_alienmatcher_main(cur, out):
+		try:
+			name = cur["debian"]["match"]["name"]
+			version = cur["debian"]["match"]["version"]
+			Harvest._safe_set(
+				out,
+				["debian_matching", "name"],
+				name
+			)
+			Harvest._safe_set(
+				out,
+				["debian_matching", "version"],
+				version
+			)
+		except KeyError:
+			pass
+
+	@staticmethod
+	def _parse_deltacode_main(cur, out):
+		try:
+			stats = cur["header"]["stats"]
+			matching = stats["same_files"] + stats["changed_files_with_same_copyright_and_license"]
+		except KeyError:
+			matching = 0
+
+		Harvest._safe_set(
+			out,
+			["debian_matching", "files_with_matching_copyright_license"],
+			matching
+		)
+
 
 	@staticmethod
 	def _increment(dict, key, val):
@@ -114,15 +145,26 @@ class Harvest:
 			["statistics", "licenses", "license_audit_findings", "main_licenses"],
 			Harvest._rename(cur["mainLicense"].split(","))
 		)
+		# Some response key do not do what they promise...
+		# See https://git.ostc-eu.org/playground/fossology/-/blob/dev-packaging/fossywrapper/__init__.py#L565
+		total = cur["filesCleared"]
+		not_cleared = cur["filesToBeCleared"]
+		cleared = total - not_cleared
+
+		Harvest._safe_set(
+			out,
+			["statistics", "files", "total"],
+			total
+		)
 		Harvest._safe_set(
 			out,
 			["statistics", "files", "audited"],
-			cur["filesCleared"]
+			cleared
 		)
 		Harvest._safe_set(
 			out,
 			["statistics", "files", "not_audited"],
-			cur["filesToBeCleared"]
+			not_cleared
 		)
 
 	@staticmethod
@@ -293,6 +335,23 @@ class Harvest:
 				["statistics", "files", "unknown_provenance"],
 				unknown_provenance
 			)
+			if isinstance(total, int):
+				Harvest._safe_set(
+					out,
+					["statistics", "files", "total"],
+					total + unknown_provenance
+				)
+
+				try:
+					not_audited = out["statistics"]["files"]["not_audited"]
+					Harvest._safe_set(
+						out,
+						["statistics", "files", "not_audited"],
+						not_audited + unknown_provenance
+					)
+				except KeyError:
+					pass
+
 			out["tags"] = main["tags"]
 			out["name"] = main["recipe"]["metadata"]["name"]
 			out["version"] = main["recipe"]["metadata"]["version"]

@@ -251,11 +251,15 @@ class DeltaCodeNG:
 			try:
 				m = j["debian"]["match"]
 				a = j["aliensrc"]
+				try:
+					revision = a["revision"]
+				except KeyError:
+					revision = "r0"
 				result_path = pool.abspath(
 					"userland",
 					a["name"],
 					a["version"],
-					f'{a["name"]}_{a["version"]}.deltacode.json'
+					f'{a["name"]}-{a["version"]}-{revision}.deltacode.json'
 				)
 				if os.path.isfile(result_path) and Settings.POOLCACHED:
 					logger.debug(f"{result_path} already existing, skipping")

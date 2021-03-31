@@ -54,7 +54,8 @@ SUPPORTED_COMMANDS = [
 	"makealienspdx",
 	"uploadaliens2fossy",
 	"config",
-	"harvest"
+	"harvest",
+	"help"
 ]
 LOGGERS = {
 	"match"                : 'aliens4friends.alienmatcher',
@@ -66,131 +67,215 @@ LOGGERS = {
 	"harvest"              : 'aliens4friends.harvest'
 }
 
-if __name__ == "__main__":
+class Aliens4Friends:
 
-	logging.basicConfig(level = logging.WARNING)
+	def __init__(self):
+		logging.basicConfig(level = logging.WARNING)
+		self.parser = argparse.ArgumentParser(
+			prog=PROGNAME,
+			conflict_handler='resolve',
+		)
 
-	parser = argparse.ArgumentParser(conflict_handler='resolve', prog=PROGNAME)
+		self.subparsers = self.parser.add_subparsers(
+			dest="command",
+			help = f"Subcommand to run"
+		)
 
-	parser.add_argument(
-		"-i",
-		"--ignore-cache",
-		action = "store_true",
-		default = False,
-		help = f"Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var."
-	)
+		self.parsers = {}
+		for cmd in SUPPORTED_COMMANDS:
+			# use dispatch pattern to invoke method with same name
+			getattr(self, f"parser_{cmd}")(cmd)
 
-	group = parser.add_mutually_exclusive_group()
+		# We must capture this option before we parse the arguments, because the
+		# last positional argument FILE is mandatory. Hence, the parser would exit
+		# with an error (There is no meaningful exception to catch, except for
+		# SystemExit).
+		if (
+			len(sys.argv) < 2
+			and (sys.argv[1] == '--help'
+			or sys.argv[1] == '-h')
+		):
+			self.help()
 
-	group.add_argument(
-		"-v",
-		"--verbose",
-		action = "store_true",
-		default = False,
-		help = "Show debug output. This overrides the A4F_LOGLEVEL env var."
-	)
+		# parse_args defaults to [1:] for args, but you need to
+		# exclude the rest of the args too, or validation will fail
+		self.args = self.parser.parse_args()
+		if self.args.command not in SUPPORTED_COMMANDS:
+			print(f"ERROR: Unknown command --> {self.args.command}. See help with {PROGNAME} -h.")
+			sys.exit(1)
 
-	group.add_argument(
-		"-q",
-		"--quiet",
-		action = "store_true",
-		default = False,
-		help = "Show only warnings and errors. This overrides the A4F_LOGLEVEL env var."
-	)
+		getattr(self, self.args.command)()
 
-	parser.add_argument(
-		"-p",
-		"--print",
-		action = "store_true",
-		default = False,
-		help = "Print result also to stdout."
-	)
 
-	parser.add_argument(
-		"CMD",
-		help = f"The main command",
-		choices = SUPPORTED_COMMANDS
-	)
+	def _subcommand_args(self):
+		if self.args.ignore_cache:
+			Settings.DOTENV["A4F_CACHE"] = Settings.POOLCACHED = False
 
-	parser.add_argument(
-		"FILES",
-		nargs = "*",
-		type = argparse.FileType('r'),
-		help = "The Alien Packages (also wildcards allowed)"
-	)
+		if self.args.verbose:
+			Settings.DOTENV["A4F_LOGLEVEL"] = Settings.LOGLEVEL = "DEBUG"
 
-	# We must capture this option before we parse the arguments, because the
-    # last positional argument FILE is mandatory. Hence, the parser would exit
-    # with an error (There is no meaningful exception to catch, except for
-    # SystemExit).
-	if len(sys.argv) < 2 or sys.argv[1] == '--help' or sys.argv[1] == '-h':
+		if self.args.quiet:
+			Settings.DOTENV["A4F_LOGLEVEL"] = Settings.LOGLEVEL = "WARNING"
+
+		if self.args.print:
+			Settings.DOTENV["A4F_PRINTRESULT"] = Settings.PRINTRESULT = True
+
+		logger = logging.getLogger(LOGGERS[self.args.command])
+		logger.setLevel(Settings.LOGLEVEL)
+
+		return [ f.name for f in self.args.FILES ]
+
+
+
+	def _add_default_args(self, parser, describe_files = ""):
+		parser.add_argument(
+			"-i",
+			"--ignore-cache",
+			action = "store_true",
+			default = False,
+			help = f"Ignore the cache pool and overwrite existing results " \
+				   f"and tmp files. This overrides the A4F_CACHE env var."
+		)
+		group = parser.add_mutually_exclusive_group()
+		group.add_argument(
+			"-v",
+			"--verbose",
+			action = "store_true",
+			default = False,
+			help = "Show debug output. This overrides the A4F_LOGLEVEL env var."
+		)
+		group.add_argument(
+			"-q",
+			"--quiet",
+			action = "store_true",
+			default = False,
+			help = "Show only warnings and errors. This overrides the A4F_LOGLEVEL env var."
+		)
+		parser.add_argument(
+			"-p",
+			"--print",
+			action = "store_true",
+			default = False,
+			help = "Print result also to stdout."
+		)
+		parser.add_argument(
+			"FILES",
+			nargs = "*",
+			type = argparse.FileType('r'),
+			help = describe_files
+		)
+
+	def config(self):
+		for k, v in Settings.DOTENV.items():
+			print(f"{k}={v}")
+
+	def help(self):
 		docparts = __doc__.split(
 			"Usage\n-----\n(automatically printed from `argparse` module)\n", 1
 		)
-
-		# Print title and section before "usage"
-		print (docparts[0])
-
-		# Print usage information
+		print(docparts[0])     # Print title and section before "usage"
 		print("Usage\n-----")
-		parser.print_help()
+		self.parser.print_help()    # Print usage information
+		print(docparts[1])     # Print the rest
+		exit(0)
 
-		# Print the rest
-		#print "\n".join(__doc__.split('\n', 1)[1:])
-		print (docparts[1])
+	def parser_help(self, cmd):
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Show a help message"
+		)
 
-		sys.exit(0)
+	def parser_config(self, cmd):
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Print .env configs or defaults"
+		)
 
-	# Now parse regular command line arguments
-	args = parser.parse_args()
+	def parser_match(self, cmd):
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Find a matching source package on Debian"
+		)
+		self._add_default_args(
+			self.parsers[cmd],
+			"The Alien Packages (also wildcards allowed)"
+		)
 
-	if args.CMD not in SUPPORTED_COMMANDS:
-		print(f"ERROR: Unknown command --> {args.CMD}. See help with {PROGNAME} -h.")
-		sys.exit(1)
+	def parser_scancode(self, cmd):
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Scan a source code folder and find license/copyright information"
+		)
+		self._add_default_args(
+			self.parsers[cmd],
+			"The paths to source code folders"
+		)
 
-	if args.ignore_cache:
-		Settings.DOTENV["A4F_CACHE"] = Settings.POOLCACHED = False
+	def parser_deltacode(self, cmd):
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Understand differences between two scancode results"
+		)
+		self._add_default_args(self.parsers[cmd])
 
-	if args.verbose:
-		Settings.DOTENV["A4F_LOGLEVEL"] = Settings.LOGLEVEL = "DEBUG"
+	def parser_debian2spdx(self, cmd):
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Translate Debian dep5 license information into SPDX files"
+		)
+		self._add_default_args(self.parsers[cmd])
 
-	if args.quiet:
-		Settings.DOTENV["A4F_LOGLEVEL"] = Settings.LOGLEVEL = "WARNING"
+	def parser_makealienspdx(self, cmd):
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Generate SPDX files out of Alien Package information"
+		)
+		self._add_default_args(self.parsers[cmd])
 
-	if args.print:
-		Settings.DOTENV["A4F_PRINTRESULT"] = Settings.PRINTRESULT = True
+	def parser_uploadaliens2fossy(self, cmd):
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Upload Alien Packages to Fossology"
+		)
+		self._add_default_args(self.parsers[cmd])
 
-	if args.CMD == "config":
-		for k, v in Settings.DOTENV.items():
-			print(f"{k}={v}")
-	else:
-		file_list = [
-			f.name for f in args.FILES
-		]
-		logger = logging.getLogger(LOGGERS[args.CMD])
-		logger.setLevel(Settings.LOGLEVEL)
+	def parser_harvest(self, cmd):
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Harvest tinfoilhat, alienmatcher, deltacode, fossy and " \
+			     "fossy-summary outputs and create a report for the dashboard"
+		)
+		self._add_default_args(self.parsers[cmd])
 
-	if args.CMD == "match":
+
+	def match(self):
+		file_list = self._subcommand_args()
 		AlienMatcher.execute(file_list)
-	elif args.CMD == "scancode":
+
+	def scancode(self):
+		file_list = self._subcommand_args()
 		Scancode.execute(file_list)
-	elif args.CMD == "deltacode":
+
+	def deltacode(self):
+		file_list = self._subcommand_args()
 		DeltaCodeNG.execute(file_list)
-	elif args.CMD == "debian2spdx":
+
+	def debian2spdx(self):
+		file_list = self._subcommand_args()
 		Debian2SPDX.execute(file_list)
-	elif args.CMD == "makealienspdx":
+
+	def makealienspdx(self):
+		file_list = self._subcommand_args()
 		MakeAlienSPDX.execute(file_list)
-	elif args.CMD == "uploadaliens2fossy":
+
+	def uploadaliens2fossy(self):
+		file_list = self._subcommand_args()
 		UploadAliens2Fossy.execute(file_list)
-	elif args.CMD == "harvest":
+
+	def harvest(self):
+		file_list = self._subcommand_args()
 		Harvest.execute(file_list)
 
 
-	# test_debian2spdx.test()
-	# test_alienmatcher.test_all()
-	# test_alienmatcher.test_list()
-	# test_alienmatcher.test_single()
-	# test_alienmatcher.test_search()
-	# test_alienpackage.test1()
-	# test_scancode.test_single()
-	# test_scancode.test_single_from_matcheroutput()
+if __name__ == "__main__":
+	Aliens4Friends()
