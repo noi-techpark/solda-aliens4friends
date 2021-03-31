@@ -185,19 +185,21 @@ class Aliens4Friends:
 			formatter_class=argparse.RawTextHelpFormatter,
 			help="Print .env configs or defaults",
 			description=dedent("""\
+				Create a .env file in the folder, where you execute the command.
+
 				Environmental variables:
 				  - A4F_POOL        : Path to the cache pool
 				  - A4F_CACHE       : True/False, if cache should be used or overwritten (default = True)
 				  - A4F_DEBUG       : Debug level as seen inside the "logging" package (default = INFO)
 				  - A4F_SCANCODE    : wrapper/native, whether we use a natively installed scancode or
-				  					  run it from our docker wrapper (default = native)
+				                      run it from our docker wrapper (default = native)
 				  - A4F_PRINTRESULT : Print results also to stdout
 				  - SPDX_TOOLS_CMD  : command to invoke java spdx tools (default =
-									  'java -jar /usr/local/lib/spdx-tools-2.2.5-jar-with-dependencies.jar')
+				                      'java -jar /usr/local/lib/spdx-tools-2.2.5-jar-with-dependencies.jar')
 				  - FOSSY_USER,
 				    FOSSY_PASSWORD,
-					FOSSY_GROUP_ID,
-					FOSSY_SERVER    : parameters to access fossology server
+				    FOSSY_GROUP_ID,
+				    FOSSY_SERVER    : parameters to access fossology server
 					                  (defaults: 'fossy', 'fossy', 3, 'http://localhost/repo').
 				""")
 		)
