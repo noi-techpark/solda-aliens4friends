@@ -2,8 +2,8 @@
 
 r"""## Aliens4friends: A toolset for Software Composition Analysis
 
-This tool tries to find matching license information about an input
-package on well-known source repositories, such as Debian.
+This tool tries to find matching license information about an input package on
+well-known source repositories, such as Debian.
 
 Usage
 -----
@@ -11,10 +11,8 @@ Usage
 
 Configuration
 -------------
-Use a .env file to configure this script, we will take defaults, if
-nothing has been set.
-
-See config -h for details, or just "config" to print the current
+Use a .env file to configure this script, we will take defaults, if nothing has
+been set. See "config -h" for details, or just "config" to print the current
 settings.
 
 """
@@ -217,7 +215,7 @@ class Aliens4Friends:
 	def parser_scan(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
-			help="Scan a source code folder and find license/copyright information"
+			help="Scan a source code folder and find license/copyright information (scancode)"
 		)
 		self._add_default_args(
 			self.parsers[cmd],
