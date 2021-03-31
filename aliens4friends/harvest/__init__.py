@@ -66,34 +66,37 @@ class Harvest:
 		source_packages = []
 		cur_package_id = None
 		for path in self.input_files:
-			with open(path) as f:
-				logger.debug(f"Parsing {path}... ")
-				try:
-					package_id, ext = Harvest._filename_split(path)
-				except HarvestException as ex:
-					if str(ex) == "Unsupported file extension":
-						logger.warning(f"File {path} is not supported. Skipping...")
-						continue
-				package_id = package_id.replace("_", "-")
-				if not p_revision.match(package_id):
-					package_id += "-r0"
-				package_id += f"+{self.package_id_ext}"
-				if not cur_package_id or package_id != cur_package_id:
-					cur_package_id = package_id
-					source_package = {
-						"id" : package_id
-					}
-					source_packages.append(source_package)
-				if ext == ".summary.fossy.json":
-					Harvest._parse_summary_fossy_main(json.load(f), source_package)
-				elif ext == ".fossy.json":
-					Harvest._parse_fossy_main(json.load(f), source_package)
-				elif ext == ".tinfoilhat.yml":
-					Harvest._parse_tinfoilhat_main(yaml.safe_load(f), source_package)
-				elif ext == ".alienmatcher.json":
-					Harvest._parse_alienmatcher_main(json.load(f), source_package)
-				elif ext == ".deltacode.json":
-					Harvest._parse_deltacode_main(json.load(f), source_package)
+			try:
+				with open(path) as f:
+					logger.debug(f"Parsing {path}... ")
+					try:
+						package_id, ext = Harvest._filename_split(path)
+					except HarvestException as ex:
+						if str(ex) == "Unsupported file extension":
+							logger.warning(f"File {path} is not supported. Skipping...")
+							continue
+					package_id = package_id.replace("_", "-")
+					if not p_revision.match(package_id):
+						package_id += "-r0"
+					package_id += f"+{self.package_id_ext}"
+					if not cur_package_id or package_id != cur_package_id:
+						cur_package_id = package_id
+						source_package = {
+							"id" : package_id
+						}
+						source_packages.append(source_package)
+					if ext == ".summary.fossy.json":
+						Harvest._parse_summary_fossy_main(json.load(f), source_package)
+					elif ext == ".fossy.json":
+						Harvest._parse_fossy_main(json.load(f), source_package)
+					elif ext == ".tinfoilhat.yml":
+						Harvest._parse_tinfoilhat_main(yaml.safe_load(f), source_package)
+					elif ext == ".alienmatcher.json":
+						Harvest._parse_alienmatcher_main(json.load(f), source_package)
+					elif ext == ".deltacode.json":
+						Harvest._parse_deltacode_main(json.load(f), source_package)
+			except Exception as ex:
+				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
 
 		self.result["source_packages"] = source_packages
 

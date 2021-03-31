@@ -1,7 +1,7 @@
 from dotenv import dotenv_values, find_dotenv # pip install -U python-dotenv
 
 class Settings:
-	VERSION = "0.2"
+	VERSION = "0.3"
 
 	DOTENV = dotenv_values(find_dotenv())
 
