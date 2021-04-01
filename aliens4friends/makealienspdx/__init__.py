@@ -15,7 +15,7 @@ from spdx.document import Document as SPDXDocument
 from aliens4friends.commons.archive import Archive
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.utils import md5
-from aliens4friends.commons.spdxutils import parse_spdx_tv, write_spdx_tv, EMPTY_FILE_SHA1
+from aliens4friends.commons.spdxutils import parse_spdx_tv, write_spdx_tv, fix_spdxtv, EMPTY_FILE_SHA1
 
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.settings import Settings
@@ -111,6 +111,39 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 		self.alien_spdx = self._debian_spdx
 		self.alien_spdx.package.files = alien_spdx_files
 		self.set_package_and_document_metadata()
+		self.calc_proximity()
+		if self.proximity < 0.92:
+			logger.debug(f"{path} --> proximity is not ~100%,"
+				" do not apply main package license(s) from debian")
+			# do not apply debian main license and copyright
+			# if proximity is not ~100%
+			self.alien_spdx.package.license_declared = NoAssert()
+			self.alien_spdx.package.conc_lics = NoAssert()
+		if self.proximity < 1:
+			logger.debug(f"{path} --> proximity is not == 100%,"
+				" do not apply global package license and copyright metadata"
+				" from debian")
+			# TODO the following metadata would need to be regenerated
+			# we set them to NOASSERTION for now
+			self.alien_spdx.package.licenses_from_files = [NoAssert(),]
+			self.alien_spdx.package.cr_text = NoAssert()
+
+
+	def calc_proximity(self):
+		s = self.deltacodeng_results["header"]["stats"]
+		similar = (
+			s["same_files"]
+			+ s["moved_files"]
+			+ s["changed_files_with_no_license_and_copyright"]
+			+ s["changed_files_with_same_copyright_and_license"]
+			+ s["changed_files_with_updated_copyright_year_only"]
+		)
+		different = (
+			s["changed_files_with_changed_copyright_or_license"]
+			+ s["new_files_with_no_license_and_copyright"]
+			+ s["new_files_with_license_or_copyright"]
+		)
+		self.proximity = similar / (similar + different)
 
 
 class MakeAlienSPDX:
@@ -131,6 +164,10 @@ class MakeAlienSPDX:
 				logger.error(f"Unable to load json from {path}.")
 				continue
 			try:
+				errors = j.get("errors")
+				if errors and 'No internal archive' in errors:
+					logger.warning(f"{path} --> No internal archive in aliensrc package, skipping")
+					continue
 				a = j["aliensrc"]
 				alien_spdx_filename = pool.abspath(
 					"userland",
@@ -153,6 +190,7 @@ class MakeAlienSPDX:
 					a["version"],
 					f'{a["name"]}_{a["version"]}.scancode.spdx'
 				)
+				fix_spdxtv(scancode_spdx_filename)
 				scancode_spdx, err = parse_spdx_tv(scancode_spdx_filename)
 				alien_package = AlienPackage(alien_package_filename)
 
@@ -172,6 +210,7 @@ class MakeAlienSPDX:
 					)
 					if (os.path.isfile(deltacodeng_results_filename) and os.path.isfile(debian_spdx_filename)):
 						logger.info(f"Applying debian spdx to package {a['name']}-{a['version']}")
+						fix_spdxtv(debian_spdx_filename)
 						debian_spdx, err = parse_spdx_tv(debian_spdx_filename)
 						with open(deltacodeng_results_filename, 'r') as f:
 							deltacodeng_results = json.load(f)
