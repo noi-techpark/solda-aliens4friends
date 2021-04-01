@@ -320,12 +320,6 @@ class Aliens4Friends:
 			default = False,
 			help = "Add missing input files to the report while harvesting."
 		)
-		self.parsers[cmd].add_argument(
-			"--use-pool",
-			action = "store_true",
-			default = False,
-			help = "Also scan the pool for input files."
-		)
 
 	def add(self):
 		self._subcommand_args()
