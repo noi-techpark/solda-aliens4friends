@@ -171,7 +171,7 @@ class MakeAlienSPDX:
 					f'{a["internal_archive_name"]}.alien.spdx'
 				)
 				if os.path.isfile(alien_spdx_filename) and Settings.POOLCACHED:
-					logger.debug("{alien_spdx_filename} already found in cache, skipping")
+					logger.debug(f"{pool.clnpath(alien_spdx_filename)} already found in cache, skipping")
 					continue
 				alien_package_filename = pool.abspath(
 					"userland",
