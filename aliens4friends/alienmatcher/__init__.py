@@ -49,7 +49,6 @@ class AlienMatcherError(Exception):
 
 class AlienMatcher:
 
-	VERSION = "0.3"
 	PATH_TMP = "apiresponse"
 	PATH_DEB = "debian"
 	PATH_USR = "userland"
@@ -70,7 +69,7 @@ class AlienMatcher:
 		basepath_deb = self.pool.mkdir(self.PATH_DEB)
 		basepath_usr = self.pool.mkdir(self.PATH_USR)
 		basepath_tmp = self.pool.mkdir(self.PATH_TMP)
-		logger.debug(f"# Initializing ALIENMATCHER v{self.VERSION} with cache pool")
+		logger.debug(f"# Initializing ALIENMATCHER v{Settings.VERSION} with cache pool")
 		logger.debug(f"| Pool directory structure created (ignore_cache = {ignore_cache}):")
 		logger.debug(f"|   - Debian Path          : {basepath_deb}")
 		logger.debug(f"|   - Userland Path        : {basepath_usr}")
