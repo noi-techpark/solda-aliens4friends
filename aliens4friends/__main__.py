@@ -23,12 +23,14 @@ import sys
 from textwrap import dedent
 
 from aliens4friends.commons.settings import Settings
+from aliens4friends.commons.pool import Pool
 from aliens4friends.alienmatcher import AlienMatcher
 from aliens4friends.scancode import Scancode
 from aliens4friends.deltacodeng import DeltaCodeNG
 from aliens4friends.debian2spdx import Debian2SPDX
 from aliens4friends.makealienspdx import MakeAlienSPDX
 from aliens4friends.harvest import Harvest
+from aliens4friends.add import Add
 from aliens4friends.uploadaliens2fossy import UploadAliens2Fossy
 
 from aliens4friends.tests import test_debian2spdx
@@ -37,8 +39,11 @@ from aliens4friends.tests import test_version
 from aliens4friends.tests import test_alienpackage
 from aliens4friends.tests import test_scancode
 
+logger = logging.getLogger(__name__)
+
 PROGNAME = "aliens4friends"
 SUPPORTED_COMMANDS = [
+	"add",
 	"match",
 	"scan",
 	"delta",
@@ -50,6 +55,7 @@ SUPPORTED_COMMANDS = [
 	"help"
 ]
 LOGGERS = {
+	"add"        : 'aliens4friends.add',
 	"match"      : 'aliens4friends.alienmatcher',
 	"scan"       : 'aliens4friends.scancode',
 	"delta"      : 'aliens4friends.deltacodeng',
@@ -62,7 +68,11 @@ LOGGERS = {
 class Aliens4Friends:
 
 	def __init__(self):
-		logging.basicConfig(level = logging.WARNING)
+		logging.basicConfig(
+			level=logging.WARNING,
+			format="%(asctime)s %(levelname)-8s %(name)-30s | %(message)s",
+			datefmt='%y-%m-%d %H:%M:%S',
+		)
 		self.parser = argparse.ArgumentParser(
 			prog=PROGNAME,
 			conflict_handler='resolve',
@@ -96,7 +106,22 @@ class Aliens4Friends:
 			print(f"ERROR: Unknown command --> {self.args.command}. See help with {PROGNAME} -h.")
 			sys.exit(1)
 
+		self.setup()
+
 		getattr(self, self.args.command)()
+
+	def setup(self):
+		self.pool = Pool(Settings.POOLPATH)
+		basepath_deb = self.pool.mkdir(Settings.PATH_DEB)
+		basepath_usr = self.pool.mkdir(Settings.PATH_USR)
+		basepath_tmp = self.pool.mkdir(Settings.PATH_TMP)
+		basepath_stt = self.pool.mkdir(Settings.PATH_STT)
+		logger.debug(f"# Initializing ALIENS4FRIENDS v{Settings.VERSION} with cache pool")
+		logger.debug(f"| Pool directory structure created:")
+		logger.debug(f"|   - Debian Path          : {basepath_deb}")
+		logger.debug(f"|   - Userland Path        : {basepath_usr}")
+		logger.debug(f"|   - Temporary Files Path : {basepath_tmp}")
+		logger.debug(f"|   - Statistics Path      : {basepath_stt}")
 
 
 	def _subcommand_args(self):
@@ -109,10 +134,13 @@ class Aliens4Friends:
 		if self.args.quiet:
 			Settings.DOTENV["A4F_LOGLEVEL"] = Settings.LOGLEVEL = "WARNING"
 
-		if self.args.print:
+		if hasattr(self.args, 'print') and self.args.print:
 			Settings.DOTENV["A4F_PRINTRESULT"] = Settings.PRINTRESULT = True
 
-		logger = logging.getLogger(LOGGERS[self.args.command])
+		# logger = logging.getLogger(LOGGERS[self.args.command])
+		# logger.setLevel(Settings.LOGLEVEL)
+
+		logger = logging.getLogger()
 		logger.setLevel(Settings.LOGLEVEL)
 
 		return [ f.name for f in self.args.FILES ]
@@ -144,17 +172,19 @@ class Aliens4Friends:
 			help = "Show only warnings and errors. This overrides the A4F_LOGLEVEL env var."
 		)
 		parser.add_argument(
+			"FILES",
+			nargs = "*",
+			type = argparse.FileType('r'),
+			help = describe_files
+		)
+
+	def _args_print_to_stdout(self, parser):
+		parser.add_argument(
 			"-p",
 			"--print",
 			action = "store_true",
 			default = False,
 			help = "Print result also to stdout."
-		)
-		parser.add_argument(
-			"FILES",
-			nargs = "*",
-			type = argparse.FileType('r'),
-			help = describe_files
 		)
 
 	def config(self):
@@ -202,6 +232,16 @@ class Aliens4Friends:
 				""")
 		)
 
+	def parser_add(self, cmd):
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Verify and add Alien Packages to the pool"
+		)
+		self._add_default_args(
+			self.parsers[cmd],
+			"The Alien Packages (also wildcards allowed)"
+		)
+
 	def parser_match(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
@@ -211,6 +251,7 @@ class Aliens4Friends:
 			self.parsers[cmd],
 			"The Alien Packages (also wildcards allowed)"
 		)
+		self._args_print_to_stdout(self.parsers[cmd])
 
 	def parser_scan(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -221,6 +262,7 @@ class Aliens4Friends:
 			self.parsers[cmd],
 			"The paths to source code folders"
 		)
+		self._args_print_to_stdout(self.parsers[cmd])
 
 	def parser_delta(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -228,6 +270,7 @@ class Aliens4Friends:
 			help="Understand differences between two scancode results"
 		)
 		self._add_default_args(self.parsers[cmd])
+		self._args_print_to_stdout(self.parsers[cmd])
 
 	def parser_spdxdebian(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -235,15 +278,15 @@ class Aliens4Friends:
 			help="Translate Debian dep5 license information into SPDX files"
 		)
 		self._add_default_args(self.parsers[cmd])
+		self._args_print_to_stdout(self.parsers[cmd])
 
 	def parser_spdxalien(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Generate SPDX files out of Alien Package and Deltacode information"
 		)
-		self._add_default_args(
-			self.parsers[cmd],
-		)
+		self._add_default_args(self.parsers[cmd])
+		self._args_print_to_stdout(self.parsers[cmd])
 
 	def parser_upload(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -265,6 +308,7 @@ class Aliens4Friends:
 			self.parsers[cmd],
 			f"Various files are supported: {Harvest.SUPPORTED_FILES}"
 		)
+		self._args_print_to_stdout(self.parsers[cmd])
 		self.parsers[cmd].add_argument(
 			"--add-details",
 			action = "store_true",
@@ -284,6 +328,9 @@ class Aliens4Friends:
 			help = "Also scan the pool for input files."
 		)
 
+	def add(self):
+		file_list = self._subcommand_args()
+		Add.execute(file_list, self.pool)
 
 	def match(self):
 		file_list = self._subcommand_args()

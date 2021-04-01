@@ -3,7 +3,7 @@ import sys
 import json
 from typing import Union
 
-from .archive import Archive
+from .archive import Archive, ArchiveError
 from .version import Version
 
 
@@ -76,7 +76,12 @@ class AlienPackage(Package):
 
 	def __init__(self, full_archive_path):
 		archive = Archive(full_archive_path)
-		info_lines = archive.readfile(self.ALIEN_MATCHER_JSON)
+
+		try:
+			info_lines = archive.readfile(self.ALIEN_MATCHER_JSON)
+		except ArchiveError as ex:
+			raise PackageError(f"Broken Alien Package: Error is {str(ex)}")
+
 		info_json = json.loads("\n".join(info_lines))
 
 		self.spec_version = info_json['version']

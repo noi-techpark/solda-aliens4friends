@@ -33,7 +33,7 @@ class Archive:
 			raise ArchiveError(f"Archive with extension {extension} is not supported!")
 
 	def _make_tar_cmd(self, params):
-		return bash(f'tar {self.tar_param}xvf {self.path} {params}')
+		return bash(f'tar {self.tar_param}xvf {self.path} {params}', exception=ArchiveError)
 
 	def readfile(self, file_path):
 		stdout, _ = self._make_tar_cmd(f'{file_path} --to-command=cat')

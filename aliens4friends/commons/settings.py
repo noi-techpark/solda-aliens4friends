@@ -2,6 +2,10 @@ from dotenv import dotenv_values, find_dotenv # pip install -U python-dotenv
 
 class Settings:
 	VERSION = "0.3"
+	PATH_TMP = "apiresponse"
+	PATH_DEB = "debian"
+	PATH_USR = "userland"
+	PATH_STT = "stats"
 
 	DOTENV = dotenv_values(find_dotenv())
 
