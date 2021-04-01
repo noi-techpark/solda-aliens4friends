@@ -131,7 +131,8 @@ class Scancode:
 					os.path.join("files", m["internal_archive_name"])
 				)
 				if result and Settings.PRINTRESULT:
-					print(json.dumps(json.loads(result), indent=2))
+					with open(result) as r:
+						print(json.dumps(json.load(r), indent=2))
 			except TypeError as ex:
 				if not m.get("internal_archive_name"):
 					logger.warning(f"{path} --> no internal archive to scan here")

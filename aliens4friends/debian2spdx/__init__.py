@@ -237,7 +237,15 @@ class Debian2SPDX:
 
 	def parse_deb_copyright(self):
 		"""Extract and parse debian/copyright"""
-		content = self.debarchive_debian.readfile(f"{self.native_rootdir}debian/copyright")
+		try:
+			content = self.debarchive_debian.readfile(f"{self.native_rootdir}debian/copyright")
+		except Exception as ex:
+			if 'Not found in archive' in str(ex):
+				raise Debian2SPDXException(
+					"No Debian Copyright file found in debian source package"
+				)
+			else:
+				raise ex
 		try:
 			self.deb_copyright = DebCopyright(content)
 		except (NotMachineReadableError, MachineReadableFormatError):
@@ -436,16 +444,22 @@ class Debian2SPDX:
 			except Exception as ex:
 				logger.error(f"Unable to load json from {path}.")
 				continue
-
 			try:
 				m = j["debian"]["match"]
 				debsrc_orig = pool.abspath(m["debsrc_orig"])
-				debsrc_debian = pool.abspath(m["debsrc_debian"])
+				debsrc_debian = (
+					pool.abspath(m["debsrc_debian"])
+					if m.get("debsrc_debian")
+					else None # native format, only 1 archive
+				)
+				if debsrc_debian and '.diff.' in debsrc_debian:
+					logger.warning(f"{path} --> Debian source format 1.0 not supported yet, skipping")
+					continue
 				debian_spdx_filename = pool.abspath(
 					"debian",
 					m["name"],
 					m["version"],
-					f'{m["name"]}_{m["version"]}.debian.spdx'
+					f'{m["name"]}-{m["version"]}.debian.spdx'
 				)
 				if os.path.isfile(debian_spdx_filename) and Settings.POOLCACHED:
 					logger.debug(f"{debian_spdx_filename} already existing, skipping")
@@ -455,6 +469,17 @@ class Debian2SPDX:
 				d2s.generate_SPDX()
 				logger.info(f"writing spdx to {debian_spdx_filename}")
 				d2s.write_SPDX(debian_spdx_filename)
-
+			except KeyError as ex:
+				if not j["debian"].get("match"):
+					logger.warning(f"{path} --> no debian match to use here")
+				else:
+					logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+			except TypeError as ex:
+				if not m["debsrc_orig"]:
+					logger.warning(f"{path} --> no debian orig archive to scan here")
+				else:
+					logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+			except Debian2SPDXException as ex:
+				logger.warning(f"{path} --> {ex}")
 			except Exception as ex:
 				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
