@@ -287,5 +287,8 @@ class DeltaCodeNG:
 					logger.info(stat)
 				if Settings.PRINTRESULT:
 					print(json.dumps(result, indent=2))
+			except KeyError as ex:
+				if not j["debian"].get("match"):
+					logger.warning(f"{path} --> no debian match to compare here")
 			except Exception as ex:
 				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
