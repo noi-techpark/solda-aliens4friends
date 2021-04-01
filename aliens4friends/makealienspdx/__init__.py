@@ -148,9 +148,6 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 
 class MakeAlienSPDX:
 
-	def __init__(self):
-		pass
-
 	@staticmethod
 	def execute(pool: Pool):
 
