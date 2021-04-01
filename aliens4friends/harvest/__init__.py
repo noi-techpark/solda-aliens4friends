@@ -24,13 +24,22 @@ class Harvest:
 		".deltacode.json"
 	]
 
-	def __init__(self, input_files, result_file : str, package_id_ext : str = "solda21src"):
+	def __init__(
+		self,
+		input_files,
+		result_file : str,
+		add_details : bool = False,
+		add_missing : bool = False,
+		package_id_ext : str = "solda21src"
+	):
 		super().__init__()
 		self.input_files = sorted(input_files)
 		self.result_file = result_file
 		self.yaml = None
 		self.result = {}
 		self.package_id_ext = package_id_ext
+		self.add_details = add_details
+		self.add_missing = add_missing
 
 	@staticmethod
 	def _filename_split(path):
@@ -55,6 +64,21 @@ class Harvest:
 			raise HarvestException("Unsupported file extension")
 		return package_id, ext
 
+	def _warn_missing_input(self, package, package_inputs):
+		missing = []
+		for input_file_type in self.SUPPORTED_FILES:
+			if input_file_type not in package_inputs:
+				missing.append(input_file_type)
+		if missing:
+			logger.warning(f'Package {package["id"]} misses the {missing} input files.')
+			if self.add_missing:
+				package["harvest_info"] = {
+					"missing_input": missing
+				}
+		else:
+			logger.debug(f'Package {package["id"]} does not miss any input files.')
+
+
 	def readfile(self):
 		p_revision = re.compile("^.*-r[0-9]+$", flags=re.IGNORECASE)
 		self.result = {
@@ -66,6 +90,7 @@ class Harvest:
 		source_packages = []
 		cur_package_id = None
 		cur_package_inputs = []
+		old_package = None
 		for path in self.input_files:
 			try:
 				with open(path) as f:
@@ -81,47 +106,36 @@ class Harvest:
 						package_id += "-r0"
 					package_id += f"+{self.package_id_ext}"
 					if not cur_package_id or package_id != cur_package_id:
-
 						if cur_package_id:
-							missing = []
-							for input_file_type in self.SUPPORTED_FILES:
-								if input_file_type not in cur_package_inputs:
-									missing.append(input_file_type)
-							logger.warning(f"Package {cur_package_id} misses the {missing} input files.")
-
+							self._warn_missing_input(old_package, cur_package_inputs)
 						cur_package_id = package_id
 						source_package = {
 							"id" : package_id
 						}
 						source_packages.append(source_package)
+						old_package = source_package
 					cur_package_inputs.append(ext)
 					if ext == ".summary.fossy.json":
-						Harvest._parse_summary_fossy_main(json.load(f), source_package)
+						self._parse_summary_fossy_main(json.load(f), source_package)
 					elif ext == ".fossy.json":
-						Harvest._parse_fossy_main(json.load(f), source_package)
+						self._parse_fossy_main(json.load(f), source_package)
 					elif ext == ".tinfoilhat.yml":
-						Harvest._parse_tinfoilhat_main(yaml.safe_load(f), source_package)
+						self._parse_tinfoilhat_main(yaml.safe_load(f), source_package)
 					elif ext == ".alienmatcher.json":
-						Harvest._parse_alienmatcher_main(json.load(f), source_package)
+						self._parse_alienmatcher_main(json.load(f), source_package)
 					elif ext == ".deltacode.json":
-						Harvest._parse_deltacode_main(json.load(f), source_package)
+						self._parse_deltacode_main(json.load(f), source_package)
 			except Exception as ex:
 				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
 
-		missing = []
-		for input_file_type in self.SUPPORTED_FILES:
-			if input_file_type not in cur_package_inputs:
-				missing.append(input_file_type)
-		logger.warning(f"Package {cur_package_id} misses the {missing} input files.")
-
+		self._warn_missing_input(source_package, cur_package_inputs)
 		self.result["source_packages"] = source_packages
 
 	def write_results(self):
 		with open(self.result_file, "w") as f:
 			json.dump(self.result, f, indent=2)
 
-	@staticmethod
-	def _parse_alienmatcher_main(cur, out):
+	def _parse_alienmatcher_main(self, cur, out):
 		try:
 			name = cur["debian"]["match"]["name"]
 			version = cur["debian"]["match"]["version"]
@@ -138,8 +152,7 @@ class Harvest:
 		except KeyError:
 			pass
 
-	@staticmethod
-	def _parse_deltacode_main(cur, out):
+	def _parse_deltacode_main(self, cur, out):
 		try:
 			stats = cur["header"]["stats"]
 			matching = stats["same_files"] + stats["changed_files_with_same_copyright_and_license"]
@@ -173,8 +186,7 @@ class Harvest:
 		pos[last] = value
 
 
-	@staticmethod
-	def _parse_summary_fossy_main(cur, out):
+	def _parse_summary_fossy_main(self, cur, out):
 		Harvest._safe_set(
 			out,
 			["statistics", "licenses", "license_audit_findings", "main_licenses"],
@@ -228,8 +240,7 @@ class Harvest:
 				result.append(Harvest._rename(lic))
 			return result
 
-	@staticmethod
-	def _parse_fossy_licenselists(cur):
+	def _parse_fossy_licenselists(self, cur):
 		result = {}
 		if not cur:
 			return result
@@ -248,8 +259,7 @@ class Harvest:
 			Harvest._increment(result, license_id, 1)
 		return result
 
-	@staticmethod
-	def _parse_fossy_main(cur, out):
+	def _parse_fossy_main(self, cur, out):
 		stat_agents = {}
 		stat_conclusions = {}
 		file_count = 0
@@ -257,10 +267,10 @@ class Harvest:
 			# XXX I assume, that these are folder names, so they can be skipped
 			if not fileobj["agentFindings"] and not fileobj["conclusions"]:
 				continue
-			cur_stat_agents = Harvest._parse_fossy_licenselists(fileobj["agentFindings"])
+			cur_stat_agents = self._parse_fossy_licenselists(fileobj["agentFindings"])
 			for k, v in cur_stat_agents.items():
 				Harvest._increment(stat_agents, k, v)
-			cur_stat_conclusions = Harvest._parse_fossy_licenselists(fileobj["conclusions"])
+			cur_stat_conclusions = self._parse_fossy_licenselists(fileobj["conclusions"])
 			for k, v in cur_stat_conclusions.items():
 				Harvest._increment(stat_conclusions, k, v)
 			file_count += 1
@@ -287,15 +297,13 @@ class Harvest:
 		}
 
 
-	@staticmethod
-	def _parse_tinfoilhat_packages(cur):
+	def _parse_tinfoilhat_packages(self, cur):
 		result = []
 		for name, package in cur.items():
-			result.append(Harvest._parse_tinfoilhat_package(name, package))
+			result.append(self._parse_tinfoilhat_package(name, package))
 		return result
 
-	@staticmethod
-	def _parse_tinfoilhat_metadata(cur):
+	def _parse_tinfoilhat_metadata(self, cur):
 		SKIP_LIST = [
 			"license",
 			"compiled_source_dir",
@@ -310,18 +318,18 @@ class Harvest:
 			result[k] = v
 		return result
 
-	@staticmethod
-	def _parse_tinfoilhat_package(name, cur):
-		return {
-			"name": name,  #FIXME is it the key inside tinfoilhat.yml packages or cur["package"]["metadata"]["name"],
+	def _parse_tinfoilhat_package(self, name, cur):
+		result = {
+			"name": name,
 			"version": cur["package"]["metadata"]["version"],
 			"revision": cur["package"]["metadata"]["revision"],
-			#"metadata": Harvest._parse_tinfoilhat_metadata(cur["package"]["metadata"]),
-			#"tags": cur["tags"]
 		}
+		if self.add_details:
+			result["metadata"] = self._parse_tinfoilhat_metadata(cur["package"]["metadata"]),
+			result["tags"] = cur["tags"]
+		return result
 
-	@staticmethod
-	def _parse_tinfoilhat_source_files(cur):
+	def _parse_tinfoilhat_source_files(self, cur):
 		result = []
 		known_provenance = 0
 		unknown_provenance = 0
@@ -339,16 +347,15 @@ class Harvest:
 				known_provenance += 1
 		return result, known_provenance, unknown_provenance
 
-	@staticmethod
-	def _parse_tinfoilhat_main(cur, out):
+	def _parse_tinfoilhat_main(self, cur, out):
 		for recipe_name, main in cur.items():
-			out["binary_packages"] = Harvest._parse_tinfoilhat_packages(main["packages"]),
+			out["binary_packages"] = self._parse_tinfoilhat_packages(main["packages"]),
 
 			(
 				out["source_files"],
 				known_provenance,
 				unknown_provenance
-			) = Harvest._parse_tinfoilhat_source_files(main["recipe"]["source_files"])
+			) = self._parse_tinfoilhat_source_files(main["recipe"]["source_files"])
 
 			if known_provenance == 1:
 				try:
@@ -391,29 +398,29 @@ class Harvest:
 			out["name"] = main["recipe"]["metadata"]["name"]
 			out["version"] = main["recipe"]["metadata"]["version"]
 			out["revision"] = main["recipe"]["metadata"]["revision"]
-			#out["metadata"] = Harvest._parse_tinfoilhat_metadata(main["recipe"]["metadata"])
+
+			if self.add_details:
+				out["metadata"] = self._parse_tinfoilhat_metadata(main["recipe"]["metadata"])
 
 	@staticmethod
-	def execute(files):
+	def execute(files, add_details, add_missing):
 
 		pool = Pool(Settings.POOLPATH)
 		result_path = pool.abspath("stats")
-
 		pool.mkdir(result_path)
-
 		result_file = f'{datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}.harvest.json'
+		output = os.path.join(result_path, result_file)
 
 		tfh = Harvest(
 			files,
-			os.path.join(
-				result_path,
-				result_file
-			)
+			output,
+			add_details,
+			add_missing
 		)
 		tfh.readfile()
 
 		tfh.write_results()
-		logger.info(f'Results written to {result_path}')
+		logger.info(f'Results written to {output}.')
 		if Settings.PRINTRESULT:
 			print(json.dumps(tfh.result, indent=2))
 

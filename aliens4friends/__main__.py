@@ -266,11 +266,22 @@ class Aliens4Friends:
 			f"Various files are supported: {Harvest.SUPPORTED_FILES}"
 		)
 		self.parsers[cmd].add_argument(
-			"-f",
-			"--full-report",
+			"--add-details",
 			action = "store_true",
 			default = False,
 			help = "Add more information to the report while harvesting."
+		)
+		self.parsers[cmd].add_argument(
+			"--add-missing",
+			action = "store_true",
+			default = False,
+			help = "Add missing input files to the report while harvesting."
+		)
+		self.parsers[cmd].add_argument(
+			"--use-pool",
+			action = "store_true",
+			default = False,
+			help = "Also scan the pool for input files."
 		)
 
 
@@ -300,7 +311,11 @@ class Aliens4Friends:
 
 	def harvest(self):
 		file_list = self._subcommand_args()
-		Harvest.execute(file_list)
+		Harvest.execute(
+			file_list,
+			self.args.add_details,
+			self.args.add_missing
+		)
 
 
 if __name__ == "__main__":
