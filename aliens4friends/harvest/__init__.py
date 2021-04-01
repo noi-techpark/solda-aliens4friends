@@ -99,7 +99,7 @@ class Harvest:
 						package_id, ext = Harvest._filename_split(path)
 					except HarvestException as ex:
 						if str(ex) == "Unsupported file extension":
-							logger.warning(f"File {path} is not supported. Skipping...")
+							logger.debug(f"File {path} is not supported. Skipping...")
 							continue
 					package_id = package_id.replace("_", "-")
 					if not p_revision.match(package_id):
@@ -403,13 +403,17 @@ class Harvest:
 				out["metadata"] = self._parse_tinfoilhat_metadata(main["recipe"]["metadata"])
 
 	@staticmethod
-	def execute(files, add_details, add_missing):
+	def execute(pool: Pool, add_details, add_missing):
 
-		pool = Pool(Settings.POOLPATH)
 		result_path = pool.abspath("stats")
 		pool.mkdir(result_path)
 		result_file = f'{datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}.harvest.json'
 		output = os.path.join(result_path, result_file)
+
+		files = []
+		for supp in Harvest.SUPPORTED_FILES:
+			for fn in pool.absglob(f"*{supp}"):
+				files.append(str(fn))
 
 		tfh = Harvest(
 			files,
@@ -420,7 +424,7 @@ class Harvest:
 		tfh.readfile()
 
 		tfh.write_results()
-		logger.info(f'Results written to {output}.')
+		logger.info(f'Results written to {pool.clnpath(output)}.')
 		if Settings.PRINTRESULT:
 			print(json.dumps(tfh.result, indent=2))
 

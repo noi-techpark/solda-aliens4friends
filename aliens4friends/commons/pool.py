@@ -19,6 +19,11 @@ class Pool:
 				f"Unable to create the POOL at path '{self.basepath}'."
 			)
 
+	def clnpath(self, path):
+		if path.startswith(self.basepath):
+			return path[len(self.basepath):]
+		return path
+
 	def mkdir(self, *sub_folder):
 		return mkdir(self.abspath(*sub_folder))
 
@@ -34,9 +39,10 @@ class Pool:
 
 	def add(self, src, *path_args):
 		dest = self.abspath(*path_args)
+		pooldest = self.relpath(*path_args)
 		dest_full = os.path.join(dest, os.path.basename(src))
 		if os.path.isfile(dest_full) and Settings.POOLCACHED:
-			logger.debug(f"Pool cache active and file {self.relpath(*path_args)} exists... skipping!")
+			logger.debug(f"Pool cache active and file {pooldest} exists... skipping!")
 			return dest
 		self.mkdir(dest)
 		copy(src, dest_full)

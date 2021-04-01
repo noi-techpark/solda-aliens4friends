@@ -24,7 +24,6 @@ class Add:
 			alienpackage.name,
 			alienpackage.version.str
 		)
-		logger.debug(f"Package '{alienpackage.name}/{alienpackage.version.str}' added.")
 
 	@staticmethod
 	def execute(alienpackage_list, pool: Pool):

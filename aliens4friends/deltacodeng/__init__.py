@@ -236,11 +236,9 @@ class DeltaCodeNG:
 			json.dump(self.res, f, indent=2)
 
 	@staticmethod
-	def execute(alienmatcher_json_list):
+	def execute(pool: Pool):
 
-		pool = Pool(Settings.POOLPATH)
-
-		for path in alienmatcher_json_list:
+		for path in pool.absglob("*.alienmatcher.json"):
 			try:
 				with open(path, "r") as jsonfile:
 					j = json.load(jsonfile)
@@ -251,40 +249,36 @@ class DeltaCodeNG:
 			try:
 				m = j["debian"]["match"]
 				a = j["aliensrc"]
-				try:
-					revision = a["revision"]
-				except KeyError:
-					revision = "r0"
 				result_path = pool.abspath(
 					"userland",
 					a["name"],
 					a["version"],
-					f'{a["name"]}-{a["version"]}-{revision}.deltacode.json'
+					f'{a["name"]}-{a["version"]}.deltacode.json'
 				)
 				if os.path.isfile(result_path) and Settings.POOLCACHED:
-					logger.debug(f"{result_path} already existing, skipping")
+					logger.debug(f"Skip {pool.clnpath(result_path)}. Result exists and cache is enabled.")
 					continue
 				deltacode = DeltaCodeNG(
 					pool.abspath(
 						"debian",
 						m["name"],
 						m["version"],
-						f'{m["name"]}_{m["version"]}.scancode.json'
+						f'{m["name"]}-{m["version"]}.scancode.json'
 					),
 					pool.abspath(
 						"userland",
 						a["name"],
 						a["version"],
-						f'{a["name"]}_{a["version"]}.scancode.json'
+						f'{a["name"]}-{a["version"]}.scancode.json'
 					),
 					result_path
 				)
 				result = deltacode.compare()
 				deltacode.write_results()
-				logger.info(f'Results written to {result_path}')
-				logger.info('Stats:')
+				logger.debug(f'Results written to {result_path}')
+				logger.debug('Stats:')
 				for stat in deltacode.get_stats():
-					logger.info(stat)
+					logger.debug(stat)
 				if Settings.PRINTRESULT:
 					print(json.dumps(result, indent=2))
 			except Exception as ex:

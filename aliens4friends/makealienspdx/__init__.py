@@ -119,11 +119,9 @@ class MakeAlienSPDX:
 		pass
 
 	@staticmethod
-	def execute(alienmatcher_json_list):
+	def execute(pool: Pool):
 
-		pool = Pool(Settings.POOLPATH)
-
-		for path in alienmatcher_json_list:
+		for path in pool.absglob("*.alienmatcher.json"):
 			try:
 				with open(path, "r") as jsonfile:
 					j = json.load(jsonfile)

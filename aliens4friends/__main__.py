@@ -143,11 +143,8 @@ class Aliens4Friends:
 		logger = logging.getLogger()
 		logger.setLevel(Settings.LOGLEVEL)
 
-		return [ f.name for f in self.args.FILES ]
 
-
-
-	def _add_default_args(self, parser, describe_files = ""):
+	def _args_defaults(self, parser, describe_files = ""):
 		parser.add_argument(
 			"-i",
 			"--ignore-cache",
@@ -171,6 +168,8 @@ class Aliens4Friends:
 			default = False,
 			help = "Show only warnings and errors. This overrides the A4F_LOGLEVEL env var."
 		)
+
+	def _args_files(self, parser, describe_files):
 		parser.add_argument(
 			"FILES",
 			nargs = "*",
@@ -237,7 +236,10 @@ class Aliens4Friends:
 			cmd,
 			help="Verify and add Alien Packages to the pool"
 		)
-		self._add_default_args(
+		self._args_defaults(
+			self.parsers[cmd]
+		)
+		self._args_files(
 			self.parsers[cmd],
 			"The Alien Packages (also wildcards allowed)"
 		)
@@ -247,9 +249,8 @@ class Aliens4Friends:
 			cmd,
 			help="Find a matching source package on Debian"
 		)
-		self._add_default_args(
-			self.parsers[cmd],
-			"The Alien Packages (also wildcards allowed)"
+		self._args_defaults(
+			self.parsers[cmd]
 		)
 		self._args_print_to_stdout(self.parsers[cmd])
 
@@ -258,18 +259,17 @@ class Aliens4Friends:
 			cmd,
 			help="Scan a source code folder and find license/copyright information (scancode)"
 		)
-		self._add_default_args(
-			self.parsers[cmd],
-			"The paths to source code folders"
+		self._args_defaults(
+			self.parsers[cmd]
 		)
 		self._args_print_to_stdout(self.parsers[cmd])
 
 	def parser_delta(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
-			help="Understand differences between two scancode results"
+			help="Understand differences between matching packages (deltacode)"
 		)
-		self._add_default_args(self.parsers[cmd])
+		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
 
 	def parser_spdxdebian(self, cmd):
@@ -277,7 +277,7 @@ class Aliens4Friends:
 			cmd,
 			help="Translate Debian dep5 license information into SPDX files"
 		)
-		self._add_default_args(self.parsers[cmd])
+		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
 
 	def parser_spdxalien(self, cmd):
@@ -285,7 +285,7 @@ class Aliens4Friends:
 			cmd,
 			help="Generate SPDX files out of Alien Package and Deltacode information"
 		)
-		self._add_default_args(self.parsers[cmd])
+		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
 
 	def parser_upload(self, cmd):
@@ -293,9 +293,8 @@ class Aliens4Friends:
 			cmd,
 			help="Upload Alien Packages to Fossology"
 		)
-		self._add_default_args(
-			self.parsers[cmd],
-			"Alien package files"
+		self._args_defaults(
+			self.parsers[cmd]
 		)
 
 	def parser_harvest(self, cmd):
@@ -304,7 +303,7 @@ class Aliens4Friends:
 			help="Harvest tinfoilhat, alienmatcher, deltacode, fossy and " \
 			     "fossy-summary outputs and create a report for the dashboard"
 		)
-		self._add_default_args(
+		self._args_defaults(
 			self.parsers[cmd],
 			f"Various files are supported: {Harvest.SUPPORTED_FILES}"
 		)
@@ -329,37 +328,38 @@ class Aliens4Friends:
 		)
 
 	def add(self):
-		file_list = self._subcommand_args()
+		self._subcommand_args()
+		file_list = [ f.name for f in self.args.FILES ]
 		Add.execute(file_list, self.pool)
 
 	def match(self):
-		file_list = self._subcommand_args()
-		AlienMatcher.execute(file_list)
+		self._subcommand_args()
+		AlienMatcher.execute(self.pool)
 
 	def scan(self):
-		file_list = self._subcommand_args()
-		Scancode.execute(file_list)
+		self._subcommand_args()
+		Scancode.execute(self.pool)
 
 	def delta(self):
-		file_list = self._subcommand_args()
-		DeltaCodeNG.execute(file_list)
+		self._subcommand_args()
+		DeltaCodeNG.execute(self.pool)
 
 	def spdxdebian(self):
-		file_list = self._subcommand_args()
-		Debian2SPDX.execute(file_list)
+		self._subcommand_args()
+		Debian2SPDX.execute(self.pool)
 
 	def spdxalien(self):
-		file_list = self._subcommand_args()
-		MakeAlienSPDX.execute(file_list)
+		self._subcommand_args()
+		MakeAlienSPDX.execute(self.pool)
 
 	def upload(self):
-		file_list = self._subcommand_args()
-		UploadAliens2Fossy.execute(file_list)
+		self._subcommand_args()
+		UploadAliens2Fossy.execute(self.pool)
 
 	def harvest(self):
-		file_list = self._subcommand_args()
+		self._subcommand_args()
 		Harvest.execute(
-			file_list,
+			self.pool,
 			self.args.add_details,
 			self.args.add_missing
 		)

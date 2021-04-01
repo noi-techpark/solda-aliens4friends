@@ -49,9 +49,6 @@ class AlienMatcherError(Exception):
 
 class AlienMatcher:
 
-	PATH_TMP = "apiresponse"
-	PATH_DEB = "debian"
-	PATH_USR = "userland"
 	DEBIAN_BASEURL = "http://deb.debian.org/debian/pool/main"
 	API_URL_SRCPKG = "https://api.ftp-master.debian.org/madison?f&a=source&package="
 	API_URL_ALLSRC = "https://api.ftp-master.debian.org/all_sources"
@@ -61,19 +58,12 @@ class AlienMatcher:
 		"linux-yocto" : "linux"
 	}
 
-	def __init__(self, path_to_pool = None, ignore_cache = None):
+	def __init__(self, pool: Pool):
 		super().__init__()
-		self.ignore_cache = ignore_cache if isinstance(ignore_cache, bool) else not Settings.POOLCACHED
 		self.errors = []
-		self.pool = Pool(path_to_pool) if path_to_pool else Pool(Settings.POOLPATH)
-		basepath_deb = self.pool.mkdir(self.PATH_DEB)
-		basepath_usr = self.pool.mkdir(self.PATH_USR)
-		basepath_tmp = self.pool.mkdir(self.PATH_TMP)
-		logger.debug(f"# Initializing ALIENMATCHER v{Settings.VERSION} with cache pool")
-		logger.debug(f"| Pool directory structure created (ignore_cache = {ignore_cache}):")
-		logger.debug(f"|   - Debian Path          : {basepath_deb}")
-		logger.debug(f"|   - Userland Path        : {basepath_usr}")
-		logger.debug(f"|   - Temporary Files Path : {basepath_tmp}")
+		self.pool = pool
+
+		logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 	def _reset(self):
 		self.errors = []
@@ -81,10 +71,10 @@ class AlienMatcher:
 	def add_to_userland(self, alienpackage: AlienPackage):
 		if not isinstance(alienpackage, AlienPackage):
 			raise TypeError("Parameter must be a AlienPackage.")
-		logger.debug(f"| Adding package '{alienpackage.name}/{alienpackage.version.str}' to '{self.PATH_USR}'.")
+		logger.debug(f"| Adding package '{alienpackage.name}/{alienpackage.version.str}' to '{Settings.PATH_USR}'.")
 		self.pool.add(
 			alienpackage.archive_fullpath,
-			self.PATH_USR,
+			Settings.PATH_USR,
 			alienpackage.name,
 			alienpackage.version.str
 		)
@@ -95,15 +85,15 @@ class AlienMatcher:
 			raise TypeError("Parameter must be a Package.")
 		self.pool.add(
 			package.archive_fullpath,
-			self.PATH_DEB,
+			Settings.PATH_DEB,
 			package.name,
 			package.version
 		)
-		logger.debug(f"| Adding package '{package.name}/{package.version}' to '{self.PATH_DEB}'.")
+		logger.debug(f"Package '{package.name}/{package.version}' added to '{Settings.PATH_DEB}'.")
 
 	def _api_call(self, url, resp_name):
 		api_response_cached = self.pool.abspath(
-			self.PATH_TMP,
+			Settings.PATH_TMP,
 			f"api-resp-{resp_name}.json"
 		)
 		logger.debug(f"| Search cache pool for existing API response.")
@@ -257,7 +247,7 @@ class AlienMatcher:
 	def download_to_debian(self, package_name, package_version, filename):
 		logger.debug(f"# Retrieving file from Debian: '{package_name}/{package_version}/{filename}'.")
 		try:
-			response = self.pool.get_binary(self.PATH_DEB, package_name, package_version, filename)
+			response = self.pool.get_binary(Settings.PATH_DEB, package_name, package_version, filename)
 			logger.debug(f"| Found in Debian cache pool.")
 		except FileNotFoundError:
 			pooldir = package_name[0:4] if package_name.startswith('lib') else package_name[0]
@@ -271,7 +261,7 @@ class AlienMatcher:
 			r = requests.get(full_url)
 			if r.status_code != 200:
 				raise AlienMatcherError(f"Error {r.status_code} in downloading {full_url}")
-			local_path = self.pool.write(r.content, self.PATH_DEB, package_name, package_version, filename)
+			local_path = self.pool.write(r.content, Settings.PATH_DEB, package_name, package_version, filename)
 			logger.debug(f"| Result cached in {local_path}.")
 			response = r.content
 		return response
@@ -296,7 +286,7 @@ class AlienMatcher:
 			debian_control_files.append(elem)
 			self.download_to_debian(package.name, package.version.str, elem[2])
 
-			debian_relpath = self.pool.relpath(self.PATH_DEB, package.name, package.version.str, elem[2])
+			debian_relpath = self.pool.relpath(Settings.PATH_DEB, package.name, package.version.str, elem[2])
 
 			if sha1sum(self.pool.abspath(debian_relpath)) != elem[0]:
 				raise AlienMatcherError(f"Checksum mismatch for {debian_relpath}.")
@@ -330,15 +320,14 @@ class AlienMatcher:
 	def match(self, apkg: AlienPackage):
 		logger.debug("# Find a matching package on Debian repositories.")
 		self._reset()
-		self.add_to_userland(apkg)
 		resultpath = self.pool.abspath(
-			self.PATH_USR,
+			Settings.PATH_USR,
 			apkg.name,
 			apkg.version.str,
 			f"{apkg.name}_{apkg.version.str}.alienmatcher.json"
 		)
 		try:
-			if self.ignore_cache:
+			if not Settings.POOLCACHED:
 				raise FileNotFoundError()
 			json_data = self.pool.get_json(resultpath)
 			debpkg = DebianPackage(
@@ -348,7 +337,7 @@ class AlienMatcher:
 				json_data["debian"]["match"]["debsrc_debian"],
 				json_data["debian"]["match"]["dsc_format"]
 			)
-			logger.info("| Result already exists, skipping.")
+			logger.debug("| Result already exists, skipping.")
 		except (FileNotFoundError, KeyError):
 
 			json_data = {
@@ -405,7 +394,7 @@ class AlienMatcher:
 	def run(self, package_path):
 		try:
 			filename = os.path.basename(package_path)
-			logging.info(f"{filename:<80}", end="")
+			logging.info(f"## Processing {filename}...")
 			package = AlienPackage(package_path)
 			match = self.match(package)
 			errors = match["errors"]
@@ -436,11 +425,10 @@ class AlienMatcher:
 				logging.error(f"{'ERROR':<10}{'':<60}{'':<60}{ex}")
 			return None
 
-
 	@staticmethod
-	def execute(alienpackage_list):
-		matcher = AlienMatcher()
-		for p in alienpackage_list:
+	def execute(pool: Pool):
+		matcher = AlienMatcher(pool)
+		for p in pool.absglob("*.aliensrc"):
 			result = matcher.run(p)
 			if Settings.PRINTRESULT:
 				print(json.dumps(result, indent=2))
