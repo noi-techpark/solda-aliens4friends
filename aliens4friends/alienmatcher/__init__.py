@@ -49,6 +49,7 @@ class AlienMatcherError(Exception):
 
 class AlienMatcher:
 
+	VERSION = "0.3"
 	PATH_TMP = "apiresponse"
 	PATH_DEB = "debian"
 	PATH_USR = "userland"
