@@ -14,7 +14,7 @@ class Settings:
 		POOLPATH = DOTENV["A4F_POOL"] = "/tmp/aliens4friends/"
 
 	try:
-		POOLCACHED = bool(DOTENV["A4F_CACHE"])
+		POOLCACHED = (DOTENV["A4F_CACHE"].lower() == "true")
 	except KeyError:
 		POOLCACHED = DOTENV["A4F_CACHE"] = True
 
