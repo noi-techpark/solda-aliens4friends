@@ -172,6 +172,10 @@ class DeltaCodeNG:
 				f' must be {SCANCODE_VERSION}'
 			)
 
+	def _fix_finding_diffs_for_json_serialization(self, findings_diff):
+		if findings_diff.get("type_changes"):
+			del findings_diff["type_changes"]
+
 	def compare(self):
 		moved = []
 		for path in self.old:
@@ -202,8 +206,10 @@ class DeltaCodeNG:
 						else:
 							self.res['body']['changed_files_with_same_copyright_and_license'].append(path)
 					elif only_copyright_year_has_been_updated(findings_diff):
+						self._fix_finding_diffs_for_json_serialization(findings_diff)
 						self.res['body']['changed_files_with_updated_copyright_year_only'].update({path: findings_diff})
 					else:
+						self._fix_finding_diffs_for_json_serialization(findings_diff)
 						self.res['body']['changed_files_with_changed_copyright_or_license'].update({path: findings_diff})
 			else:
 				if not any_dict_value(self.old[path]['findings']):
