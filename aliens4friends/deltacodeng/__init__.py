@@ -261,7 +261,7 @@ class DeltaCodeNG:
 					"userland",
 					a["name"],
 					a["version"],
-					f'{a["name"]}_{a["version"]}.deltacode.json'
+					f'{a["name"]}-{a["version"]}.deltacode.json'
 				)
 				if os.path.isfile(result_path) and Settings.POOLCACHED:
 					logger.debug(f"{result_path} already existing, skipping")
@@ -271,13 +271,13 @@ class DeltaCodeNG:
 						"debian",
 						m["name"],
 						m["version"],
-						f'{m["name"]}_{m["version"]}.scancode.json'
+						f'{m["name"]}-{m["version"]}.scancode.json'
 					),
 					pool.abspath(
 						"userland",
 						a["name"],
 						a["version"],
-						f'{a["name"]}_{a["version"]}.scancode.json'
+						f'{a["name"]}-{a["version"]}.scancode.json'
 					),
 					result_path
 				)

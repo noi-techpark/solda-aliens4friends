@@ -335,7 +335,7 @@ class AlienMatcher:
 			self.PATH_USR,
 			apkg.name,
 			apkg.version.str,
-			f"{apkg.name}_{apkg.version.str}.alienmatcher.json"
+			f"{apkg.name}-{apkg.version.str}.alienmatcher.json"
 		)
 		try:
 			if self.ignore_cache:

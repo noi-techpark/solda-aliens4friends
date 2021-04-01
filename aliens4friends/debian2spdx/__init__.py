@@ -461,7 +461,7 @@ class Debian2SPDX:
 					"debian",
 					m["name"],
 					m["version"],
-					f'{m["name"]}_{m["version"]}.debian.spdx'
+					f'{m["name"]}-{m["version"]}.debian.spdx'
 				)
 				if os.path.isfile(debian_spdx_filename) and Settings.POOLCACHED:
 					logger.debug(f"{debian_spdx_filename} already existing, skipping")

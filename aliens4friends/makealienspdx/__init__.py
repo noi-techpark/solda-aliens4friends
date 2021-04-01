@@ -188,7 +188,7 @@ class MakeAlienSPDX:
 					"userland",
 					a["name"],
 					a["version"],
-					f'{a["name"]}_{a["version"]}.scancode.spdx'
+					f'{a["name"]}-{a["version"]}.scancode.spdx'
 				)
 				fix_spdxtv(scancode_spdx_filename)
 				scancode_spdx, err = parse_spdx_tv(scancode_spdx_filename)
@@ -200,13 +200,13 @@ class MakeAlienSPDX:
 						"userland",
 						a["name"],
 						a["version"],
-						f'{a["name"]}_{a["version"]}.deltacode.json'
+						f'{a["name"]}-{a["version"]}.deltacode.json'
 					)
 					debian_spdx_filename = pool.abspath(
 						"debian",
 						m["name"],
 						m["version"],
-						f'{m["name"]}_{m["version"]}.debian.spdx'
+						f'{m["name"]}-{m["version"]}.debian.spdx'
 					)
 					if (os.path.isfile(deltacodeng_results_filename) and os.path.isfile(debian_spdx_filename)):
 						logger.info(f"Applying debian spdx to package {a['name']}-{a['version']}")

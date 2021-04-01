@@ -39,8 +39,8 @@ class Scancode:
 
 	def run(self, archive : Archive, package_name, package_version_str, archive_in_archive = None):
 
-		result_filename = f"{package_name}_{package_version_str}.scancode.json"
-		spdx_filename = f"{package_name}_{package_version_str}.scancode.spdx"
+		result_filename = f"{package_name}-{package_version_str}.scancode.json"
+		spdx_filename = f"{package_name}-{package_version_str}.scancode.spdx"
 		scancode_result = os.path.join(
 			os.path.dirname(archive.path),
 			result_filename
