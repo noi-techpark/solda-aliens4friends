@@ -1,6 +1,6 @@
 import os
 import sys
-import yaml
+import json
 from typing import Union
 
 from .archive import Archive
@@ -72,36 +72,36 @@ class DebianPackage(Package):
 
 class AlienPackage(Package):
 
-	ALIEN_MATCHER_YAML = "aliensrc.yml"
+	ALIEN_MATCHER_JSON = "aliensrc.json"
 
 	def __init__(self, full_archive_path):
 		archive = Archive(full_archive_path)
-		info_lines = archive.readfile(self.ALIEN_MATCHER_YAML)
-		info_yaml = yaml.load("\n".join(info_lines), Loader = yaml.SafeLoader)
+		info_lines = archive.readfile(self.ALIEN_MATCHER_JSON)
+		info_json = json.loads("\n".join(info_lines))
 
-		self.spec_version = info_yaml['version']
+		self.spec_version = info_json['version']
 		if self.spec_version != 1 and self.spec_version != "1":
 			raise PackageError(
-				f"{self.ALIEN_MATCHER_YAML} with version {self.spec_version} not supported"
+				f"{self.ALIEN_MATCHER_JSON} with version {self.spec_version} not supported"
 			)
 
 		super().__init__(
-			info_yaml['source_package']['name'],
-			info_yaml['source_package']['version'],
+			info_json['source_package']['name'],
+			info_json['source_package']['version'],
 			full_archive_path
 		)
 
-		self.manager = info_yaml['source_package'].get('manager')
-		self.metadata = info_yaml['source_package'].get('metadata')
+		self.manager = info_json['source_package'].get('manager')
+		self.metadata = info_json['source_package'].get('metadata')
 
-		self.package_files = info_yaml['source_package']['files']
+		self.package_files = info_json['source_package']['files']
 
 		checksums = archive.checksums("files/")
 
 		if len(checksums) != len(self.package_files):
 			raise PackageError(
 				"We do not have the same number of archive-files and checksums"
-				f" inside {self.ALIEN_MATCHER_YAML} of package {self.name}-{self.version.str}"
+				f" inside {self.ALIEN_MATCHER_JSON} of package {self.name}-{self.version.str}"
 			)
 
 		arch_count = 0
