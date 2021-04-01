@@ -56,6 +56,7 @@ class Scancode:
 		logger.info(f"# Run SCANCODE on {archive_unpacked}... This may take a while!")
 		if os.path.exists(scancode_result): # FIXME cache controls should be moved to Pool
 			logger.info(f"| Skipping because result already exists (cache enabled): {scancode_result}")
+			return None
 		else:
 			out, err = bash('grep "cpu cores" /proc/cpuinfo | uniq | cut -d" " -f3')
 			cores = int(out)
@@ -84,7 +85,7 @@ class Scancode:
 				if "Some files failed to scan properly" not in str(ex):
 					raise ex
 
-		return scancode_result
+			return scancode_result
 
 	@staticmethod
 	def execute(alienmatcher_json_list):
@@ -103,8 +104,15 @@ class Scancode:
 				m = j["debian"]["match"]
 				a = Archive(pool.abspath(m["debsrc_orig"]))
 				result = scancode.run(a, m["name"], m["version"])
-				if Settings.PRINTRESULT:
+				if result and Settings.PRINTRESULT:
 					print(result)
+			except KeyError:
+				logger.warning(f"{path} --> no debian match, no debian package to scan here")
+			except TypeError as ex:
+				if not m["debsrc_orig"]:
+					logger.warning(f"{path} --> no debian orig archive to scan here")
+				else:
+					logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
 			except Exception as ex:
 				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
 
@@ -124,8 +132,12 @@ class Scancode:
 					m["version"],
 					os.path.join("files", m["internal_archive_name"])
 				)
-				if Settings.PRINTRESULT:
+				if result and Settings.PRINTRESULT:
 					print(json.dumps(json.loads(result), indent=2))
+			except TypeError as ex:
+				if not m.get("internal_archive_name"):
+					logger.warning(f"{path} --> no internal archive to scan here")
+				else:
+					logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
 			except Exception as ex:
 				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
-
