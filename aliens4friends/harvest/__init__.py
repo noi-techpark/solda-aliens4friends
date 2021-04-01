@@ -64,7 +64,7 @@ class Harvest:
 			}
 		}
 		source_packages = []
-		cur_package_id = "__NOT_STARTED_YET__"
+		cur_package_id = None
 		cur_package_inputs = []
 		for path in self.input_files:
 			try:
@@ -80,12 +80,13 @@ class Harvest:
 					if not p_revision.match(package_id):
 						package_id += "-r0"
 					package_id += f"+{self.package_id_ext}"
-					if package_id != cur_package_id:
+					if not cur_package_id or package_id != cur_package_id:
 
-						missing = []
-						for input_file_type in self.SUPPORTED_FILES:
-							if input_file_type not in cur_package_inputs:
-								missing.append(input_file_type)
+						if cur_package_id:
+							missing = []
+							for input_file_type in self.SUPPORTED_FILES:
+								if input_file_type not in cur_package_inputs:
+									missing.append(input_file_type)
 							logger.warning(f"Package {cur_package_id} misses the {missing} input files.")
 
 						cur_package_id = package_id
@@ -106,6 +107,12 @@ class Harvest:
 						Harvest._parse_deltacode_main(json.load(f), source_package)
 			except Exception as ex:
 				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+
+		missing = []
+		for input_file_type in self.SUPPORTED_FILES:
+			if input_file_type not in cur_package_inputs:
+				missing.append(input_file_type)
+		logger.warning(f"Package {cur_package_id} misses the {missing} input files.")
 
 		self.result["source_packages"] = source_packages
 
