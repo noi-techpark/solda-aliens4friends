@@ -3,7 +3,6 @@ import logging
 import json
 
 from aliens4friends.commons.pool import Pool
-from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.archive import Archive
 from aliens4friends.commons.utils import bash, bash_live
 from aliens4friends.commons.settings import Settings

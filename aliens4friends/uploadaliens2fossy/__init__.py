@@ -116,6 +116,7 @@ class UploadAliens2Fossy:
 					f'{a["internal_archive_name"]}.alien.spdx'
 				)
 				apkg = AlienPackage(alien_package_filename)
+				apkg.expand()
 				m = apkg.metadata
 				apkg_fullname = f'{m["name"]}-{m["version"]}-{m["revision"]}'
 				alien_fossy_json_filename = pool.abspath(

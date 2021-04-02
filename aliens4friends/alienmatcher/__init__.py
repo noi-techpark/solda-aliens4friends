@@ -68,29 +68,6 @@ class AlienMatcher:
 	def _reset(self):
 		self.errors = []
 
-	def add_to_userland(self, alienpackage: AlienPackage):
-		if not isinstance(alienpackage, AlienPackage):
-			raise TypeError("Parameter must be a AlienPackage.")
-		logger.debug(f"| Adding package '{alienpackage.name}/{alienpackage.version.str}' to '{Settings.PATH_USR}'.")
-		self.pool.add(
-			alienpackage.archive_fullpath,
-			Settings.PATH_USR,
-			alienpackage.name,
-			alienpackage.version.str
-		)
-
-
-	def add_to_debian(self, package: Package):
-		if not isinstance(package, Package):
-			raise TypeError("Parameter must be a Package.")
-		self.pool.add(
-			package.archive_fullpath,
-			Settings.PATH_DEB,
-			package.name,
-			package.version
-		)
-		logger.debug(f"Package '{package.name}/{package.version}' added to '{Settings.PATH_DEB}'.")
-
 	def _api_call(self, url, resp_name):
 		api_response_cached = self.pool.abspath(
 			Settings.PATH_TMP,
@@ -319,6 +296,12 @@ class AlienMatcher:
 
 	def match(self, apkg: AlienPackage):
 		logger.debug("# Find a matching package on Debian repositories.")
+		int_arch_count = apkg.internal_archive_count()
+		if int_arch_count != 1:
+			raise AlienMatcherError(
+				f"The Alien Package {apkg.name}/{apkg.version.str} has {int_arch_count} internal archives. " \
+				f"We support only single archive packages at the moment!"
+			)
 		self._reset()
 		resultpath = self.pool.abspath(
 			Settings.PATH_USR,
@@ -358,7 +341,7 @@ class AlienMatcher:
 			}
 
 			try:
-				if apkg.has_internal_archive():
+				if apkg.has_internal_primary_archive():
 
 					match = self.search(apkg)
 
@@ -396,6 +379,7 @@ class AlienMatcher:
 			filename = os.path.basename(package_path)
 			logging.info(f"## Processing {filename}...")
 			package = AlienPackage(package_path)
+			package.expand()
 			match = self.match(package)
 			errors = match["errors"]
 
