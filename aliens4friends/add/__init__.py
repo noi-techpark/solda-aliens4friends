@@ -30,6 +30,7 @@ class Add:
 		adder = Add(pool)
 		for path in alienpackage_list:
 			try:
+				logger.info(f"Adding {path}...")
 				pkg = AlienPackage(path)
 				adder.alienpackage(pkg)
 			except Exception as ex:

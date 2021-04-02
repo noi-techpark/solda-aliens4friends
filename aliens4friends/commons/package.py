@@ -1,11 +1,13 @@
 import os
 import sys
 import json
+import logging
 from typing import Union
 
 from .archive import Archive, ArchiveError
 from .version import Version
 
+logger = logging.getLogger(__name__)
 
 class PackageError(Exception):
 	pass
@@ -75,33 +77,34 @@ class AlienPackage(Package):
 	ALIEN_MATCHER_JSON = "aliensrc.json"
 
 	def __init__(self, full_archive_path):
-		archive = Archive(full_archive_path)
+		self.archive = Archive(full_archive_path)
 
 		try:
-			info_lines = archive.readfile(self.ALIEN_MATCHER_JSON)
+			info_lines = self.archive.readfile(self.ALIEN_MATCHER_JSON)
 		except ArchiveError as ex:
 			raise PackageError(f"Broken Alien Package: Error is {str(ex)}")
 
-		info_json = json.loads("\n".join(info_lines))
+		self._info_json = json.loads("\n".join(info_lines))
 
-		self.spec_version = info_json['version']
+		self.spec_version = self._info_json['version']
 		if self.spec_version != 1 and self.spec_version != "1":
 			raise PackageError(
 				f"{self.ALIEN_MATCHER_JSON} with version {self.spec_version} not supported"
 			)
 
 		super().__init__(
-			info_json['source_package']['name'],
-			info_json['source_package']['version'],
+			self._info_json['source_package']['name'],
+			self._info_json['source_package']['version'],
 			full_archive_path
 		)
 
-		self.manager = info_json['source_package'].get('manager')
-		self.metadata = info_json['source_package'].get('metadata')
+		self.manager = self._info_json['source_package'].get('manager')
+		self.metadata = self._info_json['source_package'].get('metadata')
 
-		self.package_files = info_json['source_package']['files']
+		self.package_files = self._info_json['source_package']['files']
 
-		checksums = archive.checksums("files/")
+	def expand(self):
+		checksums = self.archive.checksums("files/")
 
 		if len(checksums) != len(self.package_files):
 			raise PackageError(
@@ -109,9 +112,12 @@ class AlienPackage(Package):
 				f" inside {self.ALIEN_MATCHER_JSON} of package {self.name}-{self.version.str}"
 			)
 
-		arch_count = 0
 		self.internal_archive_name = None
-		for idx, rec in enumerate(self.package_files):
+		self.internal_archive_checksums = None
+		self.internal_archive_rootfolder = None
+		self.internal_archive_src_uri = None
+		self.internal_archives = []
+		for rec in self.package_files:
 			try:
 				if rec['sha1'] != checksums[rec['name']]:
 					raise PackageError(
@@ -123,26 +129,49 @@ class AlienPackage(Package):
 					)
 
 			if '.tar.' in rec['name']:
-				# Better maybe? --> just add the tar archive that should be checked and
-				# leave other files out, sharpen the tool and create another for other
-				# files?
-				if arch_count > 1:
-					raise PackageError(
-						"Too many internal archives for alien repository comparison. " \
-						"Only one is supported at the moment..."
-					)
-				arch_count += 1
-				self.internal_archive_name = rec['name']
-				self.internal_archive_checksums = (
-					archive.in_archive_checksums(f'files/{self.internal_archive_name}')
-				) # FIXME: optimize in order to untar internal archive only once
-				self.internal_archive_rootfolder = archive.in_archive_rootfolder(
-					f'files/{self.internal_archive_name}'
+				self.internal_archives.append(
+					{
+						"name" : rec["name"],
+						"checksums" : self.archive.in_archive_checksums(f"files/{rec['name']}"),
+						"rootfolder" : self.archive.in_archive_rootfolder(f"files/{rec['name']}"),
+						"src_uri" : rec["src_uri"]
+					}
 				)
-				self.internal_archive_src_uri = rec['src_uri']
 
-	def has_internal_archive(self):
+		primary = None
+		if len(self.internal_archives) == 1:
+			primary = self.internal_archives[0]
+		elif len(self.internal_archives) > 1:
+			# WARNING: If we have more than one internal archive, it is not defined
+			# which one gets taken as primary internal archive, we should better
+			# always check if it is only one, when a subcommand needs the internal
+			# archive
+			logger.warning(
+				f"{self._info_json['source_package']['name']}/{self._info_json['source_package']['version']}: " \
+				"Too many internal archives for alien repository comparison"
+			)
+
+			# Special rules to find the primary archive
+			for rec in self.internal_archives:
+				# yocto-kernel (linux mostly)
+				if (
+					("linux" in rec["name"] or "kernel" in rec["name"])
+					and "name=machine" in rec["src_uri"]
+				):
+					primary = rec
+					break
+
+		if primary:
+			self.internal_archive_name = primary['name']
+			self.internal_archive_checksums = primary['checksums']
+			self.internal_archive_rootfolder = primary['rootfolder']
+			self.internal_archive_src_uri = primary['src_uri']
+
+	def has_internal_primary_archive(self):
 		return self.internal_archive_name and len(self.internal_archive_name) > 0
+
+	def internal_archive_count(self):
+		return len(self.internal_archives)
 
 	def print_info(self):
 		print(f"| Package:")

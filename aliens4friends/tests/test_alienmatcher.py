@@ -1,6 +1,6 @@
 import os
 from aliens4friends.alienmatcher import AlienMatcher, AlienMatcherError
-from aliens4friends.commons.package import AlienPackage, PackageError, Package, DebianPackage
+from aliens4friends.commons.package import PackageError, Package, DebianPackage
 
 IGNORE_CACHE = True
 

@@ -213,6 +213,7 @@ class MakeAlienSPDX:
 				fix_spdxtv(scancode_spdx_filename)
 				scancode_spdx, err = parse_spdx_tv(scancode_spdx_filename)
 				alien_package = AlienPackage(alien_package_filename)
+				alien_package.expand()
 
 				if j.get("debian") and j["debian"].get("match"):
 					m = j["debian"]["match"]
