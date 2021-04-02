@@ -169,6 +169,20 @@ class Aliens4Friends:
 			help = "Show only warnings and errors. This overrides the A4F_LOGLEVEL env var."
 		)
 
+	def _args_glob(self, parser):
+		parser.add_argument(
+			"glob_name",
+			help="Wildcard pattern to filter by package names. Do not forget to quote it!",
+			default="*",
+			nargs="?"
+		)
+		parser.add_argument(
+			"glob_version",
+			help="Wildcard pattern to filter by package versions. Do not forget to quote it!",
+			default="*",
+			nargs="?"
+		)
+
 	def _args_files(self, parser, describe_files):
 		parser.add_argument(
 			"FILES",
@@ -249,10 +263,9 @@ class Aliens4Friends:
 			cmd,
 			help="Find a matching source package on Debian"
 		)
-		self._args_defaults(
-			self.parsers[cmd]
-		)
+		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
+		self._args_glob(self.parsers[cmd])
 
 	def parser_scan(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -263,6 +276,7 @@ class Aliens4Friends:
 			self.parsers[cmd]
 		)
 		self._args_print_to_stdout(self.parsers[cmd])
+		self._args_glob(self.parsers[cmd])
 
 	def parser_delta(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -271,6 +285,7 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
+		self._args_glob(self.parsers[cmd])
 
 	def parser_spdxdebian(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -279,6 +294,7 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
+		self._args_glob(self.parsers[cmd])
 
 	def parser_spdxalien(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -287,15 +303,15 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
+		self._args_glob(self.parsers[cmd])
 
 	def parser_upload(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Upload Alien Packages to Fossology"
 		)
-		self._args_defaults(
-			self.parsers[cmd]
-		)
+		self._args_defaults(self.parsers[cmd])
+		self._args_glob(self.parsers[cmd])
 
 	def parser_harvest(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -328,34 +344,60 @@ class Aliens4Friends:
 
 	def match(self):
 		self._subcommand_args()
-		AlienMatcher.execute(self.pool)
+		AlienMatcher.execute(
+			self.pool,
+			self.args.glob_name,
+			self.args.glob_version
+		)
 
 	def scan(self):
 		self._subcommand_args()
-		Scancode.execute(self.pool)
+		Scancode.execute(
+			self.pool,
+			self.args.glob_name,
+			self.args.glob_version
+		)
 
 	def delta(self):
 		self._subcommand_args()
-		DeltaCodeNG.execute(self.pool)
+		DeltaCodeNG.execute(
+			self.pool,
+			self.args.glob_name,
+			self.args.glob_version
+		)
 
 	def spdxdebian(self):
 		self._subcommand_args()
-		Debian2SPDX.execute(self.pool)
+		Debian2SPDX.execute(
+			self.pool,
+			self.args.glob_name,
+			self.args.glob_version
+		)
 
 	def spdxalien(self):
 		self._subcommand_args()
-		MakeAlienSPDX.execute(self.pool)
+		MakeAlienSPDX.execute(
+			self.pool,
+			self.args.glob_name,
+			self.args.glob_version
+		)
 
 	def upload(self):
 		self._subcommand_args()
-		UploadAliens2Fossy.execute(self.pool)
+		UploadAliens2Fossy.execute(
+			self.pool,
+			self.args.glob_name,
+			self.args.glob_version
+		)
 
 	def harvest(self):
 		self._subcommand_args()
 		Harvest.execute(
 			self.pool,
 			self.args.add_details,
-			self.args.add_missing
+			self.args.add_missing,
+			self.args.glob_name,
+			self.args.glob_version
 		)
 
 

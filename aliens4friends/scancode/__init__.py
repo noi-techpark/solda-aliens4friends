@@ -87,10 +87,10 @@ class Scancode:
 		return scancode_result
 
 	@staticmethod
-	def execute(pool: Pool):
+	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
 		scancode = Scancode(pool)
 
-		for path in pool.absglob("*.alienmatcher.json"):
+		for path in pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json"):
 			try:
 				with open(path, "r") as jsonfile:
 					j = json.load(jsonfile)

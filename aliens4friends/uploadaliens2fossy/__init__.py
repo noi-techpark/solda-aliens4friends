@@ -89,11 +89,11 @@ class UploadAliens2Fossy:
 		return self.fossy.get_license_findings_conclusions(self.upload)
 
 	@staticmethod
-	def execute(pool: Pool):
+	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
 
 		fossy = FossyWrapper()
 
-		for path in pool.absglob("*.alienmatcher.json"):
+		for path in pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json"):
 			try:
 				with open(path, "r") as jsonfile:
 					j = json.load(jsonfile)

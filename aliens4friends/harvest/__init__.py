@@ -403,7 +403,7 @@ class Harvest:
 				out["metadata"] = self._parse_tinfoilhat_metadata(main["recipe"]["metadata"])
 
 	@staticmethod
-	def execute(pool: Pool, add_details, add_missing):
+	def execute(pool: Pool, add_details, add_missing, glob_name: str = "*", glob_version: str = "*"):
 
 		result_path = pool.abspath("stats")
 		pool.mkdir(result_path)
@@ -412,7 +412,7 @@ class Harvest:
 
 		files = []
 		for supp in Harvest.SUPPORTED_FILES:
-			for fn in pool.absglob(f"*{supp}"):
+			for fn in pool.absglob(f"{glob_name}/{glob_version}/*{supp}"):
 				files.append(str(fn))
 
 		tfh = Harvest(

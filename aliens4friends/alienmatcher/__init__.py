@@ -426,9 +426,9 @@ class AlienMatcher:
 			return None
 
 	@staticmethod
-	def execute(pool: Pool):
+	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
 		matcher = AlienMatcher(pool)
-		for p in pool.absglob("*.aliensrc"):
+		for p in pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc"):
 			result = matcher.run(p)
 			if Settings.PRINTRESULT:
 				print(json.dumps(result, indent=2))
