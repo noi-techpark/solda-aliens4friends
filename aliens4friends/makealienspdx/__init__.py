@@ -241,5 +241,4 @@ class MakeAlienSPDX:
 						s2as.process()
 						write_spdx_tv(s2as.alien_spdx, alien_spdx_filename)
 			except Exception as ex:
-				raise ex
 				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
