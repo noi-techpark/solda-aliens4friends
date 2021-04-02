@@ -211,8 +211,7 @@ class Debian2SPDX:
 			self.native_rootdir = ''
 			self.debarchive_debian = Archive(debsrc_debian)
 		else: 	# native format
-			stdout, _ = bash(f'tar -tJf {debsrc_orig}')
-			self.native_rootdir = stdout.split('\n')[0]
+			self.native_rootdir = self.debarchive_orig.list()[0]
 			self.debarchive_debian = self.debarchive_orig
 		self.spdx_files: Dict[str, Type[SPDXFile]] = {}
 		self.spdx_extracted_licenses: Dict[str, Type[SPDXExtractedLicense]] = {}
@@ -446,14 +445,19 @@ class Debian2SPDX:
 				continue
 			try:
 				m = j["debian"]["match"]
+				if not m["debsrc_orig"] and m["debsrc_debian"]:
+					# support for debian format 1.0 native
+					m["debsrc_orig"] = m["debsrc_debian"]
+					m["debsrc_debian"] = None
 				debsrc_orig = pool.abspath(m["debsrc_orig"])
 				debsrc_debian = (
 					pool.abspath(m["debsrc_debian"])
 					if m.get("debsrc_debian")
 					else None # native format, only 1 archive
 				)
+
 				if debsrc_debian and '.diff.' in debsrc_debian:
-					logger.warning(f"{path} --> Debian source format 1.0 not supported yet, skipping")
+					logger.warning(f"{path} --> Debian source format 1.0 (non-native) is not supported yet, skipping")
 					continue
 				debian_spdx_filename = pool.abspath(
 					"debian",
@@ -464,7 +468,9 @@ class Debian2SPDX:
 				if os.path.isfile(debian_spdx_filename) and Settings.POOLCACHED:
 					logger.debug(f"{debian_spdx_filename} already existing, skipping")
 					continue
-				logger.info(f"generating spdx from {debsrc_orig} and {debsrc_debian}")
+				dorig = debsrc_orig or ""
+				ddeb = debsrc_debian or ""
+				logger.info(f"generating spdx from {dorig} {ddeb}")
 				d2s = Debian2SPDX(debsrc_orig, debsrc_debian)
 				d2s.generate_SPDX()
 				logger.info(f"writing spdx to {debian_spdx_filename}")
