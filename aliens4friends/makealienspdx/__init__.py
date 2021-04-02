@@ -22,6 +22,11 @@ from aliens4friends.commons.settings import Settings
 
 logger = logging.getLogger(__name__)
 
+# proximity2debian levels
+FULL_PROXIMITY = 1
+NEARLY_FULL_PROXIMITY = 0.92
+MIN_ACCEPTABLE_PROXIMITY = 0.3
+
 class MakeAlienSPDXException(Exception):
 	pass
 
@@ -78,7 +83,7 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 			+ results['changed_files_with_same_copyright_and_license']
 		)
 		self.calc_proximity()
-		if self.proximity < 0.50:
+		if self.proximity < MIN_ACCEPTABLE_PROXIMITY:
 			logger.debug(
 				f"{self.alien_package.name}-{self.alien_package.version.str}"
 				f" --> proximity with debian package"
@@ -121,7 +126,7 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 				alien_spdx_files.append(alien_file)
 		self.alien_spdx = self._debian_spdx
 		self.alien_spdx.package.files = alien_spdx_files
-		if self.proximity < 0.92:
+		if self.proximity < NEARLY_FULL_PROXIMITY:
 			logger.debug(
 				f"{self.alien_package.name}-{self.alien_package.version.str}"
 				 " --> proximity is not ~100%, do not apply main package"
@@ -132,7 +137,7 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 			# if proximity is not ~100%
 			self.alien_spdx.package.license_declared = NoAssert()
 			self.alien_spdx.package.conc_lics = NoAssert()
-		if self.proximity < 1:
+		if self.proximity < FULL_PROXIMITY:
 			logger.debug(
 				f"{self.alien_package.name}-{self.alien_package.version.str}"
 				" --> proximity is not ==100%, do not apply global package"
@@ -157,10 +162,11 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 		)
 		different = (
 			s["changed_files_with_changed_copyright_or_license"]
-			+ s["new_files_with_no_license_and_copyright"]
 			+ s["new_files_with_license_or_copyright"]
 		)
 		self.proximity = similar / (similar + different)
+		# excluding deleted files and new files with no license/copyright
+		# from the count, on purpose
 
 
 class MakeAlienSPDX:
