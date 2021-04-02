@@ -67,6 +67,13 @@ class Archive:
 		stdout, _ = self._make_tar_cmd(f'{archive_in_archive} --to-command="{internal_cmd}"')
 		return Archive._parse_sha1sum(stdout)
 
+	def list(self):
+		stdout, _ = bash(f'tar {self.tar_param}tf {self.path}', exception=ArchiveError)
+		l = stdout.split('\n')
+		if '' in l:
+			l.remove('')
+		return l
+
 	@staticmethod
 	def _get_tar_param(archive_name):
 		_, extension = splitext(archive_name)
