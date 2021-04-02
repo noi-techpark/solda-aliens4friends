@@ -345,7 +345,6 @@ class Aliens4Friends:
 	def match(self):
 		self._subcommand_args()
 		AlienMatcher.execute(
-			self.pool,
 			self.args.glob_name,
 			self.args.glob_version
 		)
