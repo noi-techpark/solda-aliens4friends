@@ -395,9 +395,7 @@ class Aliens4Friends:
 		Harvest.execute(
 			self.pool,
 			self.args.add_details,
-			self.args.add_missing,
-			self.args.glob_name,
-			self.args.glob_version
+			self.args.add_missing
 		)
 
 

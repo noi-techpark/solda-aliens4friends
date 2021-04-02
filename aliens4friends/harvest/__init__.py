@@ -17,7 +17,6 @@ class HarvestException(Exception):
 class Harvest:
 
 	SUPPORTED_FILES = [
-		".summary.fossy.json",
 		".fossy.json",
 		".tinfoilhat.yml",
 		".alienmatcher.json",
@@ -26,6 +25,7 @@ class Harvest:
 
 	def __init__(
 		self,
+		pool: Pool,
 		input_files,
 		result_file : str,
 		add_details : bool = False,
@@ -33,6 +33,7 @@ class Harvest:
 		package_id_ext : str = "solda21src"
 	):
 		super().__init__()
+		self.pool = pool
 		self.input_files = sorted(input_files)
 		self.result_file = result_file
 		self.yaml = None
@@ -45,10 +46,7 @@ class Harvest:
 	def _filename_split(path):
 		path = os.path.basename(path)
 		rest, mainext = os.path.splitext(path)
-		if rest.endswith(".summary.fossy"):
-			ext = f".summary.fossy{mainext}"
-			package_id = rest.split(".summary.fossy")[0]
-		elif rest.endswith(".fossy"):
+		if rest.endswith(".fossy"):
 			ext = f".fossy{mainext}"
 			package_id = rest.split(".fossy")[0]
 		elif rest.endswith(".tinfoilhat"):
@@ -114,10 +112,9 @@ class Harvest:
 						}
 						source_packages.append(source_package)
 						old_package = source_package
+						cur_package_inputs = []
 					cur_package_inputs.append(ext)
-					if ext == ".summary.fossy.json":
-						self._parse_summary_fossy_main(json.load(f), source_package)
-					elif ext == ".fossy.json":
+					if ext == ".fossy.json":
 						self._parse_fossy_main(json.load(f), source_package)
 					elif ext == ".tinfoilhat.yml":
 						self._parse_tinfoilhat_main(yaml.safe_load(f), source_package)
@@ -126,7 +123,7 @@ class Harvest:
 					elif ext == ".deltacode.json":
 						self._parse_deltacode_main(json.load(f), source_package)
 			except Exception as ex:
-				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+				logger.error(f"{self.pool.clnpath(path)} --> {ex.__class__.__name__}: {ex}")
 
 		self._warn_missing_input(source_package, cur_package_inputs)
 		self.result["source_packages"] = source_packages
@@ -165,7 +162,6 @@ class Harvest:
 			matching
 		)
 
-
 	@staticmethod
 	def _increment(dict, key, val):
 		try:
@@ -184,35 +180,6 @@ class Harvest:
 				pos[step] = {}
 				pos = pos[step]
 		pos[last] = value
-
-
-	def _parse_summary_fossy_main(self, cur, out):
-		Harvest._safe_set(
-			out,
-			["statistics", "licenses", "license_audit_findings", "main_licenses"],
-			Harvest._rename(cur["mainLicense"].split(","))
-		)
-		# Some response key do not do what they promise...
-		# See https://git.ostc-eu.org/playground/fossology/-/blob/dev-packaging/fossywrapper/__init__.py#L565
-		total = cur["filesCleared"]
-		not_cleared = cur["filesToBeCleared"]
-		cleared = total - not_cleared
-
-		Harvest._safe_set(
-			out,
-			["statistics", "files", "total"],
-			total
-		)
-		Harvest._safe_set(
-			out,
-			["statistics", "files", "audited"],
-			cleared
-		)
-		Harvest._safe_set(
-			out,
-			["statistics", "files", "not_audited"],
-			not_cleared
-		)
 
 	@staticmethod
 	def _rename(license_id):
@@ -259,11 +226,24 @@ class Harvest:
 			Harvest._increment(result, license_id, 1)
 		return result
 
+	def _parse_fossy_ordered_licenses(self, list):
+		result = [
+			{
+				"shortname": k,
+				"file_count": v
+			} for k, v in list.items()
+		]
+		return sorted(
+			result,
+			key = (lambda i: (i['file_count'], i['shortname'])),
+			reverse = True
+		)
+
+
 	def _parse_fossy_main(self, cur, out):
 		stat_agents = {}
 		stat_conclusions = {}
-		file_count = 0
-		for fileobj in cur:
+		for fileobj in cur["licenses"]:
 			# XXX I assume, that these are folder names, so they can be skipped
 			if not fileobj["agentFindings"] and not fileobj["conclusions"]:
 				continue
@@ -273,25 +253,24 @@ class Harvest:
 			cur_stat_conclusions = self._parse_fossy_licenselists(fileobj["conclusions"])
 			for k, v in cur_stat_conclusions.items():
 				Harvest._increment(stat_conclusions, k, v)
-			file_count += 1
+
+		# Some response key do not do what they promise...
+		# See https://git.ostc-eu.org/playground/fossology/-/blob/dev-packaging/fossywrapper/__init__.py#L565
+		total = cur["summary"]["filesCleared"]
+		not_cleared = cur["summary"]["filesToBeCleared"]
+		cleared = total - not_cleared
+
 		out["statistics"] = {
 			"files": {
-				"total": file_count
+				"total": total,
+				"audited": cleared,
+				"not_audited": not_cleared
 			},
 			"licenses": {
-				"license_scanner_findings": [
-					{
-						"shortname": k,
-						"file_count": v
-					} for k, v in stat_agents.items()
-				],
+				"license_scanner_findings": self._parse_fossy_ordered_licenses(stat_agents),
 				"license_audit_findings": {
-					"all_licenses":	[
-						{
-							"shortname": k,
-							"file_count": v
-						} for k, v in stat_conclusions.items()
-					]
+					"main_licenses": Harvest._rename(cur["summary"]["mainLicense"].split(",")),
+					"all_licenses":	self._parse_fossy_ordered_licenses(stat_conclusions)
 				}
 			}
 		}
@@ -416,6 +395,7 @@ class Harvest:
 				files.append(str(fn))
 
 		tfh = Harvest(
+			pool,
 			files,
 			output,
 			add_details,
