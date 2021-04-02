@@ -165,8 +165,10 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 			+ s["new_files_with_license_or_copyright"]
 		)
 		self.proximity = similar / (similar + different)
-		# excluding deleted files and new files with no license/copyright
-		# from the count, on purpose
+		# excluding deleted files and new files with no license/copyright from
+		# the count, on purpose, because here the need is to have  a criterion
+		# to decide whether to apply debian/copyright metadata to the
+		# alienpackage's matching files and to the alienpackage as a whole
 
 
 class MakeAlienSPDX:
