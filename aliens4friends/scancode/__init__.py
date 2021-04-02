@@ -100,14 +100,15 @@ class Scancode:
 
 			try:
 				m = j["debian"]["match"]
-				a = Archive(pool.abspath(m["debsrc_orig"]))
+				to_scan = m["debsrc_orig"] or m["debsrc_debian"] # support for Debian Format 1.0 native
+				a = Archive(pool.abspath(to_scan))
 				result = scancode.run(a, m["name"], m["version"])
 				if result and Settings.PRINTRESULT:
 					print(result)
 			except KeyError:
 				logger.warning(f"{path} --> no debian match, no debian package to scan here")
 			except TypeError as ex:
-				if not m["debsrc_orig"]:
+				if not to_scan:
 					logger.warning(f"{path} --> no debian orig archive to scan here")
 				else:
 					logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
