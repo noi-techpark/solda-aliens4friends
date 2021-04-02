@@ -128,7 +128,7 @@ class AlienPackage(Package):
 						f"{rec['sha1']} does not exist in checksums for {rec['name']}."
 					)
 
-			if '.tar.' in rec['name']:
+			if '.tar.' in rec['name'] or rec['name'].endswith('.tgz'):
 				self.internal_archives.append(
 					{
 						"name" : rec["name"],
