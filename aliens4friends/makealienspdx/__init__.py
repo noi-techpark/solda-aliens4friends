@@ -77,6 +77,17 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 			+ results['changed_files_with_no_license_and_copyright']
 			+ results['changed_files_with_same_copyright_and_license']
 		)
+		self.calc_proximity()
+		if self.proximity < 0.50:
+			logger.debug(
+				f"{self.alien_package.name}-{self.alien_package.version.str}"
+				f" --> proximity with debian package"
+				f" {self._debian_spdx.package.name}-{self._debian_spdx.package.version}"
+				f" is too low ({int(self.proximity*100)}%),"
+				 " using scancode spdx instead"
+			)
+			super().process()
+			return
 		# TODO handle also moved_files and changed_files_with_updated_copyright_year_only
 		deb_spdx_files = { f.name[2:]: f for f in self._debian_spdx.package.files }
 		scancode_spdx_files = { f.name[2:]: f for f in self._scancode_spdx.package.files }
@@ -110,23 +121,29 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 				alien_spdx_files.append(alien_file)
 		self.alien_spdx = self._debian_spdx
 		self.alien_spdx.package.files = alien_spdx_files
-		self.set_package_and_document_metadata()
-		self.calc_proximity()
 		if self.proximity < 0.92:
-			logger.debug(f"{path} --> proximity is not ~100%,"
-				" do not apply main package license(s) from debian")
+			logger.debug(
+				f"{self.alien_package.name}-{self.alien_package.version.str}"
+				 " --> proximity is not ~100%, do not apply main package"
+				 " license(s) from debian package"
+				f" {self._debian_spdx.package.name}-{self._debian_spdx.package.version}"
+			)
 			# do not apply debian main license and copyright
 			# if proximity is not ~100%
 			self.alien_spdx.package.license_declared = NoAssert()
 			self.alien_spdx.package.conc_lics = NoAssert()
 		if self.proximity < 1:
-			logger.debug(f"{path} --> proximity is not == 100%,"
-				" do not apply global package license and copyright metadata"
-				" from debian")
+			logger.debug(
+				f"{self.alien_package.name}-{self.alien_package.version.str}"
+				" --> proximity is not ==100%, do not apply global package"
+				" license and copyright metadata from debian package"
+				f" {self._debian_spdx.package.name}-{self._debian_spdx.package.version}"
+			)
 			# TODO the following metadata would need to be regenerated
 			# we set them to NOASSERTION for now
 			self.alien_spdx.package.licenses_from_files = [NoAssert(),]
 			self.alien_spdx.package.cr_text = NoAssert()
+		self.set_package_and_document_metadata()
 
 
 	def calc_proximity(self):
@@ -224,4 +241,5 @@ class MakeAlienSPDX:
 						s2as.process()
 						write_spdx_tv(s2as.alien_spdx, alien_spdx_filename)
 			except Exception as ex:
+				raise ex
 				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
