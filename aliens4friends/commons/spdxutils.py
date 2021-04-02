@@ -16,7 +16,7 @@ EMPTY_FILE_SHA1 = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
 class SPDXWriterLogger:
 	def log(self, msg):
-		logging.debug(msg)
+		pass # do not log errors, they are returned by parse method
 
 class SPDXUtilsException(Exception):
 	pass
