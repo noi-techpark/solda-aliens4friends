@@ -146,10 +146,6 @@ class AlienPackage(Package):
 			# which one gets taken as primary internal archive, we should better
 			# always check if it is only one, when a subcommand needs the internal
 			# archive
-			logger.warning(
-				f"{self._info_json['source_package']['name']}/{self._info_json['source_package']['version']}: " \
-				"Too many internal archives for alien repository comparison"
-			)
 
 			# Special rules to find the primary archive
 			for rec in self.internal_archives:
@@ -166,6 +162,17 @@ class AlienPackage(Package):
 			self.internal_archive_checksums = primary['checksums']
 			self.internal_archive_rootfolder = primary['rootfolder']
 			self.internal_archive_src_uri = primary['src_uri']
+			logger.warning(
+				f"{self._info_json['source_package']['name']}/{self._info_json['source_package']['version']}:"
+				 " more than one internal archive, using just primary archive"
+				f" '{primary['name']}' for comparison"
+			)
+		else:
+			logger.warning(
+				f"{self._info_json['source_package']['name']}/{self._info_json['source_package']['version']}: "
+				"Too many internal archives for alien repository comparison,"
+				" and no primary archive to use for comparison"
+			)
 
 	def has_internal_primary_archive(self):
 		return self.internal_archive_name and len(self.internal_archive_name) > 0
