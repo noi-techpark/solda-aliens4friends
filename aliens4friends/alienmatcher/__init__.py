@@ -20,7 +20,7 @@ import os
 import sys
 import logging
 from urllib.parse import quote as url_encode
-from multiprocessing import Pool as MultiProcessingPool, Value as SharedValue
+from multiprocessing import Pool as MultiProcessingPool
 
 from enum import Enum
 from typing import Union
@@ -438,6 +438,7 @@ class AlienMatcher:
 		multiprocessing_pool = MultiProcessingPool()
 		multiprocessing_pool.map(AlienMatcher._execute, pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc"))
 
+	@staticmethod
 	def _execute(p):
 		matcher = AlienMatcher()
 		result = matcher.run(p)
