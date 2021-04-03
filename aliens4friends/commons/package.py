@@ -152,10 +152,13 @@ class AlienPackage(Package):
 
 			# Special rules to find the primary archive
 			for rec in self.internal_archives:
-				# yocto-kernel (linux mostly)
 				if (
-					("linux" in rec["name"] or "kernel" in rec["name"])
-					and "name=machine" in rec["src_uri"]
+					(("linux" in rec["name"] or "kernel" in rec["name"])
+					and "name=machine" in rec["src_uri"])
+					or
+					("perl" in rec["name"] and "name=perl" in rec["src_uri"])
+					or
+					("libxml2" in rec["name"] and "name=libtar" in rec["src_uri"])
 				):
 					primary = rec
 					break
