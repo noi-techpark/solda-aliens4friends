@@ -303,10 +303,24 @@ class AlienMatcher:
 	def match(self, apkg: AlienPackage):
 		logger.debug(f"[{self.curpkg}] Find a matching package on Debian repositories.")
 		int_arch_count = apkg.internal_archive_count()
-		if int_arch_count != 1:
+		if int_arch_count > 1:
+			if apkg.internal_archive_name:
+				logger.warning(
+					f"[{self.curpkg}] The Alien Package"
+					f" {apkg.name}-{apkg.version.str} has more than one"
+					 " internal archive, using just primary archive"
+					f" '{apkg.internal_archive_name}' for comparison"
+				)
+			else:
+				raise AlienMatcherError(
+					f"The Alien Package {apkg.name}-{apkg.version.str} has"
+					f" {int_arch_count} internal archives and no primary archive."
+					 " We support comparison of one archive only at the moment!"
+				)
+		elif int_arch_count == 0:
 			raise AlienMatcherError(
-				f"The Alien Package {apkg.name}/{apkg.version.str} has {int_arch_count} internal archives. " \
-				f"We support only single archive packages at the moment!"
+				f"The Alien Package {apkg.name}-{apkg.version.str} has"
+				 " no internal archive, nothing to compare!"
 			)
 		self._reset()
 		resultpath = self.pool.abspath(
