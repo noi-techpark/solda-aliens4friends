@@ -26,17 +26,17 @@ class Scancode:
 		if not os.listdir(dest):
 			if archive_in_archive:
 				logger.debug(
-					f"# Extracting archive {archive_in_archive} inside {archive.path} to {dest}"
+					f"[{self.curpkg}] Extracting archive {archive_in_archive} inside {archive.path} to {dest}"
 				)
 				archive.in_archive_extract(archive_in_archive, dest)
 			else:
-				logger.debug(f"# Extracting archive {archive.path} to {dest}")
+				logger.debug(f"[{self.curpkg}] Extracting archive {archive.path} to {dest}")
 				archive.extract(dest)
 		return dest
 
 
 	def run(self, archive : Archive, package_name, package_version_str, archive_in_archive = None):
-
+		self.curpkg = f"{package_name}-{package_version_str}"
 		result_filename = f"{package_name}-{package_version_str}.scancode.json"
 		spdx_filename = f"{package_name}-{package_version_str}.scancode.spdx"
 		scancode_result = os.path.join(
@@ -52,10 +52,10 @@ class Scancode:
 
 		archive_unpacked = self._unpack(archive, archive_in_archive)
 		if os.path.exists(scancode_result): # FIXME cache controls should be moved to Pool
-			logger.debug(f"Skip {self.pool.clnpath(scancode_result)}. Result exists and cache is enabled.")
+			logger.debug(f"[{self.curpkg}] Skip {self.pool.clnpath(scancode_result)}. Result exists and cache is enabled.")
 			return None
 
-		logger.info(f"Run SCANCODE on {self.pool.clnpath(archive_unpacked)}... This may take a while!")
+		logger.info(f"[{self.curpkg}] Run SCANCODE on {self.pool.clnpath(archive_unpacked)}... This may take a while!")
 		out, err = bash('grep "cpu cores" /proc/cpuinfo | uniq | cut -d" " -f3')
 		cores = int(out)
 		out, err = bash("cat /proc/meminfo | grep MemTotal | grep -oP '\d+'")
@@ -90,11 +90,13 @@ class Scancode:
 		scancode = Scancode(pool)
 
 		for path in pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json"):
+			package = f"{path.parts[-3]}-{path.parts[-2]}"
+
 			try:
 				with open(path, "r") as jsonfile:
 					j = json.load(jsonfile)
 			except Exception as ex:
-				logger.error(f"Unable to load json from {path}.")
+				logger.error(f"[{package}] Unable to load json from {path}.")
 				continue
 
 			try:
@@ -105,14 +107,14 @@ class Scancode:
 				if result and Settings.PRINTRESULT:
 					print(result)
 			except KeyError:
-				logger.warning(f"{path} --> no debian match, no debian package to scan here")
+				logger.warning(f"[{package}] no debian match, no debian package to scan here")
 			except TypeError as ex:
 				if not to_scan:
-					logger.warning(f"{path} --> no debian orig archive to scan here")
+					logger.warning(f"[{package}] no debian orig archive to scan here")
 				else:
-					logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+					logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
 			except Exception as ex:
-				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
 
 			try:
 				m = j["aliensrc"]
@@ -135,8 +137,8 @@ class Scancode:
 						print(json.dumps(json.load(r), indent=2))
 			except TypeError as ex:
 				if not m.get("internal_archive_name"):
-					logger.warning(f"{path} --> no internal archive to scan here")
+					logger.warning(f"[{package}] no internal archive to scan here")
 				else:
-					logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+					logger.error(f"[{package}]  {ex.__class__.__name__}: {ex}")
 			except Exception as ex:
-				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
