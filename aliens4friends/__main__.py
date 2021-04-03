@@ -360,7 +360,6 @@ class Aliens4Friends:
 	def delta(self):
 		self._subcommand_args()
 		DeltaCodeNG.execute(
-			self.pool,
 			self.args.glob_name,
 			self.args.glob_version
 		)
