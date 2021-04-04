@@ -75,6 +75,9 @@ class Archive:
 	def extract(self, dest):
 		return self._make_tar_cmd(f'-C {dest} --strip 1')
 
+	def extract_raw(self, dest):
+		return self._make_tar_cmd(f'-C {dest}')
+
 	def in_archive_extract(self, archive_in_archive, dest):
 		internal_cmd = f"tar {Archive._get_tar_param(archive_in_archive)}xvf - -C {dest} --strip 1"
 		stdout, _ = self._make_tar_cmd(f'{archive_in_archive} --to-command="{internal_cmd}"')
