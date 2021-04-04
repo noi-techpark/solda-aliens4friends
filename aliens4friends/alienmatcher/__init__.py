@@ -58,8 +58,26 @@ class AlienMatcher:
 	API_URL_ALLSRC = "https://api.ftp-master.debian.org/all_sources"
 
 	KNOWN_PACKAGE_ALIASES = {
+		"gtk+3": "gtk+3.0",
+		"gmmlib": "intel-gmmlib",
+		"libpcre": "doesnotexistindebian",
+		"libpcre2": "pcre2",
+		"libusb1": "libusb-1.0",
+		"libva-intel": "libva",
+		"libxfont2": "libxfont",
+		"linux-firmware": "firmware-nonfree",
+		"linux-intel": "linux",
+		"linux-seco-fslc": "linux",
+		"linux-stm32mp": "linux",
+		"linux-yocto" : "linux",
+		"ltp": "doesnotexistindebian",
+		"systemd-boot": "systemd",
+		"tcl": "tcl8.6", # FIXME this name in debian depends on the version
+		"xserver-xorg": "doesnotexistindebian",
+		"xz": "xz-utils",
+		"which": "doesnotexistindebian",
 		"wpa-supplicant" : "wpa",
-		"linux-yocto" : "linux"
+		"zlib-intel": "zlib",
 	}
 
 	def __init__(self):
