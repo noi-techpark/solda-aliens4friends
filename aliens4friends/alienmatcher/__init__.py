@@ -50,7 +50,11 @@ class AlienMatcherError(Exception):
 
 class AlienMatcher:
 
-	DEBIAN_BASEURL = "http://deb.debian.org/debian/pool/main"
+	DEBIAN_BASEURL = [
+		"http://deb.debian.org/debian/pool/main",
+		"http://security.debian.org/debian-security/pool/updates/main",
+		"http://deb.debian.org/debian/pool/non-free",
+	]
 	API_URL_ALLSRC = "https://api.ftp-master.debian.org/all_sources"
 
 	KNOWN_PACKAGE_ALIASES = {
@@ -244,18 +248,38 @@ class AlienMatcher:
 			)
 			logger.debug(f"[{self.curpkg}] Found in Debian cache pool.")
 		except FileNotFoundError:
-			pooldir = package_name[0:4] if package_name.startswith('lib') else package_name[0]
-			full_url = "/".join([
-				self.DEBIAN_BASEURL,
-				pooldir,
-				package_name,
-				filename
-			])
-			logger.debug(f"[{self.curpkg}] Not found in Debian cache pool. Downloading from {full_url}.")
-			r = requests.get(full_url)
+			logger.debug(f"[{self.curpkg}] Not found in Debian cache pool.")
+			pooldir = (
+				package_name[0:4]
+				if package_name.startswith('lib')
+				else package_name[0]
+			)
+			for baseurl in self.DEBIAN_BASEURL:
+				#FIXME find a better way (use Debian web API to find baseurl?)
+				full_url = "/".join([
+					baseurl,
+					pooldir,
+					package_name,
+					filename
+				])
+				logger.debug(
+					f"[{self.curpkg}] Trying to download deb sources from"
+					f" {full_url}."
+				)
+				r = requests.get(full_url)
+				if r.status_code == 200:
+					break
 			if r.status_code != 200:
-				raise AlienMatcherError(f"Error {r.status_code} in downloading {full_url}")
-			local_path = self.pool.write(r.content, Settings.PATH_DEB, package_name, package_version, filename)
+				raise AlienMatcherError(
+					f"Error {r.status_code} in downloading {filename}"
+				)
+			local_path = self.pool.write(
+				r.content,
+				Settings.PATH_DEB,
+				package_name,
+				package_version,
+				filename
+			)
 			logger.debug(f"[{self.curpkg}] Result cached in {local_path}.")
 			response = r.content
 		return response
