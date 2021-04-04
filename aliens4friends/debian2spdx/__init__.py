@@ -14,8 +14,10 @@ import os
 import re
 import json
 import logging
+import tempfile
 from uuid import uuid4
 from typing import List, Tuple, Type, Dict, Union
+from multiprocessing import Pool as MultiProcessingPool
 
 from debian.copyright import Copyright as DebCopyright
 from debian.copyright import License as DebLicense
@@ -434,58 +436,93 @@ class Debian2SPDX:
 
 
 	@staticmethod
-	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
+	def execute(glob_name: str = "*", glob_version: str = "*"):
+		pool = Pool(Settings.POOLPATH)
+		multiprocessing_pool = MultiProcessingPool()
+		multiprocessing_pool.map(
+			Debian2SPDX._execute,
+			pool.absglob(f"userland/{glob_name}/{glob_version}/*.alienmatcher.json")
+		)
 
-		for path in pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json"):
-			try:
-				with open(path, "r") as jsonfile:
-					j = json.load(jsonfile)
-			except Exception as ex:
-				logger.error(f"Unable to load json from {path}.")
-				continue
-			try:
-				m = j["debian"]["match"]
-				if not m["debsrc_orig"] and m["debsrc_debian"]:
-					# support for debian format 1.0 native
-					m["debsrc_orig"] = m["debsrc_debian"]
-					m["debsrc_debian"] = None
-				debsrc_orig = pool.abspath(m["debsrc_orig"])
-				debsrc_debian = (
-					pool.abspath(m["debsrc_debian"])
-					if m.get("debsrc_debian")
-					else None # native format, only 1 archive
+	@staticmethod
+	def _execute(path):
+		pool = Pool(Settings.POOLPATH)
+		package = f"{path.parts[-3]}-{path.parts[-2]}"
+		try:
+			with open(path, "r") as jsonfile:
+				j = json.load(jsonfile)
+		except Exception as ex:
+			logger.error(f"[{package}] Unable to load json from {path}.")
+			return
+		try:
+			m = j["debian"]["match"]
+			debian_spdx_filename = pool.abspath(
+				"debian",
+				m["name"],
+				m["version"],
+				f'{m["name"]}-{m["version"]}.debian.spdx'
+			)
+			if os.path.isfile(debian_spdx_filename) and Settings.POOLCACHED:
+				logger.debug(f"[{package}] {debian_spdx_filename} already existing, skipping")
+				return
+			if not m["debsrc_orig"] and m["debsrc_debian"]:
+				# support for debian format 1.0 native
+				m["debsrc_orig"] = m["debsrc_debian"]
+				m["debsrc_debian"] = None
+			debsrc_orig = pool.abspath(m["debsrc_orig"])
+			debsrc_debian = (
+				pool.abspath(m["debsrc_debian"])
+				if m.get("debsrc_debian")
+				else None # native format, only 1 archive
+			)
+			if debsrc_debian and '.diff.' in debsrc_debian:
+				logger.debug(
+					f"[{package}] Debian source format 1.0 (non-native)"
+					 " processing patch"
 				)
+				tmpdir_obj = tempfile.TemporaryDirectory()
+				tmpdir = tmpdir_obj.name
+				bash(f"cp {debsrc_debian} {tmpdir}/")
+				bash(f"cp {debsrc_orig} {tmpdir}/")
+				tmp_debsrc_debian = os.path.join(
+					tmpdir,
+					os.path.basename(debsrc_debian)
+				)
+				tmp_debsrc_orig = os.path.join(
+					tmpdir,
+					os.path.basename(debsrc_orig)
+				)
+				bash(f"gunzip {tmp_debsrc_debian}")
+				tmp_debsrc_patch, _ = os.path.splitext(tmp_debsrc_debian)
+				tmp_debsrc_orig_arch = Archive(tmp_debsrc_orig)
+				tmp_debsrc_orig_arch.extract_raw(tmpdir)
+				rootfolder = os.path.join(tmpdir, tmp_debsrc_orig_arch.rootfolder())
+				bash(f"patch -p1 < {tmp_debsrc_patch}", cwd=rootfolder)
+				tmp_debsrc_patch_name, _ = os.path.splitext(tmp_debsrc_patch)
+				debsrc_debian = os.path.join(
+					tmpdir,
+					f"{tmp_debsrc_patch_name}.debian.tar.gz"
+				)
+				bash(f"tar czf {debsrc_debian} debian/", cwd=rootfolder)
 
-				if debsrc_debian and '.diff.' in debsrc_debian:
-					logger.warning(f"{path} --> Debian source format 1.0 (non-native) is not supported yet, skipping")
-					continue
-				debian_spdx_filename = pool.abspath(
-					"debian",
-					m["name"],
-					m["version"],
-					f'{m["name"]}-{m["version"]}.debian.spdx'
-				)
-				if os.path.isfile(debian_spdx_filename) and Settings.POOLCACHED:
-					logger.debug(f"{debian_spdx_filename} already existing, skipping")
-					continue
-				dorig = debsrc_orig or ""
-				ddeb = debsrc_debian or ""
-				logger.info(f"generating spdx from {dorig} {ddeb}")
-				d2s = Debian2SPDX(debsrc_orig, debsrc_debian)
-				d2s.generate_SPDX()
-				logger.info(f"writing spdx to {debian_spdx_filename}")
-				d2s.write_SPDX(debian_spdx_filename)
-			except KeyError as ex:
-				if not j["debian"].get("match"):
-					logger.warning(f"{path} --> no debian match to use here")
-				else:
-					logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
-			except TypeError as ex:
-				if not m["debsrc_orig"]:
-					logger.warning(f"{path} --> no debian orig archive to scan here")
-				else:
-					logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
-			except Debian2SPDXException as ex:
-				logger.warning(f"{path} --> {ex}")
-			except Exception as ex:
-				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+			dorig = debsrc_orig or ""
+			ddeb = debsrc_debian or ""
+			logger.info(f"[{package}] generating spdx from {dorig} {ddeb}")
+			d2s = Debian2SPDX(debsrc_orig, debsrc_debian)
+			d2s.generate_SPDX()
+			logger.info(f"[{package}] writing spdx to {debian_spdx_filename}")
+			d2s.write_SPDX(debian_spdx_filename)
+		except KeyError as ex:
+			if not j["debian"].get("match"):
+				logger.warning(f"[{package}] no debian match to use here")
+			else:
+				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+		except TypeError as ex:
+			if not m["debsrc_orig"]:
+				logger.warning(f"[{package}] no debian orig archive to scan here")
+			else:
+				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+		except Debian2SPDXException as ex:
+			logger.warning(f"[{package}] {ex}")
+		except Exception as ex:
+			logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")

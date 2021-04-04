@@ -367,7 +367,6 @@ class Aliens4Friends:
 	def spdxdebian(self):
 		self._subcommand_args()
 		Debian2SPDX.execute(
-			self.pool,
 			self.args.glob_name,
 			self.args.glob_version
 		)
