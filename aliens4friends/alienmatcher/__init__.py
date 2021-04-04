@@ -221,16 +221,27 @@ class AlienMatcher:
 		best_version = nn1[0] if nn1[1] < nn2[1] else nn2[0]
 
 		if best_version:
-			logger.debug(f"[{self.curpkg}] Nearest neighbor on Debian is {cur_package_name}/{best_version.str}.")
+			logger.debug(
+				f"[{self.curpkg}] Nearest neighbor on Debian is"
+				" {cur_package_name}/{best_version.str}."
+			)
 		else:
 			logger.debug(f"[{self.curpkg}] Found no neighbor on Debian.")
 
 		return Package(name = cur_package_name, version = best_version)
 
 	def download_to_debian(self, package_name, package_version, filename):
-		logger.debug(f"[{self.curpkg}] Retrieving file from Debian: '{package_name}/{package_version}/{filename}'.")
+		logger.debug(
+			f"[{self.curpkg}] Retrieving file from Debian:"
+			f" '{package_name}/{package_version}/{filename}'."
+		)
 		try:
-			response = self.pool.get_binary(Settings.PATH_DEB, package_name, package_version, filename)
+			response = self.pool.get_binary(
+				Settings.PATH_DEB,
+				package_name,
+				package_version,
+				filename
+			)
 			logger.debug(f"[{self.curpkg}] Found in Debian cache pool.")
 		except FileNotFoundError:
 			pooldir = package_name[0:4] if package_name.startswith('lib') else package_name[0]
@@ -269,7 +280,12 @@ class AlienMatcher:
 			debian_control_files.append(elem)
 			self.download_to_debian(package.name, package.version.str, elem[2])
 
-			debian_relpath = self.pool.relpath(Settings.PATH_DEB, package.name, package.version.str, elem[2])
+			debian_relpath = self.pool.relpath(
+				Settings.PATH_DEB,
+				package.name,
+				package.version.str,
+				elem[2]
+			)
 
 			if sha1sum(self.pool.abspath(debian_relpath)) != elem[0]:
 				raise AlienMatcherError(f"Checksum mismatch for {debian_relpath}.")
@@ -419,7 +435,10 @@ class AlienMatcher:
 			outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'
 			if not debsrc_debian and not debsrc_orig and not errors:
 				errors = 'FATAL: NO MATCH without errors'
-			logger.info(f"[{self.curpkg}] {outcome}: {debsrc_debian} {debsrc_orig} {errors or ''}")
+			logger.info(
+				f"[{self.curpkg}] {outcome}:"
+				f" {debsrc_debian} {debsrc_orig} {errors or ''}"
+			)
 			return match
 		except (AlienMatcherError, PackageError) as ex:
 			if str(ex) == "No internal archive":
@@ -436,7 +455,10 @@ class AlienMatcher:
 		DEB_ALL_SOURCES = AlienMatcher.get_deb_all_sources()
 		pool = Pool(Settings.POOLPATH)
 		multiprocessing_pool = MultiProcessingPool()
-		multiprocessing_pool.map(AlienMatcher._execute, pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc"))
+		multiprocessing_pool.map(
+			AlienMatcher._execute,
+			pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
+		)
 
 	@staticmethod
 	def _execute(p):
