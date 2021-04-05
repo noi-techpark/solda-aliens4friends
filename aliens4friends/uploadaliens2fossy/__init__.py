@@ -34,7 +34,7 @@ class UploadAliens2Fossy:
 			)
 		self.alien_package = alien_package
 		m = alien_package.metadata
-		self.uploadname = (m['name'], m['version'], m['revision'])
+		self.uploadname = (f"{m['name']}@{m['version']}-{m['revision']}")
 		self.alien_spdx_filename = alien_spdx_filename
 
 	def get_or_do_upload(self):
