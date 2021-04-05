@@ -46,11 +46,19 @@ class UploadAliens2Fossy:
 			logger.info(f"[{self.uploadname}] Package already uploaded")
 			self.upload = upload
 			return
-		apath = self.alien_package.archive_fullpath
-		copy(f'{apath}', f'{apath}.tar')
-		folder = self.fossy.get_or_create_folder('aliensrc') # FIXME do not harcode it
+		logger.info(f"[{self.uploadname}] Preparing package for upload")
+		tmpdir_obj = tempfile.TemporaryDirectory()
+		tmpdir = tmpdir_obj.name
+		self.alien_package.archive.extract_raw(tmpdir)
+		files_dir = os.path.join(tmpdir, "files")
+		# use tar.xz because it's more fossology-friendly (no annoying
+		# subfolders in unpacking)
+		tar2upload = os.path.join(tmpdir, f"{self.uploadname}.tar.xz")
+		bash(f"tar cJf {tar2upload} .", cwd=files_dir)
+		logger.info(f"[{self.uploadname}] Uploading package")
+		folder = self.fossy.get_or_create_folder('aliensrc') # FIXME do not hardcode it
 		self.upload = self.fossy.upload(
-			f'{apath}.tar',
+			tar2upload,
 			folder,
 			'uploaded by aliens4friends'
 		)
@@ -59,7 +67,6 @@ class UploadAliens2Fossy:
 			self.uploadname
 		)
 		self.upload.uploadname = self.uploadname
-		os.remove(f'{apath}.tar')
 
 	def run_fossy_scanners(self):
 			self.fossy.schedule_fossy_scanners(self.upload)
