@@ -268,3 +268,7 @@ class FossyWrapper:
 			raise FossyWrapperException(
 				f"Unknown error: Fossology API returned status code {res.status_code}"
 			)
+
+	def get_summary(self, upload: Upload):
+		res = self.fossology.session.get(f"{self.fossology.api}/uploads/{upload.id}/summary")
+		return res.json()
