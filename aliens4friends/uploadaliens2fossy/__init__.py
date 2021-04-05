@@ -73,6 +73,13 @@ class UploadAliens2Fossy:
 			self.fossy.schedule_fossy_scanners(self.upload)
 
 	def import_spdx(self):
+		if self.fossy.check_already_imported_report(self.upload):
+			logger.info(
+				f"[{self.upload.uploadname}] not uploading anything, spdx"
+				" report already uploaded before"
+			)
+			return
+		logger.info(f"[{self.uploadname}] Uploading alien SPDX")
 		fix_spdxtv(self.alien_spdx_filename)
 		tmpdir_obj = tempfile.TemporaryDirectory()
 		tmpdir = tmpdir_obj.name
@@ -81,11 +88,22 @@ class UploadAliens2Fossy:
 		spdxtv2rdf(self.alien_spdx_filename, spdxrdf)
 		uploadname = self.upload.uploadname
 		archive_name = self.alien_package.internal_archive_name
+		# handle fossology's inconsistent behaviour when unpacking archives:
+		if (
+			archive_name.endswith(".tar.gz")
+			or archive_name.endswith(".tar.bz2")
+			or archive_name.endswith(".tgz")
+		):
+			fossy_subfolder, _ = os.path.splitext(archive_name)
+			archive_unpack_path = os.path.join(archive_name, fossy_subfolder)
+		elif archive_name.endswith(".tar.xz") or archive_name.endswith(".zip"):
+			archive_unpack_path = archive_name
 		rootfolder = self.alien_package.internal_archive_rootfolder
-		n, e = os.path.splitext(archive_name)
-		if e and n.endswith('.tar'):
-			archive_name = os.path.join(archive_name, n)
-		fossy_internal_archive_path = os.path.join(uploadname, 'files', archive_name, rootfolder)
+		if rootfolder and rootfolder != "." and rootfolder != "./":
+			archive_unpack_path = os.path.join(archive_unpack_path, rootfolder)
+		fossy_internal_archive_path = os.path.join(
+			uploadname, archive_unpack_path
+		)
 		fossy_internal_archive_path = fossy_internal_archive_path.replace('/', '\\/')
 		bash(
 			f"sed -i -E 's/fileName>\\.\\//fileName>{fossy_internal_archive_path}\\//g' {spdxrdf}"
