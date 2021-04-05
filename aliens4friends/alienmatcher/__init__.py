@@ -245,7 +245,7 @@ class AlienMatcher:
 		if best_version:
 			logger.debug(
 				f"[{self.curpkg}] Nearest neighbor on Debian is"
-				" {cur_package_name}/{best_version.str}."
+				f" {cur_package_name}/{best_version.str}."
 			)
 		else:
 			logger.debug(f"[{self.curpkg}] Found no neighbor on Debian.")
