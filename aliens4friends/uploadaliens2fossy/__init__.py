@@ -38,9 +38,12 @@ class UploadAliens2Fossy:
 		self.alien_spdx_filename = alien_spdx_filename
 
 	def get_or_do_upload(self):
-		self.uploadname = f'{self.alien_package.name}-{self.alien_package.version.str}'
-		upload = self.fossy.check_already_uploaded(self.uploadname)
+		upload = self.fossy.get_upload(
+			self.alien_package.name,
+			self.alien_package.version.str
+		)
 		if upload:
+			logger.info(f"[{self.uploadname}] Package already uploaded")
 			self.upload = upload
 			return
 		apath = self.alien_package.archive_fullpath
