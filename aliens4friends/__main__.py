@@ -374,7 +374,6 @@ class Aliens4Friends:
 	def spdxalien(self):
 		self._subcommand_args()
 		MakeAlienSPDX.execute(
-			self.pool,
 			self.args.glob_name,
 			self.args.glob_version
 		)

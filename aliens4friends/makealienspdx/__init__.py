@@ -5,6 +5,7 @@ import os
 import json
 import logging
 from uuid import uuid4
+from multiprocessing import Pool as MultiProcessingPool
 
 from spdx.file import File as SPDXFile
 from spdx.utils import NoAssert
@@ -76,24 +77,25 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 		self.deltacodeng_results = deltacodeng_results
 
 	def process(self):
+		curpkg = f"{self.alien_package.name}-{self.alien_package.version.str}"
 		results = self.deltacodeng_results["body"]
 		deb_files2copy = (
 			results['same_files']
 			+ results['changed_files_with_no_license_and_copyright']
 			+ results['changed_files_with_same_copyright_and_license']
+			+ list(results['changed_files_with_updated_copyright_year_only'].keys())
 		)
 		self.calc_proximity()
 		if self.proximity < MIN_ACCEPTABLE_PROXIMITY:
-			logger.debug(
-				f"{self.alien_package.name}-{self.alien_package.version.str}"
-				f" --> proximity with debian package"
+			logger.warning(
+				f"[{curpkg}] proximity with debian package"
 				f" {self._debian_spdx.package.name}-{self._debian_spdx.package.version}"
 				f" is too low ({int(self.proximity*100)}%),"
 				 " using scancode spdx instead"
 			)
 			super().process()
 			return
-		# TODO handle also moved_files and changed_files_with_updated_copyright_year_only
+		# TODO handle also moved_files
 		deb_spdx_files = { f.name[2:]: f for f in self._debian_spdx.package.files }
 		scancode_spdx_files = { f.name[2:]: f for f in self._scancode_spdx.package.files }
 		# f.name[2:] strips initial './'
@@ -105,6 +107,14 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 				if alien_spdx_file in deb_spdx_files:
 					deb2alien_file = deb_spdx_files[alien_spdx_file]
 					deb2alien_file.chk_sum = SPDXAlgorithm("SHA1", alien_file_sha1)
+					if alien_spdx_file in results['changed_files_with_updated_copyright_year_only']:
+						if scancode_spdx_files.get(alien_spdx_file):
+							deb2alien_file.copyright = scancode_spdx_files[alien_spdx_file].copyright
+						else:
+							raise MakeAlienSPDXException(
+								 "Something's wrong, can't find"
+								f" {alien_spdx_file} in scancode spdx file"
+							)
 					alien_spdx_files.append(deb2alien_file)
 				else:
 					raise MakeAlienSPDXException(
@@ -127,9 +137,8 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 		self.alien_spdx = self._debian_spdx
 		self.alien_spdx.package.files = alien_spdx_files
 		if self.proximity < NEARLY_FULL_PROXIMITY:
-			logger.debug(
-				f"{self.alien_package.name}-{self.alien_package.version.str}"
-				 " --> proximity is not ~100%, do not apply main package"
+			logger.info(
+				f"[{curpkg}] proximity is not ~100%, do not apply main package"
 				 " license(s) from debian package"
 				f" {self._debian_spdx.package.name}-{self._debian_spdx.package.version}"
 			)
@@ -138,9 +147,8 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 			self.alien_spdx.package.license_declared = NoAssert()
 			self.alien_spdx.package.conc_lics = NoAssert()
 		if self.proximity < FULL_PROXIMITY:
-			logger.debug(
-				f"{self.alien_package.name}-{self.alien_package.version.str}"
-				" --> proximity is not ==100%, do not apply global package"
+			logger.info(
+				f"[{curpkg}] proximity is not ==100%, do not apply global package"
 				" license and copyright metadata from debian package"
 				f" {self._debian_spdx.package.name}-{self._debian_spdx.package.version}"
 			)
@@ -174,80 +182,92 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 class MakeAlienSPDX:
 
 	@staticmethod
-	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
+	def execute(glob_name: str = "*", glob_version: str = "*"):
+		pool = Pool(Settings.POOLPATH)
+		multiprocessing_pool = MultiProcessingPool()
+		multiprocessing_pool.map(
+			MakeAlienSPDX._execute,
+			pool.absglob(f"userland/{glob_name}/{glob_version}/*.alienmatcher.json")
+		)
 
-		for path in pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json"):
-			try:
-				with open(path, "r") as jsonfile:
-					j = json.load(jsonfile)
-			except Exception as ex:
-				logger.error(f"Unable to load json from {path}.")
-				continue
-			try:
-				errors = j.get("errors")
-				if errors and 'No internal archive' in errors:
-					logger.warning(f"{path} --> No internal archive in aliensrc package, skipping")
-					continue
-				a = j["aliensrc"]
-				alien_spdx_filename = pool.abspath(
+	@staticmethod
+	def _execute(path):
+		pool = Pool(Settings.POOLPATH)
+		package = f"{path.parts[-3]}-{path.parts[-2]}"
+		try:
+			with open(path, "r") as jsonfile:
+				j = json.load(jsonfile)
+		except Exception as ex:
+			logger.error(f"[{package}] Unable to load json from {path}.")
+			return
+		try:
+			errors = j.get("errors")
+			if errors and 'No internal archive' in errors:
+				logger.warning(f"[{package}] No internal archive in aliensrc package, skipping")
+				return
+			a = j["aliensrc"]
+			alien_spdx_filename = pool.abspath(
+				"userland",
+				a["name"],
+				a["version"],
+				f'{a["internal_archive_name"]}.alien.spdx'
+			)
+			if os.path.isfile(alien_spdx_filename) and Settings.POOLCACHED:
+				logger.debug(f"[{package}] {pool.clnpath(alien_spdx_filename)} already found in cache, skipping")
+				return
+			alien_package_filename = pool.abspath(
+				"userland",
+				a["name"],
+				a["version"],
+				a["filename"]
+			)
+			scancode_spdx_filename = pool.abspath(
+				"userland",
+				a["name"],
+				a["version"],
+				f'{a["name"]}-{a["version"]}.scancode.spdx'
+			)
+			fix_spdxtv(scancode_spdx_filename)
+			scancode_spdx, err = parse_spdx_tv(scancode_spdx_filename)
+			alien_package = AlienPackage(alien_package_filename)
+			alien_package.expand()
+
+			deltacodeng_results_filename = ""
+			debian_spdx_filename = ""
+
+			if j.get("debian") and j["debian"].get("match"):
+				m = j["debian"]["match"]
+				deltacodeng_results_filename = pool.abspath(
 					"userland",
 					a["name"],
 					a["version"],
-					f'{a["internal_archive_name"]}.alien.spdx'
+					f'{a["name"]}-{a["version"]}.deltacode.json'
 				)
-				if os.path.isfile(alien_spdx_filename) and Settings.POOLCACHED:
-					logger.debug(f"{pool.clnpath(alien_spdx_filename)} already found in cache, skipping")
-					continue
-				alien_package_filename = pool.abspath(
-					"userland",
-					a["name"],
-					a["version"],
-					a["filename"]
+				debian_spdx_filename = pool.abspath(
+					"debian",
+					m["name"],
+					m["version"],
+					f'{m["name"]}-{m["version"]}.debian.spdx'
 				)
-				scancode_spdx_filename = pool.abspath(
-					"userland",
-					a["name"],
-					a["version"],
-					f'{a["name"]}-{a["version"]}.scancode.spdx'
-				)
-				fix_spdxtv(scancode_spdx_filename)
-				scancode_spdx, err = parse_spdx_tv(scancode_spdx_filename)
-				alien_package = AlienPackage(alien_package_filename)
-				alien_package.expand()
+			if (os.path.isfile(deltacodeng_results_filename) and os.path.isfile(debian_spdx_filename)):
+				logger.info(f"[{package}] Applying debian spdx to package {a['name']}-{a['version']}")
+				fix_spdxtv(debian_spdx_filename)
+				debian_spdx, err = parse_spdx_tv(debian_spdx_filename)
+				with open(deltacodeng_results_filename, 'r') as f:
+					deltacodeng_results = json.load(f)
 
-				if j.get("debian") and j["debian"].get("match"):
-					m = j["debian"]["match"]
-					deltacodeng_results_filename = pool.abspath(
-						"userland",
-						a["name"],
-						a["version"],
-						f'{a["name"]}-{a["version"]}.deltacode.json'
-					)
-					debian_spdx_filename = pool.abspath(
-						"debian",
-						m["name"],
-						m["version"],
-						f'{m["name"]}-{m["version"]}.debian.spdx'
-					)
-					if (os.path.isfile(deltacodeng_results_filename) and os.path.isfile(debian_spdx_filename)):
-						logger.info(f"Applying debian spdx to package {a['name']}-{a['version']}")
-						fix_spdxtv(debian_spdx_filename)
-						debian_spdx, err = parse_spdx_tv(debian_spdx_filename)
-						with open(deltacodeng_results_filename, 'r') as f:
-							deltacodeng_results = json.load(f)
-
-						d2as = Debian2AlienSPDX(
-							scancode_spdx,
-							alien_package,
-							debian_spdx,
-							deltacodeng_results
-						)
-						d2as.process()
-						write_spdx_tv(d2as.alien_spdx, alien_spdx_filename)
-					else:
-						logger.info(f"No debian spdx available, using scancode spdx for package {a['name']}-{a['version']}")
-						s2as = Scancode2AlienSPDX(scancode_spdx, alien_package)
-						s2as.process()
-						write_spdx_tv(s2as.alien_spdx, alien_spdx_filename)
-			except Exception as ex:
-				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+				d2as = Debian2AlienSPDX(
+					scancode_spdx,
+					alien_package,
+					debian_spdx,
+					deltacodeng_results
+				)
+				d2as.process()
+				write_spdx_tv(d2as.alien_spdx, alien_spdx_filename)
+			else:
+				logger.warning(f"[{package}] No debian spdx available, using scancode spdx for package {a['name']}-{a['version']}")
+				s2as = Scancode2AlienSPDX(scancode_spdx, alien_package)
+				s2as.process()
+				write_spdx_tv(s2as.alien_spdx, alien_spdx_filename)
+		except Exception as ex:
+			logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
