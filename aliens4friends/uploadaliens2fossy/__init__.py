@@ -95,9 +95,16 @@ class UploadAliens2Fossy:
 		self.fossy.report_import(self.upload, spdxrdf)
 		# FIXME: add schedule reuser here (optional?)
 
-	def get_fossy_json(self):
-		"""get license findings and conclusions from fossology"""
-		return self.fossy.get_license_findings_conclusions(self.upload)
+	def get_metadata_from_fossology(self):
+		"""get summary and license findings and conclusions from fossology"""
+		logger.info(f"[{self.uploadname}] getting metadata from fossology")
+		summary = self.fossy.get_summary(self.upload)
+		licenses = self.fossy.get_license_findings_conclusions(self.upload)
+		return {
+			"origin": Settings.FOSSY_SERVER,
+			"summary": summary,
+			"licenses": licenses
+		}
 
 	@staticmethod
 	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
@@ -139,7 +146,7 @@ class UploadAliens2Fossy:
 				a2f.get_or_do_upload()
 				a2f.run_fossy_scanners()
 				a2f.import_spdx()
-				fossy_json = a2f.get_fossy_json()
+				fossy_json = a2f.get_metadata_from_fossology()
 				with open(alien_fossy_json_filename, "w") as f:
 					json.dump(fossy_json, f)
 
