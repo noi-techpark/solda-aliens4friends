@@ -99,9 +99,7 @@ class FossyWrapper:
 		# Fossology 3.9.0 (latest release), and upgrade it
 		# https://github.com/fossology/fossology-python/pull/51
 		uploads = {u.uploadname: u for u in self.fossology.list_uploads()}
-		if uploadname in uploads:
-			return uploads[uploadname]
-		return None
+		return uploads.get(uploadname)
 
 	def upload(self, filename, folder, description=''):
 		logger.info(f"uploading {filename} to Fossology")
