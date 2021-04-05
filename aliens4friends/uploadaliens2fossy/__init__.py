@@ -69,6 +69,7 @@ class UploadAliens2Fossy:
 		self.upload.uploadname = self.uploadname
 
 	def run_fossy_scanners(self):
+			logger.info(f"[{self.uploadname}] Run fossy scanners")
 			self.fossy.schedule_fossy_scanners(self.upload)
 
 	def import_spdx(self):
@@ -100,15 +101,14 @@ class UploadAliens2Fossy:
 
 	@staticmethod
 	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
-
 		fossy = FossyWrapper()
-
 		for path in pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json"):
+			package = f"{path.parts[-3]}-{path.parts[-2]}"
 			try:
 				with open(path, "r") as jsonfile:
 					j = json.load(jsonfile)
 			except Exception as ex:
-				logger.error(f"Unable to load json from {path},"
+				logger.error(f"[{package}] Unable to load json from {path},"
 				f" got {ex.__class__.__name__}: {ex}")
 				continue
 			try:
@@ -144,4 +144,4 @@ class UploadAliens2Fossy:
 					json.dump(fossy_json, f)
 
 			except Exception as ex:
-				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
