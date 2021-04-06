@@ -152,13 +152,19 @@ class Harvest:
 	def _parse_deltacode_main(self, cur, out):
 		try:
 			stats = cur["header"]["stats"]
-			matching = stats["same_files"] + stats["changed_files_with_same_copyright_and_license"]
+			matching = (
+				stats["same_files"]
+				+ stats["moved_files"]
+				+ stats["changed_files_with_no_license_and_copyright"]
+				+ stats["changed_files_with_same_copyright_and_license"]
+				+ stats["changed_files_with_updated_copyright_year_only"]
+			)
 		except KeyError:
 			matching = 0
 
 		Harvest._safe_set(
 			out,
-			["debian_matching", "files_with_matching_copyright_license"],
+			["statistics", "files", "ip_matching_files"],
 			matching
 		)
 
@@ -262,9 +268,9 @@ class Harvest:
 
 		out["statistics"] = {
 			"files": {
-				"total": total,
-				"audited": cleared,
-				"not_audited": not_cleared
+				"audit_total": total,
+				"audit_done": cleared,
+				"audit_to_do": not_cleared
 			},
 			"licenses": {
 				"license_scanner_findings": self._parse_fossy_ordered_licenses(stat_agents),
