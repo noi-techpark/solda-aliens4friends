@@ -164,7 +164,7 @@ class Harvest:
 
 		Harvest._safe_set(
 			out,
-			["statistics", "files", "ip_matching_files"],
+			["debian_matching", "ip_matching_files"],
 			matching
 		)
 
