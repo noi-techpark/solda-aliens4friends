@@ -344,7 +344,7 @@ class Harvest:
 
 			if known_provenance == 1:
 				try:
-					total = out["statistics"]["files"]["total"]
+					total = out["statistics"]["files"]["audit_total"]
 				except KeyError:
 					total = "UNKNOWN (fossy.json missing?)"
 				Harvest._safe_set(
@@ -365,15 +365,15 @@ class Harvest:
 			if isinstance(total, int):
 				Harvest._safe_set(
 					out,
-					["statistics", "files", "total"],
+					["statistics", "files", "audit_total"],
 					total + unknown_provenance
 				)
 
 				try:
-					not_audited = out["statistics"]["files"]["not_audited"]
+					not_audited = out["statistics"]["files"]["audit_to_do"]
 					Harvest._safe_set(
 						out,
-						["statistics", "files", "not_audited"],
+						["statistics", "files", "audit_to_do"],
 						not_audited + unknown_provenance
 					)
 				except KeyError:
