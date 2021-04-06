@@ -5,6 +5,7 @@ import logging
 import requests
 from uuid import uuid4
 from time import sleep
+from bs4 import BeautifulSoup
 from urllib.parse import urlencode
 from datetime import datetime, timedelta
 
@@ -15,6 +16,16 @@ from fossology.obj import ReportFormat, TokenScope, Upload
 from aliens4friends.commons.settings import Settings
 
 logger = logging.getLogger(__name__)
+
+AGENTS = {
+	"copyright_email_author": "copyright",
+	"ecc": "ecc",
+	"keyword": "keyword",
+	"nomos": "nomos",
+	"monk": "monk",
+	"ojo": "ojo",
+	#"package": "pkgagent",
+}
 
 class FossyWrapperException(Exception):
 	pass
@@ -99,9 +110,7 @@ class FossyWrapper:
 		# Fossology 3.9.0 (latest release), and upgrade it
 		# https://github.com/fossology/fossology-python/pull/51
 		uploads = {u.uploadname: u for u in self.fossology.list_uploads()}
-		if uploadname in uploads:
-			return uploads[uploadname]
-		return None
+		return uploads.get(uploadname)
 
 	def upload(self, filename, folder, description=''):
 		logger.info(f"uploading {filename} to Fossology")
@@ -137,20 +146,37 @@ class FossyWrapper:
 		if "Upload Properties successfully changed" not in res.text:
 			raise FossyWrapperException("upload renaming failed")
 
+	def get_not_scheduled_agents(self, upload):
+		res = self.fossy_session.get(
+			f"{Settings.FOSSY_SERVER}?mod=upload_agent_options&upload={upload.id}"
+		)
+		html = BeautifulSoup(res.content, 'html.parser')
+		return [
+			option.attrs["value"].replace("agent_","")
+			for option in html.find_all("option")
+		]
+
 	def schedule_fossy_scanners(self, upload):
-		logger.info(f"scheduling fossology scanners for package {upload.uploadname}")
-		specs = {
-			"analysis": {
-				"copyright_email_author": True,
-				"ecc": True,
-				"keyword": True,
-				"nomos": True,
-				"monk": True,
-				"ojo": True,
-				"package": True,
-			},
-			"decider": {"ojo_decider": True},
-		}
+		logger.info(f"[{upload.uploadname}] checking already scheduled scanners")
+		not_scheduled = self.get_not_scheduled_agents(upload)
+		analysis = {}
+		agents = []
+		for agent, alias in AGENTS.items():
+			if alias in not_scheduled:
+				analysis.update({agent: True})
+				agents.append(agent)
+			else:
+				analysis.update({agent: False})
+		logger.info(f"[{upload.uploadname}] scheduling {agents}")
+		specs = { "analysis": analysis }
+		if not agents:
+			logger.info(
+				f"[{upload.uploadname}] not scheduling anything, all agents"
+				" already scheduled before"
+			)
+			return
+		if "ojo_decider" in agents:
+			specs.update({"decider": {"ojo_decider": True}})
 		try:
 			folder = self.fossology.detail_folder(upload.folderid)
 			scanjob = self.fossology.schedule_jobs(
@@ -199,30 +225,38 @@ class FossyWrapper:
 		logger.info("monitoring reportImport job status...")
 		self._wait_for_jobs_completion(upload)
 
-	def get_upload(self, name, version, revision):
+	def get_upload(self, name, version):
 		"""Get Fossology Upload object from pakage name and version,
-		assuming that uploadname follows the scheme
-		<name>?ver=<version>-<revision> (urlencoded)
+		assuming that uploadname follows the scheme <name>@<version>, and
 		assuming that uploadnames are unique in queried Fossology instance"""
-		query = urlencode({"ver": f"{version}-{revision}"})
-		upload = f'{name}?{query}'
-		uploads = {u.uploadname: u for u in self.fossology.list_uploads()}
-		return uploads.get(upload)
+		uploadname = f'{name}@{version}'
+		return self.check_already_uploaded(uploadname)
 
 	def get_license_findings_conclusions(self, upload: Upload):
 		logger.info(
 			"getting license findings and conclusions for upload "
 			f"{upload.uploadname} (id={upload.id})"
 		)
-		params = { "agent": ["monk", "nomos", "ojo", "reportImport"] }
+		agents = ["monk", "nomos", "ojo", "reportImport"]
+		return self.get_licenses(upload, agents)
+
+	def check_already_imported_report(self, upload: Upload):
+		return self.get_licenses(upload, ["reportImport",], test=True)
+
+	def get_licenses(self, upload: Upload, agents: list, test: bool = False):
+		params = { "agent":  agents}
 		res = self.fossology.session.get(f"{self.fossology.api}/uploads/{upload.id}/licenses", params=params)
 		if res.status_code == 200:
+			if test:
+				return True
 			return res.json()
 		elif res.status_code == 403:
 			raise FossyWrapperException(
 				f"Can't get licenses for upload {upload.uploadname} (id={upload.id}): not authorized"
 			)
 		elif res.status_code == 412:
+			if test:
+				return False
 			raise FossyWrapperException(
 				f"Can't get licenses for upload {upload.uploadname} (id={upload.id}): some agents have not been scheduled yet"
 			)
@@ -234,3 +268,7 @@ class FossyWrapper:
 			raise FossyWrapperException(
 				f"Unknown error: Fossology API returned status code {res.status_code}"
 			)
+
+	def get_summary(self, upload: Upload):
+		res = self.fossology.session.get(f"{self.fossology.api}/uploads/{upload.id}/summary")
+		return res.json()

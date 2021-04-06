@@ -128,7 +128,7 @@ class AlienPackage(Package):
 						f"{rec['sha1']} does not exist in checksums for {rec['name']}."
 					)
 
-			if '.tar.' in rec['name']:
+			if '.tar.' in rec['name'] or rec['name'].endswith('.tgz'):
 				self.internal_archives.append(
 					{
 						"name" : rec["name"],
@@ -137,6 +137,9 @@ class AlienPackage(Package):
 						"src_uri" : rec["src_uri"]
 					}
 				)
+				logger.debug(
+					f"[{self.name}-{self.version.str}]"
+					f" adding internal archive {rec['name']}")
 
 		primary = None
 		if len(self.internal_archives) == 1:
@@ -146,17 +149,16 @@ class AlienPackage(Package):
 			# which one gets taken as primary internal archive, we should better
 			# always check if it is only one, when a subcommand needs the internal
 			# archive
-			logger.warning(
-				f"{self._info_json['source_package']['name']}/{self._info_json['source_package']['version']}: " \
-				"Too many internal archives for alien repository comparison"
-			)
 
 			# Special rules to find the primary archive
 			for rec in self.internal_archives:
-				# yocto-kernel (linux mostly)
 				if (
-					("linux" in rec["name"] or "kernel" in rec["name"])
-					and "name=machine" in rec["src_uri"]
+					(("linux" in rec["name"] or "kernel" in rec["name"])
+					and "name=machine" in rec["src_uri"])
+					or
+					("perl" in rec["name"] and "name=perl" in rec["src_uri"])
+					or
+					("libxml2" in rec["name"] and "name=libtar" in rec["src_uri"])
 				):
 					primary = rec
 					break
@@ -166,6 +168,18 @@ class AlienPackage(Package):
 			self.internal_archive_checksums = primary['checksums']
 			self.internal_archive_rootfolder = primary['rootfolder']
 			self.internal_archive_src_uri = primary['src_uri']
+			if len(self.internal_archives) > 1:
+				logger.warning(
+					f"[{self.name}-{self.version.str}]:"
+					 " more than one internal archive, using just primary"
+					f" archive '{primary['name']}' for comparison"
+			)
+		elif not primary and len(self.internal_archives) > 1:
+			logger.warning(
+				f"[{self.name}-{self.version.str}]: "
+				"Too many internal archives for alien repository comparison,"
+				" and no primary archive to use for comparison"
+			)
 
 	def has_internal_primary_archive(self):
 		return self.internal_archive_name and len(self.internal_archive_name) > 0

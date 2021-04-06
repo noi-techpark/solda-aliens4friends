@@ -345,7 +345,6 @@ class Aliens4Friends:
 	def match(self):
 		self._subcommand_args()
 		AlienMatcher.execute(
-			self.pool,
 			self.args.glob_name,
 			self.args.glob_version
 		)
@@ -361,7 +360,6 @@ class Aliens4Friends:
 	def delta(self):
 		self._subcommand_args()
 		DeltaCodeNG.execute(
-			self.pool,
 			self.args.glob_name,
 			self.args.glob_version
 		)
@@ -369,7 +367,6 @@ class Aliens4Friends:
 	def spdxdebian(self):
 		self._subcommand_args()
 		Debian2SPDX.execute(
-			self.pool,
 			self.args.glob_name,
 			self.args.glob_version
 		)
@@ -377,7 +374,6 @@ class Aliens4Friends:
 	def spdxalien(self):
 		self._subcommand_args()
 		MakeAlienSPDX.execute(
-			self.pool,
 			self.args.glob_name,
 			self.args.glob_version
 		)

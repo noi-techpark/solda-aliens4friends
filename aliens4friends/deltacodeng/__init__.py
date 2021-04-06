@@ -9,6 +9,7 @@ import sys
 import logging
 from datetime import datetime
 import difflib
+from multiprocessing import Pool as MultiProcessingPool
 
 from deepdiff import DeepDiff
 
@@ -242,53 +243,68 @@ class DeltaCodeNG:
 			json.dump(self.res, f, indent=2)
 
 	@staticmethod
-	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
+	def execute(glob_name: str = "*", glob_version: str = "*"):
+		pool = Pool(Settings.POOLPATH)
+		multiprocessing_pool = MultiProcessingPool()
+		multiprocessing_pool.map(
+			DeltaCodeNG._execute,
+			pool.absglob(f"userland/{glob_name}/{glob_version}/*.alienmatcher.json")
+		)
 
-		for path in pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json"):
-			try:
-				with open(path, "r") as jsonfile:
-					j = json.load(jsonfile)
-			except Exception as ex:
-				logger.error(f"Unable to load json from {path}.")
-				continue
+	@staticmethod
+	def _execute(path):
+		pool = Pool(Settings.POOLPATH)
+		package = f"{path.parts[-3]}-{path.parts[-2]}"
+		try:
+			with open(path, "r") as jsonfile:
+				j = json.load(jsonfile)
+		except Exception as ex:
+			logger.error(f"[{package}] Unable to load json from {path}.")
+			return
 
-			try:
-				m = j["debian"]["match"]
-				a = j["aliensrc"]
-				result_path = pool.abspath(
+		try:
+			m = j["debian"]["match"]
+			a = j["aliensrc"]
+			result_path = pool.abspath(
+				"userland",
+				a["name"],
+				a["version"],
+				f'{a["name"]}-{a["version"]}.deltacode.json'
+			)
+			if os.path.isfile(result_path) and Settings.POOLCACHED:
+				logger.debug(f"[{package}] Skip {pool.clnpath(result_path)}. Result exists and cache is enabled.")
+				return
+			logger.info(
+				f"[{package}] calculating delta between debian package"
+				f" {m['name']}-{m['version']} and alien package"
+				f" {a['name']}-{a['version']}"
+			)
+			deltacode = DeltaCodeNG(
+				pool.abspath(
+					"debian",
+					m["name"],
+					m["version"],
+					f'{m["name"]}-{m["version"]}.scancode.json'
+				),
+				pool.abspath(
 					"userland",
 					a["name"],
 					a["version"],
-					f'{a["name"]}-{a["version"]}.deltacode.json'
-				)
-				if os.path.isfile(result_path) and Settings.POOLCACHED:
-					logger.debug(f"Skip {pool.clnpath(result_path)}. Result exists and cache is enabled.")
-					continue
-				deltacode = DeltaCodeNG(
-					pool.abspath(
-						"debian",
-						m["name"],
-						m["version"],
-						f'{m["name"]}-{m["version"]}.scancode.json'
-					),
-					pool.abspath(
-						"userland",
-						a["name"],
-						a["version"],
-						f'{a["name"]}-{a["version"]}.scancode.json'
-					),
-					result_path
-				)
-				result = deltacode.compare()
-				deltacode.write_results()
-				logger.debug(f'Results written to {result_path}')
-				logger.debug('Stats:')
-				for stat in deltacode.get_stats():
-					logger.debug(stat)
-				if Settings.PRINTRESULT:
-					print(json.dumps(result, indent=2))
-			except KeyError as ex:
-				if not j["debian"].get("match"):
-					logger.warning(f"{path} --> no debian match to compare here")
-			except Exception as ex:
-				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+					f'{a["name"]}-{a["version"]}.scancode.json'
+				),
+				result_path
+			)
+			result = deltacode.compare()
+			deltacode.write_results()
+			logger.debug(f'[{package}] Results written to {result_path}')
+			for stat in deltacode.get_stats():
+				logger.debug(f'[{package}] Stats: {stat}')
+			if Settings.PRINTRESULT:
+				print(json.dumps(result, indent=2))
+		except KeyError as ex:
+			if not j["debian"].get("match"):
+				logger.warning(f"[{package}] no debian match to compare here")
+			else:
+				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+		except Exception as ex:
+			logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")

@@ -62,8 +62,21 @@ class Archive:
 			return '' # suited to be used with (and ignored by) os.path.join
 		return r[0]
 
+	def rootfolder(self):
+		"""Get archive rootfolder, eg. 'foo-1.0.0/'"""
+		stdout, _ = bash(f'tar {self.tar_param}tf {self.path} | cut -d"/" -f 1 | uniq')
+		r = stdout.split('\n')
+		if '' in r:
+			r.remove('')
+		if len(r) != 1:
+			return '' # suited to be used with (and ignored by) os.path.join
+		return r[0]
+
 	def extract(self, dest):
 		return self._make_tar_cmd(f'-C {dest} --strip 1')
+
+	def extract_raw(self, dest):
+		return self._make_tar_cmd(f'-C {dest}')
 
 	def in_archive_extract(self, archive_in_archive, dest):
 		internal_cmd = f"tar {Archive._get_tar_param(archive_in_archive)}xvf - -C {dest} --strip 1"

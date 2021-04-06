@@ -34,20 +34,31 @@ class UploadAliens2Fossy:
 			)
 		self.alien_package = alien_package
 		m = alien_package.metadata
-		self.uploadname = (m['name'], m['version'], m['revision'])
+		self.uploadname = (f"{m['name']}@{m['version']}-{m['revision']}")
 		self.alien_spdx_filename = alien_spdx_filename
 
 	def get_or_do_upload(self):
-		self.uploadname = f'{self.alien_package.name}-{self.alien_package.version.str}'
-		upload = self.fossy.check_already_uploaded(self.uploadname)
+		upload = self.fossy.get_upload(
+			self.alien_package.name,
+			self.alien_package.version.str
+		)
 		if upload:
+			logger.info(f"[{self.uploadname}] Package already uploaded")
 			self.upload = upload
 			return
-		apath = self.alien_package.archive_fullpath
-		copy(f'{apath}', f'{apath}.tar')
-		folder = self.fossy.get_or_create_folder('aliensrc') # FIXME do not harcode it
+		logger.info(f"[{self.uploadname}] Preparing package for upload")
+		tmpdir_obj = tempfile.TemporaryDirectory()
+		tmpdir = tmpdir_obj.name
+		self.alien_package.archive.extract_raw(tmpdir)
+		files_dir = os.path.join(tmpdir, "files")
+		# use tar.xz because it's more fossology-friendly (no annoying
+		# subfolders in unpacking)
+		tar2upload = os.path.join(tmpdir, f"{self.uploadname}.tar.xz")
+		bash(f"tar cJf {tar2upload} .", cwd=files_dir)
+		logger.info(f"[{self.uploadname}] Uploading package")
+		folder = self.fossy.get_or_create_folder('aliensrc') # FIXME do not hardcode it
 		self.upload = self.fossy.upload(
-			f'{apath}.tar',
+			tar2upload,
 			folder,
 			'uploaded by aliens4friends'
 		)
@@ -56,12 +67,19 @@ class UploadAliens2Fossy:
 			self.uploadname
 		)
 		self.upload.uploadname = self.uploadname
-		os.remove(f'{apath}.tar')
 
 	def run_fossy_scanners(self):
+			logger.info(f"[{self.uploadname}] Run fossy scanners")
 			self.fossy.schedule_fossy_scanners(self.upload)
 
 	def import_spdx(self):
+		if self.fossy.check_already_imported_report(self.upload):
+			logger.info(
+				f"[{self.upload.uploadname}] not uploading anything, spdx"
+				" report already uploaded before"
+			)
+			return
+		logger.info(f"[{self.uploadname}] Uploading alien SPDX")
 		fix_spdxtv(self.alien_spdx_filename)
 		tmpdir_obj = tempfile.TemporaryDirectory()
 		tmpdir = tmpdir_obj.name
@@ -70,11 +88,22 @@ class UploadAliens2Fossy:
 		spdxtv2rdf(self.alien_spdx_filename, spdxrdf)
 		uploadname = self.upload.uploadname
 		archive_name = self.alien_package.internal_archive_name
+		# handle fossology's inconsistent behaviour when unpacking archives:
+		if (
+			archive_name.endswith(".tar.gz")
+			or archive_name.endswith(".tar.bz2")
+			or archive_name.endswith(".tgz")
+		):
+			fossy_subfolder, _ = os.path.splitext(archive_name)
+			archive_unpack_path = os.path.join(archive_name, fossy_subfolder)
+		elif archive_name.endswith(".tar.xz") or archive_name.endswith(".zip"):
+			archive_unpack_path = archive_name
 		rootfolder = self.alien_package.internal_archive_rootfolder
-		n, e = os.path.splitext(archive_name)
-		if e and n.endswith('.tar'):
-			archive_name = os.path.join(archive_name, n)
-		fossy_internal_archive_path = os.path.join(uploadname, 'files', archive_name, rootfolder)
+		if rootfolder and rootfolder != "." and rootfolder != "./":
+			archive_unpack_path = os.path.join(archive_unpack_path, rootfolder)
+		fossy_internal_archive_path = os.path.join(
+			uploadname, archive_unpack_path
+		)
 		fossy_internal_archive_path = fossy_internal_archive_path.replace('/', '\\/')
 		bash(
 			f"sed -i -E 's/fileName>\\.\\//fileName>{fossy_internal_archive_path}\\//g' {spdxrdf}"
@@ -84,21 +113,27 @@ class UploadAliens2Fossy:
 		self.fossy.report_import(self.upload, spdxrdf)
 		# FIXME: add schedule reuser here (optional?)
 
-	def get_fossy_json(self):
-		"""get license findings and conclusions from fossology"""
-		return self.fossy.get_license_findings_conclusions(self.upload)
+	def get_metadata_from_fossology(self):
+		"""get summary and license findings and conclusions from fossology"""
+		logger.info(f"[{self.uploadname}] getting metadata from fossology")
+		summary = self.fossy.get_summary(self.upload)
+		licenses = self.fossy.get_license_findings_conclusions(self.upload)
+		return {
+			"origin": Settings.FOSSY_SERVER,
+			"summary": summary,
+			"licenses": licenses
+		}
 
 	@staticmethod
 	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
-
 		fossy = FossyWrapper()
-
 		for path in pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json"):
+			package = f"{path.parts[-3]}-{path.parts[-2]}"
 			try:
 				with open(path, "r") as jsonfile:
 					j = json.load(jsonfile)
 			except Exception as ex:
-				logger.error(f"Unable to load json from {path},"
+				logger.error(f"[{package}] Unable to load json from {path},"
 				f" got {ex.__class__.__name__}: {ex}")
 				continue
 			try:
@@ -129,9 +164,9 @@ class UploadAliens2Fossy:
 				a2f.get_or_do_upload()
 				a2f.run_fossy_scanners()
 				a2f.import_spdx()
-				fossy_json = a2f.get_fossy_json()
+				fossy_json = a2f.get_metadata_from_fossology()
 				with open(alien_fossy_json_filename, "w") as f:
 					json.dump(fossy_json, f)
 
 			except Exception as ex:
-				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
