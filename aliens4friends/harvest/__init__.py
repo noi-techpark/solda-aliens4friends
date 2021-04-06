@@ -1,5 +1,4 @@
 import json
-import yaml
 import logging
 import os
 import re
@@ -18,7 +17,7 @@ class Harvest:
 
 	SUPPORTED_FILES = [
 		".fossy.json",
-		".tinfoilhat.yml",
+		".tinfoilhat.json",
 		".alienmatcher.json",
 		".deltacode.json"
 	]
@@ -36,7 +35,6 @@ class Harvest:
 		self.pool = pool
 		self.input_files = sorted(input_files)
 		self.result_file = result_file
-		self.yaml = None
 		self.result = {}
 		self.package_id_ext = package_id_ext
 		self.add_details = add_details
@@ -116,8 +114,8 @@ class Harvest:
 					cur_package_inputs.append(ext)
 					if ext == ".fossy.json":
 						self._parse_fossy_main(json.load(f), source_package)
-					elif ext == ".tinfoilhat.yml":
-						self._parse_tinfoilhat_main(yaml.safe_load(f), source_package)
+					elif ext == ".tinfoilhat.json":
+						self._parse_tinfoilhat_main(json.load(f), source_package)
 					elif ext == ".alienmatcher.json":
 						self._parse_alienmatcher_main(json.load(f), source_package)
 					elif ext == ".deltacode.json":
