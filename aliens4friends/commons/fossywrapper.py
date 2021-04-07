@@ -175,7 +175,7 @@ class FossyWrapper:
 				" already scheduled before"
 			)
 			return
-		if "ojo_decider" in agents:
+		if "ojo" in agents:
 			specs.update({"decider": {"ojo_decider": True}})
 		try:
 			folder = self.fossology.detail_folder(upload.folderid)
