@@ -434,6 +434,21 @@ class Debian2SPDX:
 		with open(filename, "w") as f:
 			write_document(self.spdx_doc, f, validate=False)
 
+	def write_debian_copyright(self, filename: str):
+		"""export debian/copyright (useful if for instance it is not machine
+		parseable and needs to be manually examined)"""
+		try:
+			content = self.debarchive_debian.readfile(f"{self.native_rootdir}debian/copyright")
+		except Exception as ex:
+			if 'Not found in archive' in str(ex):
+				raise Debian2SPDXException(
+					"No Debian Copyright file found in debian source package"
+				)
+			else:
+				raise ex
+		with open(filename, "w") as f:
+			f.write("\n".join(content))
+
 
 	@staticmethod
 	def execute(glob_name: str = "*", glob_version: str = "*"):
@@ -512,6 +527,18 @@ class Debian2SPDX:
 			d2s.generate_SPDX()
 			logger.info(f"[{package}] writing spdx to {debian_spdx_filename}")
 			d2s.write_SPDX(debian_spdx_filename)
+			debian_copyright_filename = pool.abspath(
+				"debian",
+				m["name"],
+				m["version"],
+				f'{m["name"]}-{m["version"]}_debian_copyright'
+			)
+			if os.path.isfile(debian_copyright_filename) and Settings.POOLCACHED:
+				logger.debug(f"[{package}] debian/copyright already extracted, skipping")
+				return
+			logger.info(f"[{package}] extracting debian/copyright")
+			d2s.write_debian_copyright(debian_copyright_filename)
+
 		except KeyError as ex:
 			if not j["debian"].get("match"):
 				logger.warning(f"[{package}] no debian match to use here")
