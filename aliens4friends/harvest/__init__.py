@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 
 from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.settings import Settings
 
 logger = logging.getLogger(__name__)
@@ -16,10 +17,12 @@ class HarvestException(Exception):
 class Harvest:
 
 	SUPPORTED_FILES = [
+		".aliensrc",
+		".scancode.json",
+		".deltacode.json",
 		".fossy.json",
 		".tinfoilhat.json",
 		".alienmatcher.json",
-		".deltacode.json"
 	]
 
 	def __init__(
@@ -44,19 +47,13 @@ class Harvest:
 	def _filename_split(path):
 		path = os.path.basename(path)
 		rest, mainext = os.path.splitext(path)
-		if rest.endswith(".fossy"):
-			ext = f".fossy{mainext}"
-			package_id = rest.split(".fossy")[0]
-		elif rest.endswith(".tinfoilhat"):
-			ext = f".tinfoilhat{mainext}"
-			package_id = rest.split(".tinfoilhat")[0]
-		elif rest.endswith(".alienmatcher"):
-			ext = f".alienmatcher{mainext}"
-			package_id = rest.split(".alienmatcher")[0]
-		elif rest.endswith(".deltacode"):
-			ext = f".deltacode{mainext}"
-			package_id = rest.split(".deltacode")[0]
+		if mainext == ".aliensrc":
+			package_id = rest
+			ext = mainext
 		else:
+			package_id, subext = os.path.splitext(rest)
+			ext = f"{subext}{mainext}"
+		if ext not in Harvest.SUPPORTED_FILES:
 			raise HarvestException("Unsupported file extension")
 		return package_id, ext
 
@@ -76,7 +73,7 @@ class Harvest:
 
 
 	def readfile(self):
-		p_revision = re.compile("^.*-r[0-9]+$", flags=re.IGNORECASE)
+		#p_revision = re.compile("^.*-r[0-9]+$", flags=re.IGNORECASE)
 		self.result = {
 			"tool": {
 				"name": __name__,
@@ -97,9 +94,9 @@ class Harvest:
 						if str(ex) == "Unsupported file extension":
 							logger.debug(f"File {path} is not supported. Skipping...")
 							continue
-					package_id = package_id.replace("_", "-")
-					if not p_revision.match(package_id):
-						package_id += "-r0"
+					#package_id = package_id.replace("_", "-")
+					#if not p_revision.match(package_id):
+					#	package_id += "-r0"
 					package_id += f"+{self.package_id_ext}"
 					if not cur_package_id or package_id != cur_package_id:
 						if cur_package_id:
@@ -120,6 +117,10 @@ class Harvest:
 						self._parse_alienmatcher_main(json.load(f), source_package)
 					elif ext == ".deltacode.json":
 						self._parse_deltacode_main(json.load(f), source_package)
+					elif ext == ".scancode.json":
+						self._parse_scancode_main(json.load(f), source_package)
+					elif ext == ".aliensrc":
+						self._parse_aliensrc_main(path, source_package)
 			except Exception as ex:
 				logger.error(f"{self.pool.clnpath(path)} --> {ex.__class__.__name__}: {ex}")
 
@@ -129,6 +130,37 @@ class Harvest:
 	def write_results(self):
 		with open(self.result_file, "w") as f:
 			json.dump(self.result, f, indent=2)
+
+	def _parse_aliensrc_main(self, path, out):
+		apkg = AlienPackage(path)
+		files = []
+		known_provenance = 0
+		unknown_provenance = 0
+		for f in apkg.package_files:
+			files.append(f)
+			if f["src_uri"].startswith("file:"):
+				unknown_provenance += (f['files_in_archive'] or 1)
+				# (files_in_archive == False) means that it's no archive, just a single file
+			elif f["src_uri"].startswith("http") or f["src_uri"].startswith("git"):
+				known_provenance += (f['files_in_archive'] or 1)
+		total = known_provenance + unknown_provenance
+		out["source_files"] = files
+		Harvest._safe_set(
+			out,
+			["statistics", "files", "unknown_provenance"],
+			unknown_provenance
+		)
+		Harvest._safe_set(
+			out,
+			["statistics", "files", "known_provenance"],
+			known_provenance
+		)
+		Harvest._safe_set(
+			out,
+			["statistics", "files", "total"],
+			total
+		)
+
 
 	def _parse_alienmatcher_main(self, cur, out):
 		try:
@@ -147,12 +179,19 @@ class Harvest:
 		except KeyError:
 			pass
 
+	def _parse_scancode_main(self, cur, out):
+		files = [f for f in cur['files'] if f['type'] == 'file']
+		self._safe_set(
+			out,
+			["statistics", "files", "upstream_source_total"],
+			len(files)
+		)
+
 	def _parse_deltacode_main(self, cur, out):
 		try:
 			stats = cur["header"]["stats"]
 			matching = (
 				stats["same_files"]
-				+ stats["moved_files"]
 				+ stats["changed_files_with_no_license_and_copyright"]
 				+ stats["changed_files_with_same_copyright_and_license"]
 				+ stats["changed_files_with_updated_copyright_year_only"]
@@ -263,22 +302,18 @@ class Harvest:
 		total = cur["summary"]["filesCleared"]
 		not_cleared = cur["summary"]["filesToBeCleared"]
 		cleared = total - not_cleared
-
-		out["statistics"] = {
-			"files": {
-				"audit_total": total,
-				"audit_done": cleared,
-				"audit_to_do": not_cleared
-			},
-			"licenses": {
-				"license_scanner_findings": self._parse_fossy_ordered_licenses(stat_agents),
-				"license_audit_findings": {
-					"main_licenses": Harvest._rename(cur["summary"]["mainLicense"].split(",")),
-					"all_licenses":	self._parse_fossy_ordered_licenses(stat_conclusions)
-				}
+		ml = Harvest._rename(cur["summary"]["mainLicense"])
+		main_licenses = ml.split(",") if ml else []
+		self._safe_set(out, ["statistics", "files", "audit_total"], total)
+		self._safe_set(out, ["statistics", "files", "audit_done"], cleared)
+		self._safe_set(out, ["statistics", "files", "audit_to_do"], not_cleared)
+		self._safe_set(out, ["statistics", "licenses"], {
+			"license_scanner_findings": self._parse_fossy_ordered_licenses(stat_agents),
+			"license_audit_findings": {
+				"main_licenses": main_licenses,
+				"all_licenses":	self._parse_fossy_ordered_licenses(stat_conclusions)
 			}
-		}
-
+		})
 
 	def _parse_tinfoilhat_packages(self, cur):
 		result = []
@@ -312,76 +347,13 @@ class Harvest:
 			result["tags"] = cur["tags"]
 		return result
 
-	def _parse_tinfoilhat_source_files(self, cur):
-		result = []
-		known_provenance = 0
-		unknown_provenance = 0
-		for fileobj in cur:
-			result.append(
-				{
-					"name": fileobj["relpath"],
-					"src_uri": fileobj["src_uri"],
-					"sha1": fileobj["sha1"]
-				}
-			)
-			if fileobj["src_uri"].startswith("file:"):
-				unknown_provenance += 1
-			elif fileobj["src_uri"].startswith("http") or fileobj["src_uri"].startswith("git"):
-				known_provenance += 1
-		return result, known_provenance, unknown_provenance
-
 	def _parse_tinfoilhat_main(self, cur, out):
 		for recipe_name, main in cur.items():
 			out["binary_packages"] = self._parse_tinfoilhat_packages(main["packages"]),
-
-			(
-				out["source_files"],
-				known_provenance,
-				unknown_provenance
-			) = self._parse_tinfoilhat_source_files(main["recipe"]["source_files"])
-
-			if known_provenance == 1:
-				try:
-					total = out["statistics"]["files"]["audit_total"]
-				except KeyError:
-					total = "UNKNOWN (fossy.json missing?)"
-				Harvest._safe_set(
-					out,
-					["statistics", "files", "known_provenance"],
-					total
-				)
-			else:
-				raise HarvestException(
-					f"Error: We have more than one upstream package" \
-					f'inside source_files in package {main["recipe"]["metadata"]["name"]}'
-				)
-			Harvest._safe_set(
-				out,
-				["statistics", "files", "unknown_provenance"],
-				unknown_provenance
-			)
-			if isinstance(total, int):
-				Harvest._safe_set(
-					out,
-					["statistics", "files", "audit_total"],
-					total + unknown_provenance
-				)
-
-				try:
-					not_audited = out["statistics"]["files"]["audit_to_do"]
-					Harvest._safe_set(
-						out,
-						["statistics", "files", "audit_to_do"],
-						not_audited + unknown_provenance
-					)
-				except KeyError:
-					pass
-
 			out["tags"] = main["tags"]
 			out["name"] = main["recipe"]["metadata"]["name"]
 			out["version"] = main["recipe"]["metadata"]["version"]
 			out["revision"] = main["recipe"]["metadata"]["revision"]
-
 			if self.add_details:
 				out["metadata"] = self._parse_tinfoilhat_metadata(main["recipe"]["metadata"])
 
@@ -395,7 +367,7 @@ class Harvest:
 
 		files = []
 		for supp in Harvest.SUPPORTED_FILES:
-			for fn in pool.absglob(f"{glob_name}/{glob_version}/*{supp}"):
+			for fn in pool.absglob(f"userland/{glob_name}/{glob_version}/*{supp}"):
 				files.append(str(fn))
 
 		tfh = Harvest(
@@ -408,7 +380,6 @@ class Harvest:
 		tfh.readfile()
 
 		tfh.write_results()
-		logger.info(f'Results written to {pool.clnpath(output)}.')
+		logger.info(f'Results written to {pool.abspath(output)}.')
 		if Settings.PRINTRESULT:
 			print(json.dumps(tfh.result, indent=2))
-
