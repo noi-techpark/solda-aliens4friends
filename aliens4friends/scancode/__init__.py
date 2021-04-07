@@ -50,10 +50,11 @@ class Scancode:
 		if not Settings.POOLCACHED:
 			self.pool.rm(scancode_result)
 
-		archive_unpacked = self._unpack(archive, archive_in_archive)
+
 		if os.path.exists(scancode_result): # FIXME cache controls should be moved to Pool
 			logger.debug(f"[{self.curpkg}] Skip {self.pool.clnpath(scancode_result)}. Result exists and cache is enabled.")
 			return None
+		archive_unpacked = self._unpack(archive, archive_in_archive)
 
 		logger.info(f"[{self.curpkg}] Run SCANCODE on {self.pool.clnpath(archive_unpacked)}... This may take a while!")
 		out, err = bash('grep "cpu cores" /proc/cpuinfo | uniq | cut -d" " -f3')
