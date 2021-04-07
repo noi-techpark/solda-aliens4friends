@@ -137,6 +137,7 @@ class Harvest:
 		known_provenance = 0
 		unknown_provenance = 0
 		for f in apkg.package_files:
+			f['src_uri'] = f['src_uri'].split(";")[0] # remove bitbake params
 			files.append(f)
 			if f["src_uri"].startswith("file:"):
 				unknown_provenance += (f['files_in_archive'] or 1)
