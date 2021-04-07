@@ -229,6 +229,10 @@ class DeltaCodeNG:
 	def add_stats(self):
 		for k,v in self.res['body'].items():
 			self.res['header']['stats'].update({k: len(v)})
+		self.res['header']['stats'].update({
+			'old_files_count': len(list(self.old.keys())),
+			'new_files_count': len(list(self.new.keys()))
+		})
 
 	def print_stats(self):
 		for stat in self.get_stats():
