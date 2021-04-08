@@ -539,6 +539,34 @@ errors, `.debian.spdx` file cannot be created. In any case, as a convenience,
 Debian2SPDX extracts the `debian/copyright` file from debian source archives
 into the `debian` pool path of the debian package, to allow manual inspection.
 
+Execute:
+
+```sh
+aliens4friends spdxdebian
+```
+
+You can also pass package name and version as parameters, and use wildcards, as in
+the steps above.
+
+<p><details>
+<summary><b>See "aliens4friends scan --help" output for details.</b></summary>
+
+```
+usage: aliens4friends spdxdebian [-h] [-i] [-v | -q] [-p] [glob_name] [glob_version]
+
+positional arguments:
+  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
+  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+```
+
+</details></p>
+
 ### Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)
 
 > TODO
