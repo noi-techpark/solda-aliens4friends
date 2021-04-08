@@ -549,7 +549,7 @@ You can also pass package name and version as parameters, and use wildcards, as 
 the steps above.
 
 <p><details>
-<summary><b>See "aliens4friends scan --help" output for details.</b></summary>
+<summary><b>See "aliens4friends spdxdebian --help" output for details.</b></summary>
 
 ```
 usage: aliens4friends spdxdebian [-h] [-i] [-v | -q] [-p] [glob_name] [glob_version]
@@ -569,7 +569,76 @@ optional arguments:
 
 ### Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)
 
-> TODO
+- INPUT: `.scancode.spdx` and `.deltacode.spdx` files in the `userland` pool
+  path of the alien package, and `.debian.spdx` file in the `debian` pool path of
+  the matching debian package
+- OUTPUT: `.alien.spdx` file in the `userland` pool path of the alien package.
+
+If the alien package has no main source archive, or if there is no matching
+debian package, this step cannot be performed.
+
+If similarity between the alien package's main internal source archive and the
+debian matching package is > 30%,  `debian/copyright` license and copyright
+metadata are applied to all alien package files that match with debian package
+files, from an IP compliance perspective (such metadata are applied as
+[ConcludedLicense](https://spdx.github.io/spdx-spec/4-file-information/#45-concluded-license),
+because they have been reviewed by a trusted community). If similarity is > 92%,
+also license metadata concerning the whole package are applied. If similarity
+is 100%, all metadata are applied.
+
+For the non matching files, results from the `.scancode.spdx` file are applied
+instead, but as [LicenseInfoInFile] as they come from an automated scanner and
+not from a human review.
+
+If similarity is < 30%, only `.scancode.spdx` results are applied instead,
+always as [LicenseInfoInFile].
+
+[LicenseInfoInFile]: https://spdx.github.io/spdx-spec/4-file-information/#46-license-information-in-file
+
+Similarity is calculated by adding the following stats found in
+`.deltacode.json` file:
+
+```
+same_files
+moved_files
+changed_files_with_no_license_and_copyright
+changed_files_with_same_copyright_and_license
+changed_files_with_updated_copyright_year_only
+```
+
+The same categories (excluding `moved_files`) are used to define what is a
+"matching file" from an IP compliance perspective and decide whether to
+apply `debian/copyright` metadata or not, for each alien package file.
+
+Execute:
+
+```sh
+aliens4friends spdxalien
+```
+
+You can also pass package name and version as parameters, and use wildcards, as in
+the steps above.
+
+<p><details>
+<summary><b>See "aliens4friends spdxalien --help" output for details.</b></summary>
+
+
+```
+usage: aliens4friends spdxalien [-h] [-i] [-v | -q] [-p] [glob_name] [glob_version]
+
+positional arguments:
+  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
+  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  -p, --print         Print result also to stdout.
+```
+
+</details></p>
 
 ### Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology
 
