@@ -238,7 +238,12 @@ class FossyWrapper:
 			f"{upload.uploadname} (id={upload.id})"
 		)
 		agents = ["monk", "nomos", "ojo", "reportImport"]
-		return self.get_licenses(upload, agents)
+		for a in self.get_not_scheduled_agents(upload):
+			if a in agents:
+				agents.remove(a)
+		if not self.check_already_imported_report(upload):
+			agents.remove("reportImport")
+		return self.get_licenses(upload, agents) if agents else []
 
 	def check_already_imported_report(self, upload: Upload):
 		return self.get_licenses(upload, ["reportImport",], test=True)
