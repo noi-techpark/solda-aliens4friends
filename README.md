@@ -6,14 +6,14 @@ This is a tool for Software Composition Analysis (SCA), expressly designed to
 analyze Yocto/bitbake builds -- but it could be usefully adopted in any software
 composition context where a package manager is missing, and where source code
 provenance and license/copyright metadata are often missing, messy, uncertain
-and or imprecise.
+and/or imprecise.
 
 *Our metaphor goes like this: We invite some aliens (third party software
-*components), that is unknown species, to a pool party (our fancy FLOSS
-*project), and hopefully we can after some interaction understand if they are
-*friends or not (to avoid having our pool party stopped by the Police because of
-*strange things they bring or do...). So in the best case, those aliens become
-*friends :-)*
+components), that is unknown species, to a pool party (our fancy FLOSS
+project), and hopefully we can after some interaction understand if they are
+friends or not (to avoid having our pool party stopped by the Police because of
+strange things they bring or do...). So in the best case, those aliens become
+friends :-)*
 
 The main goal is to automatically detect as many license and copyright
 information as possible by comparing "alien" source packages with packages found
