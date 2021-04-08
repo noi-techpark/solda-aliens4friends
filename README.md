@@ -42,8 +42,12 @@ it is a friend, and we can safely invite it to our party.
 		- [Step 4: Find a matching Debian source package](#step-4-find-a-matching-debian-source-package)
 		- [Step 5: Scan the code to detect license/copyright information](#step-5-scan-the-code-to-detect-licensecopyright-information)
 		- [Step 6: Find differences between Aliens and their matching packages](#step-6-find-differences-between-aliens-and-their-matching-packages)
-		- [Step 7: Enrich the result with tinfoilhat](#step-7-enrich-the-result-with-tinfoilhat)
-		- [Step 8: Harvest all results and create a final report](#step-8-harvest-all-results-and-create-a-final-report)
+		- [Step 7: Create Debian SPDX file from debian/copyright file](#step-7-create-debian-spdx-file-from-debiancopyright-file)
+		- [Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-8-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
+		- [Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-9-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
+		- [Step 10: Get metadata back from Fossology, after human review](#step-10-get-metadata-back-from-fossology-after-human-review)
+		- [Step 11: Enrich the result with tinfoilhat](#step-11-enrich-the-result-with-tinfoilhat)
+		- [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
 	- [Installation of Scancode](#installation-of-scancode)
 		- [Native](#native)
 		- [Wrapper](#wrapper)
@@ -513,7 +517,23 @@ optional arguments:
 
 </details></p>
 
-### Step 7: Enrich the result with tinfoilhat
+### Step 7: Create Debian SPDX file from debian/copyright file
+
+> TODO
+
+### Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)
+
+> TODO
+
+### Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology
+
+> TODO
+
+### Step 10: Get metadata back from Fossology, after human review
+
+> TODO
+
+### Step 11: Enrich the result with tinfoilhat
 
 This is a Yocto-specific step. Add `.tinfoilhat.json` results to the pool for
 more details inside the final result.
@@ -523,7 +543,7 @@ Execute:
 aliens4friends add zlib-1.2.11-r0.tinfoilhat.json
 ```
 
-### Step 8: Harvest all results and create a final report
+### Step 12: Harvest all results and create a final report
 
 - INPUT: `.deltacode.json`, `.scancode.json`, `.fossy.json` and `.alienmatcher.json` files
 - OUTPUT: `POOL/stats/<some-dated-name>.json` as report for our graphical Dashboard
