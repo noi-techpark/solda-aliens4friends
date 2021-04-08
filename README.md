@@ -85,7 +85,7 @@ The file `aliensrc.json` is mandatory; it should be added for first, at the begi
 {
     "version": 1,                   # the version of this json spec
     "source_package": {             # the data part of this source package
-        "name": [                   # some packages have more than one name, ordered by priority (top=most important)
+        "name": [                   # some packages have more than one name/alias, ordered by priority (top=most important)
             "zlib"
         ],
         "version": "1.2.11-r0",
