@@ -26,12 +26,17 @@ class UploadAliens2Fossy:
 		alien_spdx_filename: str,
 		fossy: FossyWrapper
 	):
-		self.fossy = fossy
-		if not alien_package.internal_archive_name:
+		if not alien_package.package_files:
 			raise UploadAliens2FossyException(
-				"AlienPackage {alien_package.archive_fullpath} does not contain"
+				f"AlienPackage {alien_package.archive_fullpath} does not contain"
+				"any files (is it a meta-package?), not uploading it"
+			)
+		if not alien_package.internal_archive_name:
+			logger.warning(
+				f"AlienPackage {alien_package.archive_fullpath} does not contain"
 				" any internal archive"
 			)
+		self.fossy = fossy
 		self.alien_package = alien_package
 		m = alien_package.metadata
 		self.uploadname = (f"{m['name']}@{m['version']}-{m['revision']}")
@@ -73,6 +78,12 @@ class UploadAliens2Fossy:
 			self.fossy.schedule_fossy_scanners(self.upload)
 
 	def import_spdx(self):
+		if not self.alien_package.internal_archive_name:
+			logger.warning(
+				f"[{self.upload.uploadname}] has no internal archive,"
+				" we don't have any alien spdx to upload"
+			)
+			return
 		if self.fossy.check_already_imported_report(self.upload):
 			logger.info(
 				f"[{self.upload.uploadname}] not uploading anything, spdx"
@@ -127,37 +138,37 @@ class UploadAliens2Fossy:
 	@staticmethod
 	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
 		fossy = FossyWrapper()
-		for path in pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json"):
+		# FIXME: add some control to log a message if no path is found
+		# (pool.absglob doesn't return a list, and you can iterate it only once)
+		for path in pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc"):
 			package = f"{path.parts[-3]}-{path.parts[-2]}"
 			try:
-				with open(path, "r") as jsonfile:
-					j = json.load(jsonfile)
+				apkg = AlienPackage(path)
+				logger.info(
+					f"[{package}] expanding alien package,"
+					" it may require a lot of time"
+				)
+				apkg.expand()
+				a = apkg.metadata
+				apkg_fullname = f'{a["name"]}-{a["version"]}-{a["revision"]}'
+				apkg_name = a["name"]
+				apkg_version = f'{a["version"]}-{a["revision"]}'
 			except Exception as ex:
-				logger.error(f"[{package}] Unable to load json from {path},"
+				logger.error(f"[{package}] Unable to load aliensrc from {path},"
 				f" got {ex.__class__.__name__}: {ex}")
 				continue
 			try:
-				a = j["aliensrc"]
-				alien_package_filename = pool.abspath(
-					"userland",
-					a["name"],
-					a["version"],
-					a["filename"]
-				)
 				alien_spdx_filename = pool.abspath(
 					"userland",
-					a["name"],
-					a["version"],
-					f'{a["internal_archive_name"]}.alien.spdx'
-				)
-				apkg = AlienPackage(alien_package_filename)
-				apkg.expand()
-				m = apkg.metadata
-				apkg_fullname = f'{m["name"]}-{m["version"]}-{m["revision"]}'
+					apkg_name,
+					apkg_version,
+					f'{apkg.internal_archive_name}.alien.spdx'
+				) if apkg.internal_archive_name else ""
+
 				alien_fossy_json_filename = pool.abspath(
 					"userland",
-					a["name"],
-					a["version"],
+					apkg_name,
+					apkg_version,
 					f'{apkg_fullname}.fossy.json'
 				)
 				a2f = UploadAliens2Fossy(apkg, alien_spdx_filename, fossy)
