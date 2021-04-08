@@ -151,7 +151,7 @@ This creates a `.env` file with the default configuration options, if the `.env`
 did not exist before. You can now open that file and change as you like it.
 
 <p><details>
-<summary><b>See `aliens4friends config --help` for details.</b></summary>
+<summary><b>See "aliens4friends config --help" output for details.</b></summary>
 
 ```
 Environmental variables:
@@ -181,7 +181,23 @@ aliens4friends add zlib-1.2.11-r0.aliensrc
 
 This will add the package to our pool (party). All data that comes from the user will be stored in the folder `userland` with sub-folders named `<package-name>/<package-version>`. So in our case `userland/zlib/1.2.11-r0`. Intermediate results also land in this directory.
 
-See `aliens4friends add --help` for details.
+<p><details>
+<summary><b>See "aliens4friends add --help" output for details.</b></summary>
+
+```
+usage: aliens4friends add [-h] [-i] [-v | -q] [FILES [FILES ...]]
+
+positional arguments:
+  FILES               The Alien Packages (also wildcards allowed)
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+```
+
+</details></p>
 
 ### Step #4: Find a matching Debian source package
 
