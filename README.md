@@ -57,10 +57,14 @@ version `1.2.11-r0`, and want to determine license and copyright information.
 
 ### Step #1: Create an Alien Package
 
-First thing to do is to create a so-called Alien Package. We name it
-`zlib-1.2.11-r0.aliensrc`. The file-extension `.aliensrc` is mandatory, the rest
-freely changeable. An alien package is a tar-ball. In our example it has the
-following structure:
+First thing to do is to create a so-called Alien Package. If you use bitbake as
+a building system, you can use the scripts contained in the [TinfoilHat
+prject](https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat).
+
+Let's assume that our alien package is named `zlib-1.2.11-r0.aliensrc`. The
+file-extension `.aliensrc` is mandatory, the name is arbitrary. An alien package
+is a tar-ball, with no-compression. It must have an internal structure like
+the following:
 
 ```
 ├── aliensrc.json
@@ -70,45 +74,69 @@ following structure:
     └── zlib-1.2.11.tar.xz
 ```
 
-The file `aliensrc.json` is mandatory and contains all metadata information of
-this alien:
+The file `aliensrc.json` is mandatory; it should be added for first, at the beginning of the tarball file (so it can be faster extracted) and contains all metadata information of this alien package.
 
-```json
+<p><details>
+<summary><b>click to see aliensrc.json data structure example</b></summary>
+
+```python
 {
-    "version": 1,			// the version of this json spec
-    "source_package": {		// the data part of this source package
-        "name": [			// some packages have more than one name, ordered by priority (top=most important)
+    "version": 1,                   # the version of this json spec
+    "source_package": {             # the data part of this source package
+        "name": [                   # some packages have more than one name, ordered by priority (top=most important)
             "zlib"
         ],
         "version": "1.2.11-r0",
-        "manager": "bitbake",		// the manager from where we extracted this source package
-        "metadata": {				// any metadata. This structure is not defined, nor mandatory
-			"any-thing" : "with-any-json-type"
+        "manager": "bitbake",       # the build system from where we extracted this source package
+        "metadata": {               # any metadata (tipically, metadata extracted from the build system).
+                                    # This structure is not defined, nor mandatory
+                       "name": "zlib",
+                       "base_name": "zlib",
+                       "version": "1.2.11",
+                       "revision": "r0",
+                       "package_arch": "armv7vet2hf-neon",
+                       "author": null,
+                       "homepage": "http://zlib.net/",
+                       "summary": "Zlib Compression Library",
+                       "description": "Zlib is a general-purpose, patent-free, lossless data compression library which is used by many different programs.",
+                       "license": "Zlib",
+                       "depends": "virtual/arm-poky-linux-musleabi-gcc virtual/arm-poky-linux-musleabi-compilerlibs virtual/libc ",
+                       "provides": "zlib ",
+                       "cve_product": null
 		},
-        "files": [	// files, that are included in the "files" folder inside the alien package
+        "files": [                  # files, that are included in the "files" folder inside the alien package
             {
-                "name": "zlib-1.2.11.tar.xz",	// the file name
-                "sha1": "e1cb0d5c92da8e9a8c2635dfa249c341dfd00322",	// file checksum (only sha1 is supported)
-				// the provenance, that is, the place where the upstram package came from
+                "name": "zlib-1.2.11.tar.xz",
+                                    # the file name
+                "sha1": "e1cb0d5c92da8e9a8c2635dfa249c341dfd00322",
+                                    # file checksum (only sha1 is supported)
                 "src_uri": "https://downloads.sourceforge.net/libpng/zlib/1.2.11/zlib-1.2.11.tar.xz",
-				"files_in_archive": 253   // The file count inside the archive (for performance reasons already extracted)
+                                    # the provenance, that is, the place where the upstram package came from
+                "files_in_archive": 253
+                                    # The file count inside the tarball archive
             },
             {
                 "name": "ldflags-tests.patch",
                 "sha1": "f370a10d1a454cdcd07a8d164fe0d65b32b6d2a9",
-				// the provenance: in this case "unknown", since the file was just added from a filesystem
                 "src_uri": "file://ldflags-tests.patch",
-				"files_in_archive": false   // false, if no archive, 0 if the archive is empty
+                                    # the provenance: in this case "unknown",
+                                    # since the file was just added from a filesystem
+                "files_in_archive": false
+                                    # false, if no archive, 0 if the archive is empty
             }
         ]
     }
 }
 ```
 
+</details></p>
+
 One archive in the `files` list is considered the main archive, which will be
 compared to trusted source repositories. The tool scans also files of additional
 archives, but those archives are not used to find matching archives on Debian or
-other source repos.
+other source repos. In case of multiple archives, possible parameters attached to the
+`src_uri` can be used (if known) to determine which is the main archive (this is
+bitbake-specific, though).
 
 ### Step #2: Configure the tool
 
