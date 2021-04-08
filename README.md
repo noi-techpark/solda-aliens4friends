@@ -519,7 +519,25 @@ optional arguments:
 
 ### Step 7: Create Debian SPDX file from debian/copyright file
 
-> TODO
+- INPUT: debian source files downloaded by
+  [alienmatcher](#step-4-find-a-matching-debian-source-package)
+- OUTPUT: `.debian.spdx` and `_debian_copyright` file in the `debian` pool path
+  of the debian package
+
+All Debian packages should have a machine readable `debian/copyright` file following
+[DEP5 specs](https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/),
+containing copyright and license metadata for each source file found in the package.
+Such copyright and license metadata are reviewed by the maintainers of the Debian
+package and by the community, as OSS license compliance is a key part of the Debian
+Project from the very beginning.
+
+Debian2SPDX takes care of extracting and parsing `debian/copyright` and `debian/control`
+files, and to convert all metadata found in them in SPDX format.
+
+In case `debian/copyright` is not machine-parseable, or if there are any parsing
+errors, `.debian.spdx` file cannot be created. In any case, as a convenience,
+Debian2SPDX extracts the `debian/copyright` file from debian source archives
+into the `debian` pool path of the debian package, to allow manual inspection.
 
 ### Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)
 
