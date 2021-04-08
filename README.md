@@ -55,7 +55,7 @@ version `1.2.11-r0`, and want to determine license and copyright information.
 
 
 
-### Step #1: Create an Alien Package
+### Step 1: Create an Alien Package
 
 First thing to do is to create a so-called Alien Package. If you use bitbake as
 a building system, you can use the scripts contained in the [TinfoilHat
@@ -140,7 +140,7 @@ other source repos. In case of multiple archives, possible parameters attached t
 `src_uri` can be used (if known) to determine which is the main archive (this is
 bitbake-specific, though).
 
-### Step #2: Configure the tool
+### Step 2: Configure the tool
 
 Execute:
 ```sh
@@ -172,7 +172,7 @@ Environmental variables:
 </details></p>
 
 
-### Step #3: Add the Alien to the pool
+### Step 3: Add the Alien to the pool
 
 Execute:
 ```sh
@@ -199,7 +199,7 @@ optional arguments:
 
 </details></p>
 
-### Step #4: Find a matching Debian source package
+### Step 4: Find a matching Debian source package
 
 - INPUT: `.aliensrc` files inside the pool
 - OUTPUT: `.alienmatcher.json` file inside the `userland` pool path regarding
@@ -220,7 +220,7 @@ aliens4friends match 'zlib*'
 
 See `aliens4friends match --help` for details.
 
-### Step #5: Scan the code to detect license/copyright information
+### Step 5: Scan the code to detect license/copyright information
 
 - INPUT: `.aliensrc` files inside the pool, and if possible `.alienmatcher.json`
   results.
@@ -241,7 +241,7 @@ match was found on Debian during `match`, also on that source package.
 
 See `aliens4friends scan --help` for details.
 
-### Step #6: Find differences between Aliens and their matching packages
+### Step 6: Find differences between Aliens and their matching packages
 
 With "differences" we mean in terms of licensing/copyright/intellectual property...
 
@@ -256,7 +256,7 @@ aliens4friends delta
 
 See `aliens4friends delta --help` for details.
 
-### Step #7: Enrich the result with tinfoilhat
+### Step 7: Enrich the result with tinfoilhat
 
 This is a Yocto-specific step. Add `.tinfoilhat.json` results to the pool for
 more details inside the final result.
@@ -266,7 +266,7 @@ Execute:
 aliens4friends add zlib-1.2.11-r0.tinfoilhat.json
 ```
 
-### Step #8: Harvest all results and create a final report
+### Step 8: Harvest all results and create a final report
 
 - INPUT: `.deltacode.json`, `.scancode.json`, `.fossy.json` and `.alienmatcher.json` files
 - OUTPUT: `POOL/stats/<some-dated-name>.json` as report for our graphical Dashboard
