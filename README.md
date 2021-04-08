@@ -79,6 +79,8 @@ The file `aliensrc.json` is mandatory; it should be added for first, at the begi
 <p><details>
 <summary><b>click to see aliensrc.json data structure example</b></summary>
 
+<!--  hacky trick: using python syntax highlightning to be able to put comments, not allowed in json -->
+
 ```python
 {
     "version": 1,                   # the version of this json spec
