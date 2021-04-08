@@ -357,6 +357,14 @@ mind that ScanCode will use all the available cores of your machine during scan)
 aliens4friends scan
 ```
 
+It is possibile to specify also the name and version of a single package, or
+use wildcards to scan groups of packages (as in the previous steps).
+
+```sh
+aliens4friends scan 'zlib*'
+aliens4friends scan 'gcc' '*'
+```
+
 The scan will be executed on the alien source package's main archive, and if a
 match was found on Debian during `match`, also on that source package.
 
@@ -381,20 +389,129 @@ optional arguments:
 </details></p>
 
 
-### Step 6: Find differences between Aliens and their matching packages
+### Step 6: Find differences between Alien Packages and the corresponding Debian matching packages
 
-With "differences" we mean in terms of licensing/copyright/intellectual property...
+For "differences" we mean differences in terms of
+licensing/copyright/intellectual property, so we just care if license and
+copyright statements (if any) have changed, not if just code has changed.
 
-- INPUT: `.scancode.json` files inside `debian` and `userland` pool paths which
-  must match
+
+- INPUT: `.scancode.json` files inside `userland` and `debian` pool paths related to
+  each alien package and its corresponding debian package
 - OUTPUT: `.deltacode.json` file inside `userland`
 
 Execute:
+
 ```sh
 aliens4friends delta
 ```
 
-See `aliens4friends delta --help` for details.
+<p><details>
+<summary><b>See "aliens4friends delta --help" output for details.</b></summary>
+
+```
+usage: aliens4friends delta [-h] [-i] [-v | -q] [-p] [glob_name] [glob_version]
+
+positional arguments:
+  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
+  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  -p, --print         Print result also to stdout.
+```
+</details></p>
+
+<p><details>
+<summary><b>click to see .deltacode.json output data structure example</b></summary>
+
+<!--  hacky trick: using python syntax highlightning to be able to put comments, not allowed in json -->
+
+
+```python
+{
+  "tool": {
+    "name": "aliens4friends.deltacodeng",
+    "version": "0.3"
+  },
+  "header": {
+    "compared_json_files": {
+      "old_scan_out_file": "/home/user/pool/debian/zlib/1.2.11.dfsg-1/zlib-1.2.11.dfsg-1.scancode.json",
+      "new_scan_out_file": "/home/user/pool/userland/zlib/1.2.11-r0/zlib-1.2.11-r0.scancode.json"
+                               # this tool could be used also in other contexts, eg. to compare two
+                               # different version of the same package, so the compared packages are
+                               # generically named "old" and "new"
+                               # In this specific use case, "old" means "debian package" and "new" means
+                               # "alien package"
+    },
+    "stats": {
+      "same_files": 108,
+      "moved_files": 2,
+      "changed_files_with_no_license_and_copyright": 0,
+      "changed_files_with_same_copyright_and_license": 0,
+      "changed_files_with_updated_copyright_year_only": 0,
+      "changed_files_with_changed_copyright_or_license": 0,
+      "deleted_files_with_no_license_and_copyright": 0,
+                    # "deleted" means "files found in the matching debian package, but not in the alien package"
+      "deleted_files_with_license_or_copyright": 0,
+      "new_files_with_no_license_and_copyright": 86,
+      "new_files_with_license_or_copyright": 59,
+                    # "new" means "files found in the alien package, but not in the debian matching package"
+					# (usually you have a value > 0 here when debian package maintaners stripped out some
+					# source files for Debian policy reasons - eg. files related to unsupported platforms etc.)
+      "old_files_count": 108,
+                    # total files found in the debian package
+      "new_files_count": 253
+                    # total files found in the alien package
+    }
+  },
+  "body": {
+    "same_files": [
+      "adler32.c",
+      "ChangeLog",
+      "CMakeLists.txt",
+      # [...]
+      "test/minigzip.c",
+      "watcom/watcom_f.mak",
+      "watcom/watcom_l.mak"
+    ],
+    "moved_files": {
+      "old_path": "zconf.h",
+      "new_path": "zconf.h.in"
+    },
+    "changed_files_with_no_license_and_copyright": [],
+    "changed_files_with_same_copyright_and_license": [],
+    "changed_files_with_updated_copyright_year_only": {},
+                               # findings here would not include just a list, but a dictionary where the key
+                               # is the filename, and the value is a dictionary with diff results
+    "changed_files_with_changed_copyright_or_license": {},
+                               # same as above
+    "deleted_files_with_no_license_and_copyright": [],
+    "deleted_files_with_license_or_copyright": [],
+    "new_files_with_no_license_and_copyright": [
+      "contrib/ada/readme.txt",
+      "contrib/ada/zlib.gpr",
+      "win32/Makefile.bor",
+      # [...]
+      "win32/VisualC.txt",
+      "win32/zlib.def"
+    ],
+    "new_files_with_license_or_copyright": [
+      "contrib/ada/buffer_demo.adb",
+      "contrib/ada/mtest.adb",
+      # [...]
+      "win32/Makefile.msc",
+      "win32/README-WIN32.txt",
+      "win32/zlib1.rc"
+    ]
+  }
+}
+```
+
+</details></p>
 
 ### Step 7: Enrich the result with tinfoilhat
 
