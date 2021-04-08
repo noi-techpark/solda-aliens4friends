@@ -339,14 +339,18 @@ optional arguments:
 
 - INPUT: `.aliensrc` files inside the pool, and if possible `.alienmatcher.json`
   results.
-- OUTPUT: `.scancode.json` files inside the `debian` or `userland` pool path
-  regarding the current processed package.
+- OUTPUT: `.scancode.json` and `.scancode.spdx` files inside the `userland`
+  pool path of the currently processed package (and also inside the corresponding
+  `debian` pool path of the matching debian package, if any).
 
 For this to work, you need to have
-[Scancode](https://github.com/nexB/scancode-toolkit) installed. See chapter
+[ScanCode](https://github.com/nexB/scancode-toolkit) v3.2.3 installed. See chapter
 [Installation of Scancode](#installation-of-scancode) for details.
 
-Execute (this might take several minutes):
+Execute (this might take several minutes, hours or even days, depending on your
+machine's horsepower and on the number and size of packages to scan; please keep in
+mind that ScanCode will use all the available cores of your machine during scan):
+
 ```sh
 aliens4friends scan
 ```
@@ -354,7 +358,26 @@ aliens4friends scan
 The scan will be executed on the alien source package's main archive, and if a
 match was found on Debian during `match`, also on that source package.
 
-See `aliens4friends scan --help` for details.
+<p><details>
+<summary><b>See "aliens4friends scan --help" output for details.</b></summary>
+
+```
+usage: aliens4friends scan [-h] [-i] [-v | -q] [-p] [glob_name] [glob_version]
+
+positional arguments:
+  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
+  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  -p, --print         Print result also to stdout.
+```
+
+</details></p>
+
 
 ### Step 6: Find differences between Aliens and their matching packages
 
