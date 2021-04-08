@@ -2,9 +2,37 @@
 
 *Documentation: v1 from 2021-04-08*
 
-This is a tool for Software Composition Analysis (SCA). The main goal is to
-automatically detect as many license and copyright information as possible from
-existing trusted sources, like for instance Debian.
+This is a tool for Software Composition Analysis (SCA), expressly designed to
+analyze Yocto/bitbake builds -- but it could be usefully adopted in any software
+composition context where a package manager is missing, and where source code
+provenance and license/copyright metadata are often missing, messy, uncertain
+and or imprecise.
+
+*Our metaphor goes like this: We invite some aliens (third party software
+*components), that is unknown species, to a pool party (our fancy FLOSS
+*project), and hopefully we can after some interaction understand if they are
+*friends or not (to avoid having our pool party stopped by the Police because of
+*strange things they bring or do...). So in the best case, those aliens become
+*friends :-)*
+
+The main goal is to automatically detect as many license and copyright
+information as possible by comparing "alien" source packages with packages found
+in existing trusted sources, like for instance Debian.
+
+We took Debian as a primary "source of truth" beacause it has a strict policy to
+include packages in its distribution (also from a FLOSS compliance standpoint)
+and because it is backed by a community that continuously checks and "audits"
+source code to that purpose. Other similar sources of truth may be added in the
+future.
+
+The overall idea is to avoid reinventing the wheel: if copyright and license
+metadata have already been reviewed by a trusted community, it does not make
+sense to redo their work by auditing the same code again and again.
+
+More generally, the idea is that if a similar (or same) software package has
+been already included in Debian, it means that it is a well-known component, so
+it is a friend, and we can safely invite it to our party.
+
 
 - [Aliens for Friends](#aliens-for-friends)
 	- [Workflow](#workflow)
@@ -25,9 +53,7 @@ existing trusted sources, like for instance Debian.
 We start with an example. Assume we have a source code package called `zlib` in
 version `1.2.11-r0`, and want to determine license and copyright information.
 
-*Our metaphor goes like this: We invite some aliens, that is unknown species, to
-a pool party, and hopefully we can after some interaction understand, if they
-are friends or not. So in the best case, those aliens become friends :-)*
+
 
 ### Step #1: Create an Alien Package
 
