@@ -216,9 +216,124 @@ For example:
 
 ```sh
 aliens4friends match 'zlib*'
+aliens4friends match 'gcc' '*'
 ```
 
-See `aliens4friends match --help` for details.
+Keep in mind that if you want to use wildcards, you should put the search
+parameters within quotes, otherwise bash will expand them locally and
+not on the pool.
+
+
+<p><details>
+<summary><b>See "aliens4friends match --help" output for details.</b></summary>
+
+
+```
+usage: aliens4friends match [-h] [-i] [-v | -q] [-p] [glob_name] [glob_version]
+
+positional arguments:
+  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
+  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  -p, --print         Print result also to stdout.
+```
+
+</details></p>
+
+
+<p><details>
+<summary><b>click to see .alienmatcher.json output data structure example</b></summary>
+
+<!--  hacky trick: using python syntax highlightning to be able to put comments, not allowed in json -->
+
+```python
+{
+  "tool": {                         # name and version of alienmatcher tool
+    "name": "aliens4friends.alienmatcher",
+    "version": "0.3"
+  },
+  "aliensrc": {
+    "name": "zlib",                 # name of the aliensrc package
+    "version": "1.2.11-r0",         # version of the aliensrc package
+    "alternative_names": [],        # possible alternative names/aliases of the package to search for in Debian
+    "internal_archive_name": "zlib-1.2.11.tar.xz",
+                                    # main upstream source archive
+                                    # (a matching source archive will be searched in Debian)
+    "filename": "zlib-1.2.11-r0.aliensrc",
+                                    # filename of the aliensrc package already added to the pool
+    "files": [                      # this section corresponds to the `files` section of aliensrc.json
+      {
+        "name": "zlib-1.2.11.tar.xz",
+        "sha1": "e1cb0d5c92da8e9a8c2635dfa249c341dfd00322",
+        "src_uri": "https://downloads.sourceforge.net/libpng/zlib/1.2.11/zlib-1.2.11.tar.xz",
+        "files_in_archive": 253
+      },
+      {
+        "name": "ldflags-tests.patch",
+        "sha1": "f370a10d1a454cdcd07a8d164fe0d65b32b6d2a9",
+        "src_uri": "file://ldflags-tests.patch",
+        "files_in_archive": false
+      },
+      {
+        "name": "run-ptest",
+        "sha1": "8236e92debcc7a83144d0c4a3b51e0aa258acc7f",
+        "src_uri": "file://run-ptest",
+        "files_in_archive": false
+      }
+    ]
+  },
+  "debian": {
+    "match": {
+      "name": "zlib",               # name of the matching debian package
+      "version": "1.2.11.dfsg-1",   # version of the matching debian package
+      "debsrc_debian": "debian/zlib/1.2.11.dfsg-1/zlib_1.2.11.dfsg-1.debian.tar.xz",
+	                                # debian source tarball, downloaded from debian source repos
+	                                # - in case of Debian Format 1.0, this is a .diff.gz file
+	                                # - in case of Debian Format 1.0/3.0 native, this value is null
+      "debsrc_orig": "debian/zlib/1.2.11.dfsg-1/zlib_1.2.11.dfsg.orig.tar.gz",
+	                                # original source tarball, downloaded from debian source repos
+	                                # - in case of Debian Format 1.0/3.0 native, this is the only
+	                                #   archive and it does not have `.orig.` in the filename
+      "dsc_format": "3.0 (quilt)",  # Debian package format
+      "version_candidates": [
+        {                           # examined matching candidates in Debian repos
+          "version": "1.2.11.dfsg-2",
+          "distance": 10,           # distance from aliensrc is calculated based on version
+          "is_aliensrc": false
+        },
+        {
+          "version": "1.2.11.dfsg-1",
+          "distance": 10,
+          "is_aliensrc": false
+        },
+        {
+          "version": "1.2.11-r0",
+          "distance": 0,
+          "is_aliensrc": true
+        },
+        {
+          "version": "1.2.8.dfsg-5",
+          "distance": 300,
+          "is_aliensrc": false
+        },
+        {
+          "version": "1.2.8.dfsg-2",
+          "distance": 300,
+          "is_aliensrc": false
+        }
+      ]
+    }
+  },
+  "errors": []                      # possible error messages of the alienmatcher tool
+
+```
+
+</details></p>
 
 ### Step 5: Scan the code to detect license/copyright information
 
