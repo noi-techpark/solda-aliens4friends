@@ -341,7 +341,9 @@ optional arguments:
   results.
 - OUTPUT: `.scancode.json` and `.scancode.spdx` files inside the `userland`
   pool path of the currently processed package (and also inside the corresponding
-  `debian` pool path of the matching debian package, if any).
+  `debian` pool path of the matching debian package, if any). For `.scancode.json`
+  data structure, please refer to ScanCode documentation and source code. For
+  `.scancode.spdx` data structure, please refer to SPDX specs.
 
 For this to work, you need to have
 [ScanCode](https://github.com/nexB/scancode-toolkit) v3.2.3 installed. See chapter
