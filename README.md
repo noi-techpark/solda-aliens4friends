@@ -606,9 +606,9 @@ changed_files_with_same_copyright_and_license
 changed_files_with_updated_copyright_year_only
 ```
 
-The same categories (excluding `moved_files`) are used to define what is a
-"matching file" from an IP compliance perspective and decide whether to
-apply `debian/copyright` metadata or not, for each alien package file.
+The same categories (excluding `moved_files`) are used to define what a
+"matching file" is, from an IP compliance perspective and decide whether 
+to apply `debian/copyright` metadata or not, for each alien package file.
 
 Execute:
 
