@@ -21,13 +21,16 @@ class SPDXWriterLogger:
 class SPDXUtilsException(Exception):
 	pass
 
-def parse_spdx_tv(filename):
-	with open(filename, 'r') as f:
-		spdx_tv = f.read()
+def parse_spdx_tv_str(spdx_tv: str):
 	p = SPDXTagValueParser(SPDXTagValueBuilder(), SPDXWriterLogger())
 	p.build()
 	doc, error = p.parse(spdx_tv)
 	return doc, error
+
+def parse_spdx_tv(filename: str):
+	with open(filename, 'r') as f:
+		spdx_tv = f.read()
+		return parse_spdx_tv_str(spdx_tv)
 
 def write_spdx_tv(spdx_doc_obj, filename):
 	"""write SPDX Document object to file (in tagvalue format)"""
