@@ -19,7 +19,7 @@ The main goal is to automatically detect as many license and copyright
 information as possible by comparing "alien" source packages with packages found
 in existing trusted sources, like for instance Debian.
 
-We took Debian as a primary "source of truth" beacause it has a strict policy to
+We took Debian as a primary "source of truth" because it has a strict policy to
 include packages in its distribution (also from a FLOSS compliance standpoint)
 and because it is backed by a community that continuously checks and "audits"
 source code to that purpose. Other similar sources of truth may be added in the
@@ -41,7 +41,7 @@ it is a friend, and we can safely invite it to our party.
 		- [Step 3: Add the Alien to the pool](#step-3-add-the-alien-to-the-pool)
 		- [Step 4: Find a matching Debian source package](#step-4-find-a-matching-debian-source-package)
 		- [Step 5: Scan the code to detect license/copyright information](#step-5-scan-the-code-to-detect-licensecopyright-information)
-		- [Step 6: Find differences between Aliens and their matching packages](#step-6-find-differences-between-aliens-and-their-matching-packages)
+		- [Step 6: Find differences between Alien Packages and the corresponding Debian matching packages](#step-6-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
 		- [Step 7: Create Debian SPDX file from debian/copyright file](#step-7-create-debian-spdx-file-from-debiancopyright-file)
 		- [Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-8-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
 		- [Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-9-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
@@ -63,22 +63,23 @@ version `1.2.11-r0`, and want to determine license and copyright information.
 
 First thing to do is to create a so-called Alien Package. If you use bitbake as
 a building system, you can use the scripts contained in the [TinfoilHat
-prject](https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat).
+project](https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat).
 
 Let's assume that our alien package is named `zlib-1.2.11-r0.aliensrc`. The
 file-extension `.aliensrc` is mandatory, the name is arbitrary. An alien package
-is a tar-ball, with no-compression. It must have an internal structure like
-the following:
+is a tar-ball, with no compression. It must have an internal structure like the
+following:
 
 ```
 ├── aliensrc.json
 └── files
     ├── ldflags-tests.patch
-    ├── run-ptest
     └── zlib-1.2.11.tar.xz
 ```
 
-The file `aliensrc.json` is mandatory; it should be added for first, at the beginning of the tarball file (so it can be faster extracted) and contains all metadata information of this alien package.
+The file `aliensrc.json` is mandatory; it should be added first, at the
+beginning of the tarball file (so it can be faster extracted) and contains all
+metadata information of this alien package.
 
 <p><details>
 <summary><b>click to see aliensrc.json data structure example</b></summary>
@@ -607,7 +608,7 @@ changed_files_with_updated_copyright_year_only
 ```
 
 The same categories (excluding `moved_files`) are used to define what a
-"matching file" is, from an IP compliance perspective and decide whether 
+"matching file" is, from an IP compliance perspective and decide whether
 to apply `debian/copyright` metadata or not, for each alien package file.
 
 Execute:
