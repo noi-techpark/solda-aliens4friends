@@ -30,6 +30,7 @@ from aliens4friends.deltacodeng import DeltaCodeNG
 from aliens4friends.debian2spdx import Debian2SPDX
 from aliens4friends.makealienspdx import MakeAlienSPDX
 from aliens4friends.harvest import Harvest
+from aliens4friends.getfossydata import GetFossyData
 from aliens4friends.add import Add
 from aliens4friends.uploadaliens2fossy import UploadAliens2Fossy
 
@@ -50,6 +51,7 @@ SUPPORTED_COMMANDS = [
 	"spdxdebian",
 	"spdxalien",
 	"upload",
+	"fossy",
 	"config",
 	"harvest",
 	"help"
@@ -62,6 +64,7 @@ LOGGERS = {
 	"spdxdebian" : 'aliens4friends.debian2spdx',
 	"spdxalien"  : 'aliens4friends.makealienspdx',
 	"upload"     : 'aliens4friends.uploadaliens2fossy',
+	"fossy"      : 'aliens4friends.getfossydata',
 	"harvest"    : 'aliens4friends.harvest'
 }
 
@@ -313,6 +316,15 @@ class Aliens4Friends:
 		self._args_defaults(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
 
+	def parser_fossy(self, cmd):
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Get final SPDX and json data from Fossology"
+		)
+		self._args_defaults(self.parsers[cmd])
+		self._args_glob(self.parsers[cmd])
+
+
 	def parser_harvest(self, cmd):
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
@@ -385,6 +397,14 @@ class Aliens4Friends:
 			self.args.glob_name,
 			self.args.glob_version
 		)
+
+	def fossy(self):
+		self._subcommand_args()
+		GetFossyData.execute(
+			self.pool,
+			self.args.glob_name,
+			self.args.glob_version
+	)
 
 	def harvest(self):
 		self._subcommand_args()

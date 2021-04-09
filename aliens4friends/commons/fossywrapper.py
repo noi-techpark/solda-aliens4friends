@@ -14,6 +14,7 @@ from fossology import uploads, jobs, report
 from fossology.obj import ReportFormat, TokenScope, Upload
 
 from aliens4friends.commons.settings import Settings
+from aliens4friends.commons.spdxutils import parse_spdx_tv_str
 
 logger = logging.getLogger(__name__)
 
@@ -277,3 +278,15 @@ class FossyWrapper:
 	def get_summary(self, upload: Upload):
 		res = self.fossology.session.get(f"{self.fossology.api}/uploads/{upload.id}/summary")
 		return res.json()
+
+	def get_spdxtv(self, upload: Upload):
+		logger.info(f"[{upload.uploadname}] generating spdx report")
+		rep_id = self.fossology.generate_report(
+			upload=upload,
+			report_format=ReportFormat.SPDX2TV
+		)
+		self._wait_for_jobs_completion(upload)
+		logger.info(f"[{upload.uploadname}] downloading spdx report")
+		report_text, report_name = self.fossology.download_report(rep_id)
+		doc, _ = parse_spdx_tv_str(report_text)
+		return doc

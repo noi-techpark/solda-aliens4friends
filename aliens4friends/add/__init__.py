@@ -32,7 +32,7 @@ class Add:
 			j = json.load(jsonfile)
 		recipe_name = next(iter(j))
 		recipe = j[recipe_name]["recipe"]
-		package_name = recipe["metadata"]["name"]
+		package_name = recipe["metadata"]["base_name"]
 		package_version = f'{recipe["metadata"]["version"]}-{recipe["metadata"]["revision"]}'
 		self.pool.add(
 			path,
