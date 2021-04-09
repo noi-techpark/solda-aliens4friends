@@ -285,6 +285,7 @@ class FossyWrapper:
 			upload=upload,
 			report_format=ReportFormat.SPDX2TV
 		)
+		self._wait_for_jobs_completion(upload)
 		logger.info(f"[{upload.uploadname}] downloading spdx report")
 		report_text, report_name = self.fossology.download_report(rep_id)
 		doc, _ = parse_spdx_tv_str(report_text)
