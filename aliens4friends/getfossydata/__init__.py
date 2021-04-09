@@ -205,12 +205,24 @@ class GetFossyData:
 		# (pool.absglob doesn't return a list, and you can iterate it only once)
 		for path in pool.absglob(f"userland/{glob_name}/{glob_version}/*.aliensrc"):
 			package = f"{path.parts[-3]}-{path.parts[-2]}"
+			out_spdx_filename = pool.abspath(
+				"userland",
+				path.parts[-3],
+				path.parts[-2],
+				f'{package}.final.spdx'
+			)
+			if os.path.isfile(out_spdx_filename) and Settings.POOLCACHED:
+				logger.info(f"[{package}] fossy spdx already generated, skipping")
+				continue
 			try:
 				apkg = AlienPackage(path)
 				apkg_fullname = f'{apkg.name}-{apkg.version.str}'
 			except Exception as ex:
 				logger.error(f"[{package}] Unable to load aliensrc from {path},"
 				f" got {ex.__class__.__name__}: {ex}")
+				continue
+			if not apkg.package_files:
+				logger.info(f"[{package}] this is a metapackage with no files, skipping")
 				continue
 			try:
 				alien_spdx = [
@@ -234,12 +246,6 @@ class GetFossyData:
 					apkg.version.str,
 					f'{apkg_fullname}.fossy.json'
 				)
-				out_spdx_filename = pool.abspath(
-					"userland",
-					apkg.name,
-					apkg.version.str,
-					f'{apkg_fullname}.final.spdx'
-				)
 				logger.info(f"[{package}] getting spdx and json data from Fossology")
 				gfd = GetFossyData(fossy, apkg, alien_spdx_filename)
 				doc = gfd.get_spdx()
@@ -249,5 +255,4 @@ class GetFossyData:
 					json.dump(fossy_json, f)
 
 			except Exception as ex:
-				raise ex
 				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
