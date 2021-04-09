@@ -39,7 +39,7 @@ class UploadAliens2Fossy:
 		self.fossy = fossy
 		self.alien_package = alien_package
 		m = alien_package.metadata
-		self.uploadname = (f"{m['name']}@{m['version']}-{m['revision']}")
+		self.uploadname = (f"{m['base_name']}@{m['version']}-{m['revision']}")
 		self.alien_spdx_filename = alien_spdx_filename
 
 	def get_or_do_upload(self):
@@ -179,8 +179,8 @@ class UploadAliens2Fossy:
 				)
 				apkg.expand()
 				a = apkg.metadata
-				apkg_fullname = f'{a["name"]}-{a["version"]}-{a["revision"]}'
-				apkg_name = a["name"]
+				apkg_fullname = f'{a["base_name"]}-{a["version"]}-{a["revision"]}'
+				apkg_name = a["base_name"]
 				apkg_version = f'{a["version"]}-{a["revision"]}'
 			except Exception as ex:
 				logger.error(f"[{package}] Unable to load aliensrc from {path},"
