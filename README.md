@@ -733,6 +733,25 @@ incomplete and undermaintained spdx/rdf support
 
 </details></p>
 
+<p><details>
+<summary><b>See "aliens4friends upload --help" output for details.</b></summary>
+
+```
+usage: aliens4friends upload [-h] [-i] [-v | -q] [glob_name] [glob_version]
+
+positional arguments:
+  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
+  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+```
+
+</details></p>
+
 ### Step 10: Get metadata back from Fossology, after human review
 
 > TODO
