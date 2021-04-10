@@ -45,13 +45,15 @@ class Harvest:
 
 	@staticmethod
 	def _filename_split(path):
+		p = str(path).split("/")
+		package_id = f'{p[-3]}-{p[-2]}'
 		path = os.path.basename(path)
 		rest, mainext = os.path.splitext(path)
 		if mainext == ".aliensrc":
-			package_id = rest
+			fname = rest
 			ext = mainext
 		else:
-			package_id, subext = os.path.splitext(rest)
+			fname, subext = os.path.splitext(rest)
 			ext = f"{subext}{mainext}"
 		if ext not in Harvest.SUPPORTED_FILES:
 			raise HarvestException("Unsupported file extension")
