@@ -239,7 +239,10 @@ class Harvest:
 			"LGPL-2.0" : "LGPL-2.0-only",
 			"LGPL-2.0+" : "LGPL-2.0-or-later",
 			"LGPL-2.1" : "LGPL-2.1-only",
-			"LGPL-2.1+" : "LGPL-2.1-or-later"
+			"LGPL-2.1+" : "LGPL-2.1-or-later",
+			"LGPL-3.0" : "LGPL-3.0-only",
+			"LGPL-3.0+" : "LGPL-3.0-or-later",
+			"LPGL-2.1-or-later": "LGPL-2.1-or-later",
 		}
 		if isinstance(license_id, str):
 			try:

@@ -44,6 +44,8 @@ GPL_RENAME = {
 	"LGPL-2.0+" : "LGPL-2.0-or-later",
 	"LGPL-2.1" : "LGPL-2.1-only",
 	"LGPL-2.1+" : "LGPL-2.1-or-later",
+	"LGPL-3.0" : "LGPL-3.0-only",
+	"LGPL-3.0+" : "LGPL-3.0-or-later",
 	"LicenseRef-LPGL-2.1-or-later": "LicenseRef-LGPL-2.1-or-later",
 }
 
@@ -58,7 +60,9 @@ GPL_LICS = [
 	"LGPL-2.0-or-later",
 	"LGPL-2.1-only",
 	"LGPL-2.1-or-later",
-	"LPGL-2.1-or-later", # bugfix, just to remove wrong extracted_licenses
+	"LGPL-3.0-only",
+	"LGPL-3.0-or-later",
+	"LPGL-2.1-or-later", # bugfix, just to remove misspelled extracted_licenses
 ]
 
 
