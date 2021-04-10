@@ -695,6 +695,44 @@ saved, in json format, within a `.fossy.json` file.
 [^javatools]: Python spdx tools, widely used in this project, unfortunately have
 incomplete and undermaintained spdx/rdf support
 
+<p><details>
+<summary><b>click to see .fossy.json output data structure example</b></summary>
+
+```python
+{
+  "origin": "http://localhost/repo",
+  "summary": {
+    "id": 300,                         # upload id within Fossology
+    "uploadName": "acl@2.2.53-r0",
+    "mainLicense": "GPL-2.0-or-later",
+    "uniqueLicenses": 46,
+    "totalLicenses": 626,
+    "uniqueConcludedLicenses": 2,
+    "totalConcludedLicenses": 232,
+    "filesToBeCleared": 0,             # files that haven't been reviewed yet (red dots, in Fossology)
+    "filesCleared": 232,               # total files that requires human review, including those already reviewed
+                                       # (red + green dots, in Fossology)
+    "clearingStatus": "Open",
+    "copyrightCount": 2532             # number of copyright statements
+  },
+  "licenses": [
+    {
+      "filePath": "acl@2.2.53-r0/acl-2.2.53.tar.gz/acl-2.2.53.tar/acl-2.2.53/README",
+      "agentFindings": [
+        "GPL-2.0-or-later",
+        "GPL-2.0-or-later"
+      ],
+      "conclusions": [
+        "GPL-2.0-or-later"
+      ]
+    },
+    # [... all files contained in the package ...]
+  ]
+}
+```
+
+</details></p>
+
 ### Step 10: Get metadata back from Fossology, after human review
 
 > TODO
