@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+
 import re
 
 from debian.debian_support import Version as DebVersion

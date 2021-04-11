@@ -1,5 +1,5 @@
-# SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 # SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
 import setuptools
 

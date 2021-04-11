@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+
 #!/usr/bin/python3
 
 r"""## Aliens4friends: A toolset for Software Composition Analysis

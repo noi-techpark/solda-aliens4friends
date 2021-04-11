@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2021 Alberto Pianon <pianon@array.eu>
+# SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
 # Class to process a debian source package and generate an SPDX file out of its
 # debian/control file

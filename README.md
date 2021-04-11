@@ -1,3 +1,9 @@
+<!--
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
+SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+-->
+
 # Aliens for Friends
 
 *Documentation: v1 from 2021-04-08*

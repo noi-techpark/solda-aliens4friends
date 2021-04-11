@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+
 from dotenv import dotenv_values, find_dotenv # pip install -U python-dotenv
 
 class Settings:
