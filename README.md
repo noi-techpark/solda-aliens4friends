@@ -45,7 +45,7 @@ it is a friend, and we can safely invite it to our party.
         - [Step 7: Create Debian SPDX file from debian/copyright file](#step-7-create-debian-spdx-file-from-debiancopyright-file)
         - [Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-8-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
         - [Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-9-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
-        - [Step 10: Get metadata back from Fossology, after human review](#step-10-get-metadata-back-from-fossology-after-human-review)
+        - [Step 10: Generate final SPDX file, after human review](#step-10-get-metadata-back-from-fossology-after-human-review)
         - [Step 11: Enrich the result with tinfoilhat](#step-11-enrich-the-result-with-tinfoilhat)
         - [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
     - [Installation of Scancode](#installation-of-scancode)
@@ -690,8 +690,8 @@ copyright standpoint,  see Step 8) will not need human review.
 Finally, Fossology audit/review data are downloaded from Fossology API and
 saved, in json format, within a `.fossy.json` file.
 
-[^javatools]: Python spdx tools, widely used in this project, unfortunately have
-incomplete and undermaintained spdx/rdf support
+[^javatools]: Python spdx tools, widely used in this project, have incomplete
+spdx/rdf support
 
 <p><details>
 <summary><b>click to see .fossy.json output data structure example</b></summary>
@@ -752,9 +752,53 @@ optional arguments:
 
 </details></p>
 
-### Step 10: Get metadata back from Fossology, after human review
+### Step 10: Generate final SPDX file, after human review
 
-> TODO
+- INPUT: `.aliensrc` file, and `.alien.spdx` file (if available)
+- OUTPUT:
+      - `.fossy.json` file with metadata obtained through Fossology API after
+        human review
+      - `.final.spdx` file, containing:
+          - automated scanner findings
+          - REUSE-compliance-based decisions
+          - debian/copyright-based decisions
+          - human auditor decisions recorded by Fossology
+
+In this step, after human auditor review on Fossology, all metadata collected in
+the previous steps, both from automated and from human sources, and metadata
+processed by human auditors, are all put together in order to generate a final
+SPDX file reflecting the audit progress on that package.
+
+An intermediate SPDX file is generated from Fossology, patched to be fully SPDX
+compliant,[^fossology1] and then integrated with package level metadata coming
+from `.aliensrc` and `.alien.spdx` files.[^fossology2]
+
+[^fossology1]: Fossology still uses some deprecated license identifiers and
+does not represent file paths in conformance to SPDX specs.
+
+[^fossology2]: Even if `.alien.spdx` was imported into Fossology at Step 9,
+Fossology does not collect package-level metadata from imported SPDX files so
+such metadata need to be added again at this Step 10.
+
+<p><details>
+<summary><b>See "aliens4friends fossy --help" output for details.</b></summary>
+
+```
+usage: aliens4friends fossy [-h] [-i] [-v | -q] [glob_name] [glob_version]
+
+positional arguments:
+  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
+  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This
+                      overrides the A4F_CACHE env var.
+  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+```
+
+</details></p>
 
 ### Step 11: Enrich the result with tinfoilhat
 
