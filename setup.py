@@ -1,0 +1,42 @@
+# SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
+# SPDX-License-Identifier: Apache-2.0
+
+import setuptools
+
+from aliens4friends.commons.settings import Settings
+
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
+setuptools.setup(
+    name="aliens4friends",
+    version=Settings.VERSION,
+    author="Alberto Pianon, Peter Moser",
+    author_email="pianon@array.eu, p.moser@noi.bz.it",
+    description="Aliens4Friends",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://git.ostc-eu.org/oss-compliance/toolchain/aliens4friends",
+    packages=setuptools.find_packages(
+        exclude=('scancode/Dockerfile', 'scancode/scancode-wrapper')
+    ),
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: Apache Software License",
+        "Operating System :: POSIX :: Linux",
+    ],
+    python_requires='>=3.6',
+    install_requires=[
+        'wheel',
+        'python-debian==0.1.39',
+        'spdx-tools==0.6.1',
+        'fossology==0.2.0',
+        'python-dotenv==0.15.0',
+        'packaging==20.9',
+        'flanker==0.9.11',
+        'deepdiff==5.2.3',
+    ],
+    scripts=['bin/a4f', 'bin/aliens4friends'],
+    license_files=['LICENSE',],
+    zip_safe=False, # needed to make dotenv work
+)
