@@ -655,6 +655,13 @@ optional arguments:
 In this step all source files contained in the `files` folder within the
 `.aliensrc` package/tarball are  uploaded to Fossology.
 
+Before performing this step, you should have configured environment variables in
+your `.env` file (see above, Step 2) in order to allow `aliens4friends` to
+access your fossology server (particularly, `FOSSY_USER`, `FOSSY_PASSWORD`,
+`FOSSY_GROUP_ID`, `FOSSY_SERVER`; such parameters default to, respectively,
+'fossy', 'fossy', 3 and 'http://localhost/repo', that are suited to access a
+local test instance of Fossology installed via docker).
+
 For reasons related to Fossology's policy on uploaded archives unpacking, the
 whole content of the `files/` folder is packed into a single temporary `.tar.xz`
 file (without the leading `files/` path component) and uploaded to Fossology.
