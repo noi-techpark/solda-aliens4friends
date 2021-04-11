@@ -61,7 +61,18 @@ it is a presumed friend, and we can safely invite it to our party.
 
 ## Requirements and Installation
 
-To install `aliens4friends`, just clone this repo and do `python setup.py install --user`
+To install `aliens4friends`, just do:
+
+```bash
+echo "[easy_install]
+zip_ok = False" > ~/.distutils.cfg # required for flanker dependency
+
+git clone https://git.ostc-eu.org/oss-compliance/toolchain/aliens4friends.git
+cd aliens4friends
+pip3 install --user setuptools .
+. ~/.profile
+a4f > /dev/null # required for flanker initialization
+```
 
 A Fossology 3.9.0 instance is required to run substantial parts of the workflow. Please refer to Fossology documentation to deploy it.  Fossology version must be 3.9.0, for API compatibility.
 
