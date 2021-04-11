@@ -906,7 +906,7 @@ sudo apt install python3-dev bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libp
 (on Debian)
 
 ```bash
-sudo apt-get install python3-dev libbz2-1.0 xz-utils zlib1g libxml2-dev libxslt1-devlibpopt0
+sudo apt-get install python3-dev libbz2-1.0 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
 ```
 
 then:
