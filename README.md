@@ -3,23 +3,23 @@
 *Documentation: v1 from 2021-04-08*
 
 This is a tool for Software Composition Analysis (SCA), expressly designed to
-analyze Yocto/bitbake builds -- but it could be usefully adopted in any software
+analyze `Yocto`/`bitbake` builds -- but it could be usefully adopted in any software
 composition context where a package manager is missing, and where source code
 provenance and license/copyright metadata are often missing, messy, uncertain
 and/or imprecise.
 
-*Our metaphor goes like this: We invite some aliens (third party software
-components), that is unknown species, to a pool party (our fancy FLOSS
-project), and hopefully we can after some interaction understand if they are
-friends or not (to avoid having our pool party stopped by the Police because of
-strange things they bring or do...). So in the best case, those aliens become
-friends :-)*
+> Our metaphor goes like this: We invite some aliens (third party software
+components), in other words unknown species, to a pool party (our fancy FLOSS
+project), and hopefully after some interaction we manage to understand if they are
+friends or foes. This way we avoid having our pool party stopped by the Police because of
+strange things they bring or do....
+In the best case scenario, those aliens become friends :-)*
 
 The main goal is to automatically detect as many license and copyright
-information as possible by comparing "alien" source packages with packages found
-in existing trusted sources, like for instance Debian.
+information as possible, by comparing "alien" source packages with packages found
+in existing trusted sources, like for instance `Debian`.
 
-We took Debian as a primary "source of truth" because it has a strict policy to
+We took `Debian` as a primary "source of truth" because it has a strict policy to
 include packages in its distribution (also from a FLOSS compliance standpoint)
 and because it is backed by a community that continuously checks and "audits"
 source code to that purpose. Other similar sources of truth may be added in the
@@ -27,11 +27,11 @@ future.
 
 The overall idea is to avoid reinventing the wheel: if copyright and license
 metadata have already been reviewed by a trusted community, it does not make
-sense to redo their work by auditing the same code again and again.
+sense to redo their work by auditing the same code back to square one.
 
 More generally, the idea is that if a similar (or same) software package has
 been already included in Debian, it means that it is a well-known component, so
-it is a friend, and we can safely invite it to our party.
+it is a presumed friend, and we can safely invite it to our party.
 
 
 - [Aliens for Friends](#aliens-for-friends)
@@ -54,12 +54,12 @@ it is a friend, and we can safely invite it to our party.
 
 ## Workflow
 
-We start with an example. Assume we have a source code package called `zlib` in
-version `1.2.11-r0`, and want to determine license and copyright information.
+Let's start with an example. Assume we have a source code package called `zlib` in
+version `1.2.11-r0`, and want to collect license and copyright information.
 
 ### Step 1: Create an Alien Package
 
-First thing to do is to create a so-called Alien Package. If you use bitbake as
+First thing to do is to create a so-called "Alien Package". If you use bitbake as
 a building system, you can use the scripts contained in the [TinfoilHat]
 project.
 
@@ -67,7 +67,7 @@ project.
 
 Let's assume that our alien package is named `zlib-1.2.11-r0.aliensrc`. The
 file-extension `.aliensrc` is mandatory, the name is arbitrary. An alien package
-is a tar-ball, with no compression. It must have an internal structure like the
+is a tarball with no compression. It must have an internal structure like the
 following:
 
 ```
@@ -77,8 +77,8 @@ following:
     └── zlib-1.2.11.tar.xz
 ```
 
-The file `aliensrc.json` is mandatory; it should be added first, at the
-beginning of the tarball file (so it can be faster extracted) and contains all
+The file `aliensrc.json` is **mandatory**; it should be **added first**, at the
+beginning of the tarball file (so it can be extracted faster) and contains all
 metadata information of this alien package.
 
 <p><details>
@@ -118,7 +118,7 @@ metadata information of this alien package.
                 "sha1": "e1cb0d5c92da8e9a8c2635dfa249c341dfd00322",
                                     # file checksum (only sha1 is supported)
                 "src_uri": "https://downloads.sourceforge.net/libpng/zlib/1.2.11/zlib-1.2.11.tar.xz",
-                                    # the provenance, that is, the place where the upstram package came from
+                                    # the provenance, that is, the place where the upstream package came from
                 "files_in_archive": 253
                                     # The file count inside the tarball archive
             },
@@ -153,7 +153,7 @@ aliens4friends config > .env
 ```
 
 This creates a `.env` file with the default configuration options, if the `.env`
-did not exist before. You can now open that file and change as you like it.
+did not exist before. You can now open that file and change it as you like.
 
 <p><details>
 <summary><b>See "aliens4friends config --help" output for details.</b></summary>
@@ -218,7 +218,7 @@ Execute:
 aliens4friends match
 ```
 
-This will search a match for any package, that has been added to the pool. If
+This will search a match for any package that has been added to the pool. If
 you want to restrict the search use `glob_name` and `glob_version` parameters.
 For example:
 
@@ -355,7 +355,9 @@ For this to work, you need to have
 chapter
 [Installation of Scancode](#installation-of-scancode) for details.
 
-Execute (this might take several minutes, hours or even days, depending on your
+Execute
+
+This might take several minutes, hours or even days, depending on your
 machine's horsepower and on the number and size of packages to scan; please keep
 in mind that ScanCode will use all the available cores of your machine during
 scan):
@@ -364,7 +366,7 @@ scan):
 aliens4friends scan
 ```
 
-It is possibile to specify also the name and version of a single package, or
+It is also possibile to specify the name and version of a single package, or
 use wildcards to scan groups of packages (as in the previous steps).
 
 ```sh
@@ -534,7 +536,7 @@ package. Such copyright and license metadata are reviewed by the maintainers of
 the Debian package and by the community, as OSS license compliance is a key part
 of the Debian Project from the very beginning.
 
-Debian2SPDX takes care of extracting and parsing `debian/copyright` and
+`Debian2SPDX` takes care of extracting and parsing `debian/copyright` and
 `debian/control` files, and to convert all metadata found in them in SPDX
 format.
 
@@ -591,7 +593,7 @@ also license metadata concerning the whole package are applied. If similarity is
 100%, all metadata are applied.
 
 For the non matching files, results from the `.scancode.spdx` file are applied
-instead, but as [LicenseInfoInFile] as they come from an automated scanner and
+instead, but as [LicenseInfoInFile], as they come from an automated scanner and
 not from a human review.
 
 If similarity is < 30%, only `.scancode.spdx` results are applied instead,
@@ -611,7 +613,7 @@ changed_files_with_updated_copyright_year_only
 ```
 
 The same categories (excluding `moved_files`) are used to define what a
-"matching file" is, from an IP compliance perspective and decide whether
+"matching file" is, from an IP compliance perspective, and decide whether
 to apply `debian/copyright` metadata or not, for each alien package file.
 
 Execute:
@@ -655,39 +657,39 @@ In this step all source files contained in the `files` folder within the
 
 For reasons related to Fossology's policy on uploaded archives unpacking, the
 whole content of the `files/` folder is packed into a single temporary `.tar.xz`
-file (without the leading `files/` path component) and uploaded to  Fossology.
+file (without the leading `files/` path component) and uploaded to Fossology.
 By using that specific format (`.tar.xz`) we are sure that Fossology does not
-create any subfolder while unpacking the  main source archive (so we'll get
-"clean" file paths in the final spdx report that Fossology will generate at a
+create any subfolder while unpacking the main source archive (so we'll get
+"clean" file paths in the final SPDX report that Fossology will generate at a
 later stage).
 
-The resulting upload is renamed, on Fossology, to `<name>@<version>`, after
+The resulting upload is renamed appending `<name>@<version>` to
 alien package's name and version. Such upload name must be unique within
 Fossology, and if an upload named `<name>@<version>` is already found in
 Fossology, it is not uploaded again, assuming that it is exactly the same source
-package. This naming scheme is both human readable and machine-parseable, and it
+package. This naming scheme is both human-readable and machine-parseable, and it
 is a subset of the more comprehensive [purl
 scheme](https://github.com/package-url/purl-spec).
 
 Fossology automated license and copyright scanners (`monk`, `nomos`, `ojo` and
 `copyright`) are launched, as well as the `ojo_decider` agent, that
 automatically makes `LicenseConcluded` decisions based on REUSE/SPDX tags found
-in files. In this way, a REUSE compliant package will not need any further human
+in files. This way, a REUSE compliant package will not need any further human
 review; and a partially REUSE compliant package will need review only for the
 files  that have no REUSE/SPDX tag.
 
-Then the `.alien.spdx` file generated by the previous step is converted to
+Then the `.alien.spdx` file generated by the previous step is converted to the
 RDF/XML format with [java spdx-tools](https://github.com/spdx/tools)[^javatools]
-(because Fossology requires that format) and imported into Fossology. In this
-way ScanCode copyright and license findings are imported into fossology, thus
-enriching Fossology's scanners results License and copyright; and license
-and copyright information found in the matching Debian package (if any) get
+(because Fossology requires such format) and imported into Fossology. This
+way ScanCode copyright and license findings are imported into Fossology, thus
+enriching Fossology's scanners results License and copyright; license
+and copyright information found in the matching Debian package (if any) are
 automatically applied as `LicenseConcluded` decisions.
 
-In this way, if a package has ~100% matching with the corresponding Debian
-package, the package will not need any further human review on Fossology. And if
-matching is just partial, at least the matching files (from a license and
-copyright standpoint,  see Step 8) will not need human review.
+This way, if a package is ~100% matching to the corresponding Debian
+package, the package will not need any further human review on Fossology. If
+matching is only partial, at least the matching files (from a license and
+copyright standpoint, see Step 8) will not need human review.
 
 Finally, Fossology audit/review data are downloaded from Fossology API and
 saved, in json format, within a `.fossy.json` file.
@@ -772,14 +774,14 @@ processed by human auditors, are all put together in order to generate a final
 SPDX file reflecting the audit progress on that package.
 
 An intermediate SPDX file is generated from Fossology, patched to be fully SPDX
-compliant,[^fossology1] and then integrated with package level metadata coming
+compliant,[^fossology1] and then integrated with package-level metadata coming
 from `.aliensrc` and `.alien.spdx` files.[^fossology2]
 
 [^fossology1]: Fossology still uses some deprecated license identifiers and
-does not represent file paths in conformance to SPDX specs.
+file paths are not represented in a way conformant to SPDX specs.
 
 [^fossology2]: Even if `.alien.spdx` was imported into Fossology at Step 9,
-Fossology does not collect package-level metadata from imported SPDX files so
+Fossology does not collect package-level metadata from imported SPDX files, so
 such metadata need to be added again at this Step 10.
 
 <p><details>
@@ -858,7 +860,8 @@ We have two possibilities:
 ### Native
 
 Set the `.env` config: `A4F_SCANCODE=native`
-At the moment only version
+
+Presently,  only version
 [3.2.3](https://github.com/nexB/scancode-toolkit/releases/tag/v3.2.3) is
 supported. Follow the instructions inside the official [Scancode
 README](https://github.com/nexB/scancode-toolkit#readme) to install it.
@@ -883,5 +886,5 @@ docker run -it -v $PWD:/userland scancode -n4 -cli --json /userland/scanresult.j
 - The output will have the owner/group id, that was defined during the build.
 - See `scancode/Dockerfile` for details.
 
-The easieast way is to use the `scancode-wrapper` shell script. See comments
+The easiest way is to use the `scancode-wrapper` shell script. See comments
 inside that script for details.
