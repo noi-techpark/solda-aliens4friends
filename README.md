@@ -895,7 +895,21 @@ the recommended installation method, not the pip method.
 #### Installation via pip
 
 If for any reason the recommended installation method did not work, you can try
-with:
+this method:
+
+(on Ubuntu)
+
+```bash
+sudo apt install python3-dev bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
+```
+
+(on Debian)
+
+```bash
+sudo apt-get install python3-dev libbz2-1.0 xz-utils zlib1g libxml2-dev libxslt1-devlibpopt0
+```
+
+then:
 
 ```bash
 sudo pip3 install commoncode==20.10.20 extractcode==20.10 plugincode==20.9 \
