@@ -192,6 +192,10 @@ aliens4friends config > .env
 This creates a `.env` file with the default configuration options, if the `.env`
 did not exist before. You can now open that file and change it as you like.
 
+> **IMPORTANT** The default setting for A4F_POOL (Path to the cache pool) is
+> `/tmp/aliens4friends/`. This is intended only for tests, while in production
+> you should use a permanent directory, such as `~/pool` or the like.
+
 <p><details>
 <summary><b>See "aliens4friends config --help" output for details.</b></summary>
 
