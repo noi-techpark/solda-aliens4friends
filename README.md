@@ -900,20 +900,21 @@ this method:
 (on Ubuntu)
 
 ```bash
-sudo apt install python3-dev bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
+sudo apt install python3-pip python3-dev bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0 build-essential
 ```
 
 (on Debian)
 
 ```bash
-sudo apt-get install python3-dev libbz2-1.0 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0
+sudo apt-get install python3-pip python3-dev libbz2-1.0 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0 build-essential
 ```
 
 then:
 
 ```bash
-sudo pip3 install commoncode==20.10.20 extractcode==20.10 plugincode==20.9 \
-  typecode==20.10.20 scancode-toolkit[full]==3.2.3
+sudo pip3 install wheel commoncode==20.10.20 extractcode==20.10 \ plugincode==20.9 typecode==20.10.20 scancode-toolkit[full]==3.2.3
+
+sudo scancode --reindex-licenses
 ```
 
 It should work with python 3.6 or later versions; with later versions, you may
