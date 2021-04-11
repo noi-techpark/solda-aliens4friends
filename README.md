@@ -3,27 +3,27 @@
 *Documentation: v1 from 2021-04-08*
 
 This is a tool for Software Composition Analysis (SCA), expressly designed to
-analyze `Yocto`/`bitbake` builds -- but it could be usefully adopted in any software
-composition context where a package manager is missing, and where source code
-provenance and license/copyright metadata are often missing, messy, uncertain
-and/or imprecise.
+analyze `Yocto`/`bitbake` builds -- but it could be usefully adopted in any
+software composition context where a package manager is missing, and where
+source code provenance and license/copyright metadata are often missing, messy,
+uncertain and/or imprecise.
 
 > Our metaphor goes like this: We invite some aliens (third party software
-components), in other words unknown species, to a pool party (our fancy FLOSS
-project), and hopefully after some interaction we manage to understand if they are
-friends or foes. This way we avoid having our pool party stopped by the Police because of
-strange things they bring or do....
-In the best case scenario, those aliens become friends :-)*
+> components), in other words unknown species, to a pool party (our fancy FLOSS
+> project), and hopefully after some interaction we manage to understand if they
+> are friends or foes. This way we avoid having our pool party stopped by the
+> Police because of strange things they bring or do.... In the best case
+> scenario, those aliens become friends :-)*
 
 The main goal is to automatically detect as many license and copyright
-information as possible, by comparing "alien" source packages with packages found
-in existing trusted sources, like for instance `Debian`.
+information as possible, by comparing "alien" source packages with packages
+found in existing trusted sources, like for instance `Debian`.
 
-We took `Debian` as a primary "source of truth" because it has a strict policy to
-include packages in its distribution (also from a FLOSS compliance standpoint)
-and because it is backed by a community that continuously checks and "audits"
-source code to that purpose. Other similar sources of truth may be added in the
-future.
+We took `Debian` as a primary "source of truth" because it has a strict policy
+to include packages in its distribution (also from a FLOSS compliance
+standpoint) and because it is backed by a community that continuously checks and
+"audits" source code to that purpose. Other similar sources of truth may be
+added in the future.
 
 The overall idea is to avoid reinventing the wheel: if copyright and license
 metadata have already been reviewed by a trusted community, it does not make
@@ -54,13 +54,13 @@ it is a presumed friend, and we can safely invite it to our party.
 
 ## Workflow
 
-Let's start with an example. Assume we have a source code package called `zlib` in
-version `1.2.11-r0`, and want to collect license and copyright information.
+Let's start with an example. Assume we have a source code package called `zlib`
+in version `1.2.11-r0`, and want to collect license and copyright information.
 
 ### Step 1: Create an Alien Package
 
-First thing to do is to create a so-called "Alien Package". If you use bitbake as
-a building system, you can use the scripts contained in the [TinfoilHat]
+First thing to do is to create a so-called "Alien Package". If you use bitbake
+as a building system, you can use the scripts contained in the [TinfoilHat]
 project.
 
 [TinfoilHat]: https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat
@@ -360,7 +360,7 @@ Execute
 This might take several minutes, hours or even days, depending on your
 machine's horsepower and on the number and size of packages to scan; please keep
 in mind that ScanCode will use all the available cores of your machine during
-scan):
+scan:
 
 ```sh
 aliens4friends scan
