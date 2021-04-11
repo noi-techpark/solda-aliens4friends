@@ -35,29 +35,27 @@ it is a friend, and we can safely invite it to our party.
 
 
 - [Aliens for Friends](#aliens-for-friends)
-	- [Workflow](#workflow)
-		- [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
-		- [Step 2: Configure the tool](#step-2-configure-the-tool)
-		- [Step 3: Add the Alien to the pool](#step-3-add-the-alien-to-the-pool)
-		- [Step 4: Find a matching Debian source package](#step-4-find-a-matching-debian-source-package)
-		- [Step 5: Scan the code to detect license/copyright information](#step-5-scan-the-code-to-detect-licensecopyright-information)
-		- [Step 6: Find differences between Alien Packages and the corresponding Debian matching packages](#step-6-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
-		- [Step 7: Create Debian SPDX file from debian/copyright file](#step-7-create-debian-spdx-file-from-debiancopyright-file)
-		- [Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-8-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
-		- [Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-9-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
-		- [Step 10: Get metadata back from Fossology, after human review](#step-10-get-metadata-back-from-fossology-after-human-review)
-		- [Step 11: Enrich the result with tinfoilhat](#step-11-enrich-the-result-with-tinfoilhat)
-		- [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
-	- [Installation of Scancode](#installation-of-scancode)
-		- [Native](#native)
-		- [Wrapper](#wrapper)
+    - [Workflow](#workflow)
+        - [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
+        - [Step 2: Configure the tool](#step-2-configure-the-tool)
+        - [Step 3: Add the Alien to the pool](#step-3-add-the-alien-to-the-pool)
+        - [Step 4: Find a matching Debian source package](#step-4-find-a-matching-debian-source-package)
+        - [Step 5: Scan the code to detect license/copyright information](#step-5-scan-the-code-to-detect-licensecopyright-information)
+        - [Step 6: Find differences between Alien Packages and the corresponding Debian matching packages](#step-6-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
+        - [Step 7: Create Debian SPDX file from debian/copyright file](#step-7-create-debian-spdx-file-from-debiancopyright-file)
+        - [Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-8-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
+        - [Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-9-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
+        - [Step 10: Get metadata back from Fossology, after human review](#step-10-get-metadata-back-from-fossology-after-human-review)
+        - [Step 11: Enrich the result with tinfoilhat](#step-11-enrich-the-result-with-tinfoilhat)
+        - [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
+    - [Installation of Scancode](#installation-of-scancode)
+        - [Native](#native)
+        - [Wrapper](#wrapper)
 
 ## Workflow
 
 We start with an example. Assume we have a source code package called `zlib` in
 version `1.2.11-r0`, and want to determine license and copyright information.
-
-
 
 ### Step 1: Create an Alien Package
 
@@ -110,7 +108,7 @@ metadata information of this alien package.
                        "depends": "virtual/arm-poky-linux-musleabi-gcc virtual/arm-poky-linux-musleabi-compilerlibs virtual/libc ",
                        "provides": "zlib ",
                        "cve_product": null
-		},
+        },
         "files": [                  # files, that are included in the "files" folder inside the alien package
             {
                 "name": "zlib-1.2.11.tar.xz",
@@ -141,9 +139,9 @@ metadata information of this alien package.
 One archive in the `files` list is considered the main archive, which will be
 compared to trusted source repositories. The tool scans also files of additional
 archives, but those archives are not used to find matching archives on Debian or
-other source repos. In case of multiple archives, possible parameters attached to the
-`src_uri` can be used (if known) to determine which is the main archive (this is
-bitbake-specific, though).
+other source repos. In case of multiple archives, possible parameters attached
+to the `src_uri` can be used (if known) to determine which is the main archive
+(this is bitbake-specific, though).
 
 ### Step 2: Configure the tool
 
@@ -172,10 +170,10 @@ Environmental variables:
     FOSSY_PASSWORD,
     FOSSY_GROUP_ID,
     FOSSY_SERVER    : parameters to access fossology server
-	                  (defaults: 'fossy', 'fossy', 3, 'http://localhost/repo').
+                      (defaults: 'fossy', 'fossy', 3, 'http://localhost/repo').
 ```
-</details></p>
 
+</details></p>
 
 ### Step 3: Add the Alien to the pool
 
@@ -184,7 +182,10 @@ Execute:
 aliens4friends add zlib-1.2.11-r0.aliensrc
 ```
 
-This will add the package to our pool (party). All data that comes from the user will be stored in the folder `userland` with sub-folders named `<package-name>/<package-version>`. So in our case `userland/zlib/1.2.11-r0`. Intermediate results also land in this directory.
+This will add the package to our pool (party). All data that comes from the user
+will be stored in the folder `userland` with sub-folders named
+`<package-name>/<package-version>`. So in our case `userland/zlib/1.2.11-r0`.
+Intermediate results also land in this directory.
 
 <p><details>
 <summary><b>See "aliens4friends add --help" output for details.</b></summary>
@@ -228,10 +229,8 @@ Keep in mind that if you want to use wildcards, you should put the search
 parameters within quotes, otherwise bash will expand them locally and
 not on the pool.
 
-
 <p><details>
 <summary><b>See "aliens4friends match --help" output for details.</b></summary>
-
 
 ```
 usage: aliens4friends match [-h] [-i] [-v | -q] [-p] [glob_name] [glob_version]
@@ -249,7 +248,6 @@ optional arguments:
 ```
 
 </details></p>
-
 
 <p><details>
 <summary><b>click to see .alienmatcher.json output data structure example</b></summary>
@@ -297,13 +295,13 @@ optional arguments:
       "name": "zlib",               # name of the matching debian package
       "version": "1.2.11.dfsg-1",   # version of the matching debian package
       "debsrc_debian": "debian/zlib/1.2.11.dfsg-1/zlib_1.2.11.dfsg-1.debian.tar.xz",
-	                                # debian source tarball, downloaded from debian source repos
-	                                # - in case of Debian Format 1.0, this is a .diff.gz file
-	                                # - in case of Debian Format 1.0/3.0 native, this value is null
+                                    # debian source tarball, downloaded from debian source repos
+                                    # - in case of Debian Format 1.0, this is a .diff.gz file
+                                    # - in case of Debian Format 1.0/3.0 native, this value is null
       "debsrc_orig": "debian/zlib/1.2.11.dfsg-1/zlib_1.2.11.dfsg.orig.tar.gz",
-	                                # original source tarball, downloaded from debian source repos
-	                                # - in case of Debian Format 1.0/3.0 native, this is the only
-	                                #   archive and it does not have `.orig.` in the filename
+                                    # original source tarball, downloaded from debian source repos
+                                    # - in case of Debian Format 1.0/3.0 native, this is the only
+                                    #   archive and it does not have `.orig.` in the filename
       "dsc_format": "3.0 (quilt)",  # Debian package format
       "version_candidates": [
         {                           # examined matching candidates in Debian repos
@@ -335,7 +333,7 @@ optional arguments:
     }
   },
   "errors": []                      # possible error messages of the alienmatcher tool
-
+}
 ```
 
 </details></p>
@@ -344,19 +342,21 @@ optional arguments:
 
 - INPUT: `.aliensrc` files inside the pool, and if possible `.alienmatcher.json`
   results.
-- OUTPUT: `.scancode.json` and `.scancode.spdx` files inside the `userland`
-  pool path of the currently processed package (and also inside the corresponding
-  `debian` pool path of the matching debian package, if any). For `.scancode.json`
-  data structure, please refer to ScanCode documentation and source code. For
-  `.scancode.spdx` data structure, please refer to SPDX specs.
+- OUTPUT: `.scancode.json` and `.scancode.spdx` files inside the `userland` pool
+  path of the currently processed package (and also inside the corresponding
+  `debian` pool path of the matching debian package, if any). For
+  `.scancode.json` data structure, please refer to ScanCode documentation and
+  source code. For `.scancode.spdx` data structure, please refer to SPDX specs.
 
 For this to work, you need to have
-[ScanCode](https://github.com/nexB/scancode-toolkit) v3.2.3 installed. See chapter
+[ScanCode](https://github.com/nexB/scancode-toolkit) v3.2.3 installed. See
+chapter
 [Installation of Scancode](#installation-of-scancode) for details.
 
 Execute (this might take several minutes, hours or even days, depending on your
-machine's horsepower and on the number and size of packages to scan; please keep in
-mind that ScanCode will use all the available cores of your machine during scan):
+machine's horsepower and on the number and size of packages to scan; please keep
+in mind that ScanCode will use all the available cores of your machine during
+scan):
 
 ```sh
 aliens4friends scan
@@ -393,7 +393,6 @@ optional arguments:
 
 </details></p>
 
-
 ### Step 6: Find differences between Alien Packages and the corresponding Debian matching packages
 
 For "differences" we mean differences in terms of
@@ -401,8 +400,8 @@ licensing/copyright/intellectual property, so we just care if license and
 copyright statements (if any) have changed, not if just code has changed.
 
 
-- INPUT: `.scancode.json` files inside `userland` and `debian` pool paths related to
-  each alien package and its corresponding debian package
+- INPUT: `.scancode.json` files inside `userland` and `debian` pool paths
+  related to each alien package and its corresponding debian package
 - OUTPUT: `.deltacode.json` file inside `userland`
 
 Execute:
@@ -428,13 +427,13 @@ optional arguments:
   -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
   -p, --print         Print result also to stdout.
 ```
+
 </details></p>
 
 <p><details>
 <summary><b>click to see .deltacode.json output data structure example</b></summary>
 
 <!--  hacky trick: using python syntax highlightning to be able to put comments, not allowed in json -->
-
 
 ```python
 {
@@ -446,11 +445,11 @@ optional arguments:
     "compared_json_files": {
       "old_scan_out_file": "/home/user/pool/debian/zlib/1.2.11.dfsg-1/zlib-1.2.11.dfsg-1.scancode.json",
       "new_scan_out_file": "/home/user/pool/userland/zlib/1.2.11-r0/zlib-1.2.11-r0.scancode.json"
-                               # this tool could be used also in other contexts, eg. to compare two
-                               # different version of the same package, so the compared packages are
-                               # generically named "old" and "new"
-                               # In this specific use case, "old" means "debian package" and "new" means
-                               # "alien package"
+                    # this tool could be used also in other contexts, eg. to compare two
+                    # different version of the same package, so the compared packages are
+                    # generically named "old" and "new"
+                    # In this specific use case, "old" means "debian package" and "new" means
+                    # "alien package"
     },
     "stats": {
       "same_files": 108,
@@ -465,8 +464,8 @@ optional arguments:
       "new_files_with_no_license_and_copyright": 86,
       "new_files_with_license_or_copyright": 59,
                     # "new" means "files found in the alien package, but not in the debian matching package"
-					# (usually you have a value > 0 here when debian package maintaners stripped out some
-					# source files for Debian policy reasons - eg. files related to unsupported platforms etc.)
+                    # (usually you have a value > 0 here when debian package maintaners stripped out some
+                    # source files for Debian policy reasons - eg. files related to unsupported platforms etc.)
       "old_files_count": 108,
                     # total files found in the debian package
       "new_files_count": 253
@@ -490,10 +489,10 @@ optional arguments:
     "changed_files_with_no_license_and_copyright": [],
     "changed_files_with_same_copyright_and_license": [],
     "changed_files_with_updated_copyright_year_only": {},
-                               # findings here would not include just a list, but a dictionary where the key
-                               # is the filename, and the value is a dictionary with diff results
+                    # findings here would not include just a list, but a dictionary where the key
+                    # is the filename, and the value is a dictionary with diff results
     "changed_files_with_changed_copyright_or_license": {},
-                               # same as above
+                    # same as above
     "deleted_files_with_no_license_and_copyright": [],
     "deleted_files_with_license_or_copyright": [],
     "new_files_with_no_license_and_copyright": [
@@ -525,15 +524,17 @@ optional arguments:
 - OUTPUT: `.debian.spdx` and `_debian_copyright` file in the `debian` pool path
   of the debian package
 
-All Debian packages should have a machine readable `debian/copyright` file following
-[DEP5 specs](https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/),
-containing copyright and license metadata for each source file found in the package.
-Such copyright and license metadata are reviewed by the maintainers of the Debian
-package and by the community, as OSS license compliance is a key part of the Debian
-Project from the very beginning.
+All Debian packages should have a machine readable `debian/copyright` file
+following [DEP5
+specs](https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/),
+containing copyright and license metadata for each source file found in the
+package. Such copyright and license metadata are reviewed by the maintainers of
+the Debian package and by the community, as OSS license compliance is a key part
+of the Debian Project from the very beginning.
 
-Debian2SPDX takes care of extracting and parsing `debian/copyright` and `debian/control`
-files, and to convert all metadata found in them in SPDX format.
+Debian2SPDX takes care of extracting and parsing `debian/copyright` and
+`debian/control` files, and to convert all metadata found in them in SPDX
+format.
 
 In case `debian/copyright` is not machine-parseable, or if there are any parsing
 errors, `.debian.spdx` file cannot be created. In any case, as a convenience,
@@ -546,8 +547,8 @@ Execute:
 aliens4friends spdxdebian
 ```
 
-You can also pass package name and version as parameters, and use wildcards, as in
-the steps above.
+You can also pass package name and version as parameters, and use wildcards, as
+in the steps above.
 
 <p><details>
 <summary><b>See "aliens4friends spdxdebian --help" output for details.</b></summary>
@@ -571,8 +572,8 @@ optional arguments:
 ### Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)
 
 - INPUT: `.scancode.spdx` and `.deltacode.spdx` files in the `userland` pool
-  path of the alien package, and `.debian.spdx` file in the `debian` pool path of
-  the matching debian package
+  path of the alien package, and `.debian.spdx` file in the `debian` pool path
+  of the matching debian package
 - OUTPUT: `.alien.spdx` file in the `userland` pool path of the alien package.
 
 If the alien package has no main source archive, or if there is no matching
@@ -584,8 +585,8 @@ metadata are applied to all alien package files that match with debian package
 files, from an IP compliance perspective (such metadata are applied as
 [ConcludedLicense](https://spdx.github.io/spdx-spec/4-file-information/#45-concluded-license),
 because they have been reviewed by a trusted community). If similarity is > 92%,
-also license metadata concerning the whole package are applied. If similarity
-is 100%, all metadata are applied.
+also license metadata concerning the whole package are applied. If similarity is
+100%, all metadata are applied.
 
 For the non matching files, results from the `.scancode.spdx` file are applied
 instead, but as [LicenseInfoInFile] as they come from an automated scanner and
@@ -617,8 +618,8 @@ Execute:
 aliens4friends spdxalien
 ```
 
-You can also pass package name and version as parameters, and use wildcards, as in
-the steps above.
+You can also pass package name and version as parameters, and use wildcards, as
+in the steps above.
 
 <p><details>
 <summary><b>See "aliens4friends spdxalien --help" output for details.</b></summary>
@@ -648,7 +649,7 @@ optional arguments:
 - OUTPUT: `.fossy.json` file with metadata obtained through Fossology API
 
 In this step all source files contained in the `files` folder within the
-`.aliensrc` package/tarball are  uploaded to Fossology. 
+`.aliensrc` package/tarball are  uploaded to Fossology.
 
 For reasons related to Fossology's policy on uploaded archives unpacking, the
 whole content of the `files/` folder is packed into a single temporary `.tar.xz`
@@ -666,9 +667,6 @@ package. This naming scheme is both human readable and machine-parseable, and it
 is a subset of the more comprehensive [purl
 scheme](https://github.com/package-url/purl-spec).
 
-<!-- a different naming scheme based on urlencoding would prove very hard to
-read when  `+` or similar characters are contained in the version tag -->
-
 Fossology automated license and copyright scanners (`monk`, `nomos`, `ojo` and
 `copyright`) are launched, as well as the `ojo_decider` agent, that
 automatically makes `LicenseConcluded` decisions based on REUSE/SPDX tags found
@@ -681,7 +679,7 @@ RDF/XML format with [java spdx-tools](https://github.com/spdx/tools)[^javatools]
 (because Fossology requires that format) and imported into Fossology. In this
 way ScanCode copyright and license findings are imported into fossology, thus
 enriching Fossology's scanners results License and copyright; and license
-and copyright information found in the matching Debian package (if any) get 
+and copyright information found in the matching Debian package (if any) get
 automatically applied as `LicenseConcluded` decisions.
 
 In this way, if a package has ~100% matching with the corresponding Debian
@@ -690,7 +688,7 @@ matching is just partial, at least the matching files (from a license and
 copyright standpoint,  see Step 8) will not need human review.
 
 Finally, Fossology audit/review data are downloaded from Fossology API and
-saved, in json format, within a `.fossy.json` file. 
+saved, in json format, within a `.fossy.json` file.
 
 [^javatools]: Python spdx tools, widely used in this project, unfortunately have
 incomplete and undermaintained spdx/rdf support
@@ -702,18 +700,20 @@ incomplete and undermaintained spdx/rdf support
 {
   "origin": "http://localhost/repo",
   "summary": {
-    "id": 300,                         # upload id within Fossology
+    "id": 300,                          # upload id within Fossology
     "uploadName": "acl@2.2.53-r0",
     "mainLicense": "GPL-2.0-or-later",
     "uniqueLicenses": 46,
     "totalLicenses": 626,
     "uniqueConcludedLicenses": 2,
     "totalConcludedLicenses": 232,
-    "filesToBeCleared": 0,             # files that haven't been reviewed yet (red dots, in Fossology)
-    "filesCleared": 232,               # total files that requires human review, including those already reviewed
-                                       # (red + green dots, in Fossology)
+    "filesToBeCleared": 0,              # files that haven't been reviewed yet
+                                        # (red dots, in Fossology)
+    "filesCleared": 232,                # total files that requires human review,
+                                        # including those already reviewed
+                                        # (red + green dots, in Fossology)
     "clearingStatus": "Open",
-    "copyrightCount": 2532             # number of copyright statements
+    "copyrightCount": 2532              # number of copyright statements
   },
   "licenses": [
     {
@@ -762,6 +762,7 @@ This is a Yocto-specific step. Add `.tinfoilhat.json` results to the pool for
 more details inside the final result.
 
 Execute:
+
 ```sh
 aliens4friends add zlib-1.2.11-r0.tinfoilhat.json
 ```
@@ -772,6 +773,7 @@ aliens4friends add zlib-1.2.11-r0.tinfoilhat.json
 - OUTPUT: `POOL/stats/<some-dated-name>.json` as report for our graphical Dashboard
 
 Execute:
+
 ```sh
 aliens4friends harvest
 ```
@@ -783,6 +785,7 @@ See `aliens4friends harvest --help` for details.
 We have two possibilities:
 
 ### Native
+
 Set the `.env` config: `A4F_SCANCODE=native`
 At the moment only version
 [3.2.3](https://github.com/nexB/scancode-toolkit/releases/tag/v3.2.3) is
@@ -790,6 +793,7 @@ supported. Follow the instructions inside the official [Scancode
 README](https://github.com/nexB/scancode-toolkit#readme) to install it.
 
 ### Wrapper
+
 If you do not want to install it, you can also use our scancode
 docker wrapper. Set the `.env` config: `A4F_SCANCODE=wrapper`
 
@@ -799,9 +803,11 @@ docker wrapper. Set the `.env` config: `A4F_SCANCODE=wrapper`
 4) Link it into your `$PATH`
 
 Full example which uses the current directory as working directory of Scancode:
+
 ```
 docker run -it -v $PWD:/userland scancode -n4 -cli --json /userland/scanresult.json /userland
 ```
+
 - `/userland` is the internal working path.
 - The output will have the owner/group id, that was defined during the build.
 - See `scancode/Dockerfile` for details.
