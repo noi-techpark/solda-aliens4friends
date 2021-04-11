@@ -60,8 +60,10 @@ version `1.2.11-r0`, and want to determine license and copyright information.
 ### Step 1: Create an Alien Package
 
 First thing to do is to create a so-called Alien Package. If you use bitbake as
-a building system, you can use the scripts contained in the [TinfoilHat
-project](https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat).
+a building system, you can use the scripts contained in the [TinfoilHat]
+project.
+
+[TinfoilHat]: https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat
 
 Let's assume that our alien package is named `zlib-1.2.11-r0.aliensrc`. The
 file-extension `.aliensrc` is mandatory, the name is arbitrary. An alien package
@@ -802,8 +804,13 @@ optional arguments:
 
 ### Step 11: Enrich the result with tinfoilhat
 
-This is a Yocto-specific step. Add `.tinfoilhat.json` results to the pool for
-more details inside the final result.
+- INPUT: `.tinfoilhat.json` file, generated through [TinfoilHat]
+
+This is a Yocto/BitBake-specific step. Add `.tinfoilhat.json` results to the
+pool to get more details to be included the final statistics.
+
+`.tinfoilhat.json` files contains data that are specific to the particular
+bitbake project that is being scanned, such as `DISTRO`, `IMAGE_NAME` and `MACHINE`. For more details, refer to the [TinfoilHat] project documentation.
 
 Execute:
 
@@ -822,7 +829,24 @@ Execute:
 aliens4friends harvest
 ```
 
-See `aliens4friends harvest --help` for details.
+<p><details>
+<summary><b>See "aliens4friends harvest --help" output for details.</b></summary>
+
+```
+usage: aliens4friends harvest [-h] [-i] [-v | -q] [-p] [--add-details] [--add-missing]
+
+optional arguments:
+  -h, --help          show this help message and exit
+  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This
+                      overrides the A4F_CACHE env var.
+  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  -p, --print         Print result also to stdout.
+  --add-details       Add more information to the report while harvesting.
+  --add-missing       Add missing input files to the report while harvesting.
+```
+
+</details></p>
 
 ## Installation of Scancode
 
