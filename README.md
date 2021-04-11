@@ -35,6 +35,7 @@ it is a presumed friend, and we can safely invite it to our party.
 
 
 - [Aliens for Friends](#aliens-for-friends)
+    - [Installation](#installation)
     - [Workflow](#workflow)
         - [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
         - [Step 2: Configure the tool](#step-2-configure-the-tool)
@@ -51,6 +52,17 @@ it is a presumed friend, and we can safely invite it to our party.
     - [Installation of Scancode](#installation-of-scancode)
         - [Native](#native)
         - [Wrapper](#wrapper)
+
+## Requirements and Installation
+
+To install `aliens4friends`, just clone this repo and do `python setup.py install --user`
+
+A Fossology 3.9.0 instance is required to run substantial parts of the workflow. Please refer to Fossology documentation to deploy it.  Fossology version must be 3.9.0, for API compatibility.
+
+Moreover, a couple of external dependencies are needed:
+
+- Scancode 3.2.3 (see '[Installation of Scancode]')
+- spdx-tools (java version): `sudo wget -P /usr/local/lib https://github.com/spdx/tools/releases/download/v2.2.5/spdx-tools-2.2.5-jar-with-dependencies.jar`
 
 ## Workflow
 
@@ -871,7 +883,21 @@ Set the `.env` config: `A4F_SCANCODE=native`
 Presently,  only version
 [3.2.3](https://github.com/nexB/scancode-toolkit/releases/tag/v3.2.3) is
 supported. Follow the instructions inside the official [Scancode
-README](https://github.com/nexB/scancode-toolkit#readme) to install it.
+README](https://github.com/nexB/scancode-toolkit#readme) to install it; use
+the recommended installation method, not the pip method.
+
+#### Installation via pip
+
+If for any reason the recommended installation method did not work, you can try
+with:
+
+```bash
+sudo pip3 install commoncode==20.10.20 extractcode==20.10 plugincode==20.9 \
+  typecode==20.10.20 scancode-toolkit[full]==3.2.3
+```
+
+It should work with python 3.6 or later versions; with later versions, you may
+get some warnings when executing it, but it should work anyway.
 
 ### Wrapper
 
