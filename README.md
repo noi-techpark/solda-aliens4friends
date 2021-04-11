@@ -69,7 +69,9 @@ zip_ok = False" > ~/.distutils.cfg # required for flanker dependency
 
 git clone https://git.ostc-eu.org/oss-compliance/toolchain/aliens4friends.git
 cd aliens4friends
-pip3 install --user setuptools .
+git checkout ap/cleancode
+pip3 install --user setuptools wheel
+pip3 install --user .
 . ~/.profile
 a4f > /dev/null # required for flanker initialization
 ```
