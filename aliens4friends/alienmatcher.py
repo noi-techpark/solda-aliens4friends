@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: 2021 Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
 #
 # Class to match an entry inside a yocto manifest file with debian packages
 # libraries through an API, exactly or if not possible find the closest smaller

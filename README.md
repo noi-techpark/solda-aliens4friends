@@ -1,3 +1,9 @@
+<!--
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
+SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+-->
+
 # Aliens for Friends
 
 *Documentation: v1 from 2021-04-08*
@@ -35,6 +41,7 @@ it is a presumed friend, and we can safely invite it to our party.
 
 
 - [Aliens for Friends](#aliens-for-friends)
+    - [Installation](#installation)
     - [Workflow](#workflow)
         - [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
         - [Step 2: Configure the tool](#step-2-configure-the-tool)
@@ -51,6 +58,36 @@ it is a presumed friend, and we can safely invite it to our party.
     - [Installation of Scancode](#installation-of-scancode)
         - [Native](#native)
         - [Wrapper](#wrapper)
+
+## Requirements and Installation
+
+To install `aliens4friends`, just do, on a `debian|ubuntu` machine:
+
+```bash
+sudo apt install python3-pip
+
+echo "[easy_install]
+zip_ok = False" > ~/.distutils.cfg # required for flanker dependency
+
+git clone https://git.ostc-eu.org/oss-compliance/toolchain/aliens4friends.git
+cd aliens4friends
+pip3 install --user setuptools wheel
+pip3 install --user .
+. ~/.profile
+a4f &>/dev/null # required for flanker initialization
+```
+
+A Fossology 3.9.0 instance is required to run substantial parts of the workflow. Please refer to Fossology documentation to deploy it.  Fossology version must be 3.9.0, for API compatibility.
+
+Moreover, a couple of external dependencies are needed:
+
+- Scancode 3.2.3 (see '[Installation of Scancode](#installation-of-scancode)')
+- spdx-tools (java version):
+
+```bash
+sudo apt install openjdk-11-jre # you can also choose another java jre
+sudo wget -P /usr/local/lib https://github.com/spdx/tools/releases/download/v2.2.5/spdx-tools-2.2.5-jar-with-dependencies.jar
+```
 
 ## Workflow
 
@@ -154,6 +191,10 @@ aliens4friends config > .env
 
 This creates a `.env` file with the default configuration options, if the `.env`
 did not exist before. You can now open that file and change it as you like.
+
+> **IMPORTANT** The default setting for A4F_POOL (Path to the cache pool) is
+> `/tmp/aliens4friends/`. This is intended only for tests, while in production
+> you should use a permanent directory, such as `~/pool` or the like.
 
 <p><details>
 <summary><b>See "aliens4friends config --help" output for details.</b></summary>
@@ -871,7 +912,39 @@ Set the `.env` config: `A4F_SCANCODE=native`
 Presently,  only version
 [3.2.3](https://github.com/nexB/scancode-toolkit/releases/tag/v3.2.3) is
 supported. Follow the instructions inside the official [Scancode
-README](https://github.com/nexB/scancode-toolkit#readme) to install it.
+README](https://github.com/nexB/scancode-toolkit#readme) to install it; use
+the recommended installation method, not the pip method.
+
+#### Installation via pip
+
+If for any reason the recommended installation method did not work, you can try
+this method:
+
+(on Ubuntu)
+
+```bash
+sudo apt install python3-pip python3-dev bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0 build-essential
+```
+
+(on Debian)
+
+```bash
+sudo apt-get install python3-pip python3-dev libbz2-1.0 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0 build-essential
+```
+
+then:
+
+```bash
+pip3 install --user setuptools wheel commoncode==20.10.20 extractcode==20.10 \
+plugincode==20.9 typecode==20.10.20 scancode-toolkit[full]==3.2.3
+
+. ~/.profile
+
+scancode --reindex-licenses
+```
+
+It should work with python 3.6 or later versions; with later versions, you may
+get some warnings when executing it, but it should work anyway.
 
 ### Wrapper
 

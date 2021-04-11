@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+
 import json
 import logging
 import os
@@ -309,7 +312,7 @@ class Harvest:
 		not_cleared = cur["summary"]["filesToBeCleared"]
 		cleared = total - not_cleared
 		ml = Harvest._rename(cur["summary"]["mainLicense"])
-		main_licenses = ml.split(",") if ml else []
+		main_licenses = list(set(ml.split(","))) if ml else []
 		self._safe_set(out, ["statistics", "files", "audit_total"], total)
 		self._safe_set(out, ["statistics", "files", "audit_done"], cleared)
 		self._safe_set(out, ["statistics", "files", "audit_to_do"], not_cleared)
