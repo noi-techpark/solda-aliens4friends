@@ -670,12 +670,12 @@ create any subfolder while unpacking the main source archive (so we'll get
 "clean" file paths in the final SPDX report that Fossology will generate at a
 later stage).
 
-The resulting upload is renamed appending `<name>@<version>` to
-alien package's name and version. Such upload name must be unique within
-Fossology, and if an upload named `<name>@<version>` is already found in
-Fossology, it is not uploaded again, assuming that it is exactly the same source
-package. This naming scheme is both human-readable and machine-parseable, and it
-is a subset of the more comprehensive [purl
+The resulting upload is renamed following the scheme `<name>@<version>` (where
+name and version refer to the uploaded alien package). Such upload name must be
+unique within Fossology, and if an upload named `<name>@<version>` is already
+found in Fossology, it is not uploaded again, assuming that it is exactly the
+same source package. This naming scheme is both human-readable and
+machine-parseable, and it is a subset of the more comprehensive [purl
 scheme](https://github.com/package-url/purl-spec).
 
 Fossology automated license and copyright scanners (`monk`, `nomos`, `ojo` and
