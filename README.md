@@ -809,8 +809,11 @@ optional arguments:
 This is a Yocto/BitBake-specific step. Add `.tinfoilhat.json` results to the
 pool to get more details to be included the final statistics.
 
-`.tinfoilhat.json` files contains data that are specific to the particular
-bitbake project that is being scanned, such as `DISTRO`, `IMAGE_NAME` and `MACHINE`. For more details, refer to the [TinfoilHat] project documentation.
+`.tinfoilhat.json` files contain data that are specific to the particular
+bitbake project that is being scanned, such as `DISTRO`, `IMAGE_NAME` and
+`MACHINE` tags, as well as metadata about binary packages generated from the
+analyzed  sources. For more details, refer to the [TinfoilHat] project
+documentation.
 
 Execute:
 
@@ -821,7 +824,7 @@ aliens4friends add zlib-1.2.11-r0.tinfoilhat.json
 ### Step 12: Harvest all results and create a final report
 
 - INPUT: `.deltacode.json`, `.scancode.json`, `.fossy.json` and `.alienmatcher.json` files
-- OUTPUT: `POOL/stats/<some-dated-name>.json` as report for our graphical Dashboard
+- OUTPUT: `POOL/stats/<some-dated-name>.json` as report for the graphical Dashboard
 
 Execute:
 
