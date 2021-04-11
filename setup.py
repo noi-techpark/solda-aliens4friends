@@ -33,6 +33,7 @@ setuptools.setup(
         'packaging==20.9',
         'flanker==0.9.11',
         'deepdiff==5.2.3',
+        'beautifulsoup4==4.9.3',
     ],
     scripts=['bin/a4f', 'bin/aliens4friends'],
     license_files=['LICENSE',],
