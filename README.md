@@ -61,27 +61,33 @@ it is a presumed friend, and we can safely invite it to our party.
 
 ## Requirements and Installation
 
-To install `aliens4friends`, just do:
+To install `aliens4friends`, just do, on a `debian|ubuntu` machine:
 
 ```bash
+sudo apt install python3-pip
+
 echo "[easy_install]
 zip_ok = False" > ~/.distutils.cfg # required for flanker dependency
 
 git clone https://git.ostc-eu.org/oss-compliance/toolchain/aliens4friends.git
 cd aliens4friends
-git checkout ap/cleancode
 pip3 install --user setuptools wheel
 pip3 install --user .
 . ~/.profile
-a4f > /dev/null # required for flanker initialization
+a4f &>/dev/null # required for flanker initialization
 ```
 
 A Fossology 3.9.0 instance is required to run substantial parts of the workflow. Please refer to Fossology documentation to deploy it.  Fossology version must be 3.9.0, for API compatibility.
 
 Moreover, a couple of external dependencies are needed:
 
-- Scancode 3.2.3 (see '[Installation of Scancode]')
-- spdx-tools (java version): `sudo wget -P /usr/local/lib https://github.com/spdx/tools/releases/download/v2.2.5/spdx-tools-2.2.5-jar-with-dependencies.jar`
+- Scancode 3.2.3 (see '[Installation of Scancode](#installation-of-scancode)')
+- spdx-tools (java version):
+
+```bash
+sudo apt install openjdk-11-jre # you can also choose another java jre
+sudo wget -P /usr/local/lib https://github.com/spdx/tools/releases/download/v2.2.5/spdx-tools-2.2.5-jar-with-dependencies.jar
+```
 
 ## Workflow
 
@@ -925,9 +931,12 @@ sudo apt-get install python3-pip python3-dev libbz2-1.0 xz-utils zlib1g libxml2-
 then:
 
 ```bash
-sudo pip3 install wheel commoncode==20.10.20 extractcode==20.10 \ plugincode==20.9 typecode==20.10.20 scancode-toolkit[full]==3.2.3
+pip3 install --user setuptools wheel commoncode==20.10.20 extractcode==20.10 \
+plugincode==20.9 typecode==20.10.20 scancode-toolkit[full]==3.2.3
 
-sudo scancode --reindex-licenses
+. ~/.profile
+
+scancode --reindex-licenses
 ```
 
 It should work with python 3.6 or later versions; with later versions, you may
