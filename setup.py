@@ -10,7 +10,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="aliens4friends",
-    version=Settings.VERSION,
+    version="0.3.1",
     author="Alberto Pianon, Peter Moser",
     author_email="pianon@array.eu, p.moser@noi.bz.it",
     description="Aliens4Friends",
