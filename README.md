@@ -690,7 +690,7 @@ optional arguments:
 ### Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology
 
 - INPUT: `.aliensrc` and (if available) `.alien.spdx` files in the `userland`
-  pool path of the package  
+  pool path of the package
 - OUTPUT: `.fossy.json` file with metadata obtained through Fossology API
 
 In this step all source files contained in the `files` folder within the
@@ -857,7 +857,7 @@ optional arguments:
 - INPUT: `.tinfoilhat.json` file, generated through [TinfoilHat]
 
 This is a Yocto/BitBake-specific step. Add `.tinfoilhat.json` results to the
-pool to get more details to be included the final statistics.
+pool to get more details to be included in the final statistics.
 
 `.tinfoilhat.json` files contain data that are specific to the particular
 bitbake project that is being scanned, such as `DISTRO`, `IMAGE_NAME` and
