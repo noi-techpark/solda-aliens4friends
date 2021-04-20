@@ -1,12 +1,12 @@
 
 from typing import Union
-from .base import BaseModel, BaseModelEncoder
+from .base import BaseModel, BaseModelEncoder, ModelError
 from .common import License, Tool
 from json import load as json_load
 
 
 class SourceFile(BaseModel):
-	def __init__(self, name: str, sha1: str, src_uri: str, files_in_archive: Union[int, bool]):
+	def __init__(self, name: str = None, sha1: str = None, src_uri: str = None, files_in_archive: Union[int, bool] = False):
 		self.name = name
 		self.sha1 = sha1
 		self.src_uri = src_uri
@@ -14,7 +14,7 @@ class SourceFile(BaseModel):
 
 
 class DebianMatch(BaseModel):
-	def __init__(self, name: str, version: str, ip_matching_files: int = 0):
+	def __init__(self, name: str = None, version: str = None, ip_matching_files: int = 0):
 		self.name = name
 		self.version = version
 		self.ip_matching_files = ip_matching_files
@@ -29,7 +29,7 @@ class StatisticsFiles(BaseModel):
 		upstream_source_total: int = 0,
 		unknown_provenance: int = 0,
 		known_provenance: int = 0,
-		*args, **kwargs # ignore this, we just need it for "total"
+		total: int = 0
 	):
 		self.audit_total = audit_total
 		self.audit_done = audit_done
@@ -37,17 +37,15 @@ class StatisticsFiles(BaseModel):
 		self.upstream_source_total = upstream_source_total
 		self.unknown_provenance = unknown_provenance
 		self.known_provenance = known_provenance
-
-	@property
-	def total(self):
-		return self.unknown_provenance + self.known_provenance
+		self.total = total
 
 
 class AuditFindings(BaseModel):
-	def __init__(self):
-		self.main_licenses = None
-		self.all_licenses = None
-
+	def __init__(self, main_licenses: list = None, all_licenses: list = None):
+		self.main_licenses = [
+			License(lic) for lic in main_licenses
+		] if main_licenses else []
+		self.all_licenses = all_licenses if all_licenses else []
 
 class StatisticsLicenses(BaseModel):
 	def __init__(
@@ -55,14 +53,8 @@ class StatisticsLicenses(BaseModel):
 		license_scanner_findings: list = None,
 		license_audit_findings: list = None
 	):
-		self.license_scanner_findings = [
-			LicenseFinding.from_json(licf) for licf in license_scanner_findings
-		]
-		self.license_audit_findings = AuditFindings()
-		self.license_audit_findings.main_licenses = license_audit_findings["main_licenses"]
-		self.license_audit_findings.all_licenses = [
-			LicenseFinding.from_json(licf) for licf in license_audit_findings["all_licenses"]
-		]
+		self.license_scanner_findings = license_scanner_findings if license_scanner_findings else []
+		self.license_audit_findings = license_audit_findings if license_audit_findings else []
 
 
 class Statistics(BaseModel):
@@ -71,18 +63,27 @@ class Statistics(BaseModel):
 		files: StatisticsFiles = None,
 		licenses: StatisticsLicenses = None
 	):
-		self.files = StatisticsFiles.from_json(files)
-		self.licenses = StatisticsLicenses.from_json(licenses)
+		self.files = files if files else StatisticsFiles()
+		self.licenses = licenses if licenses else StatisticsLicenses()
 
 
 class LicenseFinding(BaseModel):
-	def __init__(self, shortname: License, file_count: int):
-		self.shortname = License(shortname)
+	def __init__(self, shortname: str = None, file_count: int = 0):
+		self.shortname = License(shortname).encode()
 		self.file_count = file_count
+
+	def __lt__(self, o):
+		if self.file_count < o.file_count:
+			return True
+
+		if self.file_count > o.file_count:
+			return False
+
+		return self.shortname < o.shortname
 
 
 class BinaryPackage(BaseModel):
-	def __init__(self, name: str, version: str, revision: str):
+	def __init__(self, name: str = None, version: str = None, revision: str = None):
 		self.name = name
 		self.version = version
 		self.revision = revision
@@ -92,9 +93,9 @@ class SourcePackage(BaseModel):
 	def __init__(
 		self,
 		id: str,
-		name: str,
-		version: str,
-		revision: str,
+		name: str = None,
+		version: str = None,
+		revision: str = None,
 		debian_matching: DebianMatch = None,
 		source_files: list = None,
 		statistics: Statistics = None,
@@ -106,20 +107,20 @@ class SourcePackage(BaseModel):
 		self.version = version
 		self.revision = revision
 		self.tags = tags
-		self.debian_matching = DebianMatch.from_json(debian_matching)
-		self.statistics = Statistics.from_json(statistics)
+		self.debian_matching = debian_matching if debian_matching else DebianMatch()
+		self.statistics = statistics if statistics else Statistics()
 		self.source_files = [
 			SourceFile.from_json(srcf) for srcf in source_files
-		]
+		] if source_files else []
 		self.binary_packages = [
 			#FIXME We have a list in a list; remove outer list
 			BinaryPackage.from_json(binp) for binp in binary_packages[0]
-		]
+		] if binary_packages else []
 
 
 class Harvest(BaseModel):
 
-	def __init__(self, tool_name: str, tool_version: str, tool_parameters: str = None):
+	def __init__(self, tool_name: str = None, tool_version: str = None, tool_parameters: str = None):
 		self.tool = Tool(tool_name, tool_version, tool_parameters)
 		self.source_packages = []
 
@@ -128,14 +129,13 @@ class Harvest(BaseModel):
 		with open(path, "r") as f:
 			j = json_load(f)
 
-		try:
-			parameters = j["tool"]["parameters"]
-		except KeyError:
-			parameters = None
-		hrv = Harvest(j["tool"]["name"], j["tool"]["version"], parameters)
+		hrv = Harvest(**j["tool"])
 
 		for srcpckstr in j["source_packages"]:
 			srcpck = SourcePackage.from_json(srcpckstr)
 			hrv.source_packages.append(srcpck)
 
 		return hrv
+
+	def add_source_package(self, source_package: SourcePackage):
+		self.source_packages.append(source_package)
