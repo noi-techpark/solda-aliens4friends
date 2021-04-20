@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
 #
 # Class to match an entry inside a yocto manifest file with debian packages
-# libraries through an API, exactly or if not possible find the closest smaller
+# libraries through an API, exactly or if not possible find the closest
 # version.
 #
 # Information gathering:
