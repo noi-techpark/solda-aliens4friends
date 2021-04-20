@@ -55,11 +55,10 @@ class Harvest:
 		self.pool = pool
 		self.input_files = sorted(input_files)
 		self.result_file = result_file
-		self.result = {}
+		self.result = None
 		self.package_id_ext = package_id_ext
 		self.add_details = add_details
 		self.add_missing = add_missing
-		self.result2 = None
 
 	@staticmethod
 	def _filename_split(path):
@@ -68,7 +67,6 @@ class Harvest:
 		path = os.path.basename(path)
 		rest, mainext = os.path.splitext(path)
 		if mainext == ".aliensrc":
-			fname = rest
 			ext = mainext
 		else:
 			fname, subext = os.path.splitext(rest)
@@ -77,24 +75,23 @@ class Harvest:
 			raise HarvestException("Unsupported file extension")
 		return package_id, ext
 
-	def _warn_missing_input(self, package, package_inputs):
+	def _warn_missing_input(self, package: SourcePackage, package_inputs):
 		missing = []
 		for input_file_type in self.SUPPORTED_FILES:
 			if input_file_type not in package_inputs:
 				missing.append(input_file_type)
 		if missing:
-			logger.warning(f'Package {package["id"]} misses the {missing} input files.')
+			logger.warning(f'Package {package.id} misses the {missing} input files.')
 			if self.add_missing:
-				package["harvest_info"] = {
+				package.harvest_info = {
 					"missing_input": missing
 				}
 		else:
-			logger.debug(f'Package {package["id"]} does not miss any input files.')
+			logger.debug(f'Package {package.id} does not miss any input files.')
 
 
 	def readfile(self):
-		self.result2 = HarvestModel(__name__, Settings.VERSION)
-		source_packages = []
+		self.result = HarvestModel(__name__, Settings.VERSION)
 		cur_package_id = None
 		cur_package_inputs = []
 		old_package = None
@@ -113,41 +110,36 @@ class Harvest:
 						if cur_package_id:
 							self._warn_missing_input(old_package, cur_package_inputs)
 						cur_package_id = package_id
-						source_package = {
-							"id" : package_id
-						}
-						source_package2 = SourcePackage(package_id)
-						self.result2.add_source_package(source_package2)
-						source_packages.append(source_package)
+						source_package = SourcePackage(package_id)
+						self.result.add_source_package(source_package)
 						old_package = source_package
 						cur_package_inputs = []
 					cur_package_inputs.append(ext)
 					if ext == ".fossy.json":
-						self._parse_fossy_main(json.load(f), source_package, source_package2)
+						self._parse_fossy_main(json.load(f), source_package)
 					elif ext == ".tinfoilhat.json":
-						self._parse_tinfoilhat_main(json.load(f), source_package, source_package2)
+						self._parse_tinfoilhat_main(json.load(f), source_package)
 					elif ext == ".alienmatcher.json":
-						self._parse_alienmatcher_main(json.load(f), source_package, source_package2)
+						self._parse_alienmatcher_main(json.load(f), source_package)
 					elif ext == ".deltacode.json":
-						self._parse_deltacode_main(json.load(f), source_package, source_package2)
+						self._parse_deltacode_main(json.load(f), source_package)
 					elif ext == ".scancode.json":
-						self._parse_scancode_main(json.load(f), source_package, source_package2)
+						self._parse_scancode_main(json.load(f), source_package)
 					elif ext == ".aliensrc":
-						self._parse_aliensrc_main(path, source_package, source_package2)
+						self._parse_aliensrc_main(path, source_package)
 			except Exception as ex:
 				logger.error(f"{self.pool.clnpath(path)} --> {ex.__class__.__name__}: {ex}")
 				raise ex
 
 		self._warn_missing_input(source_package, cur_package_inputs)
-		self.result["source_packages"] = source_packages
 
 	def write_results(self):
 		#FIXME Remove this line
 		self.result_file = "/home/pemoser/projects/noi/solda/aliens4friends/tmp/test-harvest-out.json"
 		with open(self.result_file, "w") as f:
-			json.dump(self.result2, f, indent=2, cls=BaseModelEncoder)
+			json.dump(self.result, f, indent=2, cls=BaseModelEncoder)
 
-	def _parse_aliensrc_main(self, path, out, source_package: SourcePackage):
+	def _parse_aliensrc_main(self, path, source_package: SourcePackage):
 		apkg = AlienPackage(path)
 		files = []
 		known_provenance = 0
@@ -168,21 +160,19 @@ class Harvest:
 		stats_files.total = known_provenance + unknown_provenance
 
 
-	def _parse_alienmatcher_main(self, cur, out, source_package: SourcePackage):
+	def _parse_alienmatcher_main(self, cur, source_package: SourcePackage):
 		try:
 			name = cur["debian"]["match"]["name"]
 			version = cur["debian"]["match"]["version"]
-
 			source_package.debian_matching = DebianMatch(name, version)
-
 		except KeyError:
 			pass
 
-	def _parse_scancode_main(self, cur, out, source_package: SourcePackage):
+	def _parse_scancode_main(self, cur, source_package: SourcePackage):
 		files = [f for f in cur['files'] if f['type'] == 'file']
 		source_package.statistics.files.upstream_source_total = len(files)
 
-	def _parse_deltacode_main(self, cur, out, source_package: SourcePackage):
+	def _parse_deltacode_main(self, cur, source_package: SourcePackage):
 		try:
 			stats = cur["header"]["stats"]
 			matching = (
@@ -229,7 +219,7 @@ class Harvest:
 		return sorted(result, reverse = True)
 
 
-	def _parse_fossy_main(self, cur, out, source_package: SourcePackage):
+	def _parse_fossy_main(self, cur, source_package: SourcePackage):
 		stat_agents = {}
 		stat_conclusions = {}
 		for fileobj in cur["licenses"]:
@@ -296,19 +286,15 @@ class Harvest:
 			result.tags = cur["tags"]
 		return result
 
-	def _parse_tinfoilhat_main(self, cur, out, source_package: SourcePackage):
+	def _parse_tinfoilhat_main(self, cur, source_package: SourcePackage):
 		for recipe_name, main in cur.items():
-			out["binary_packages"] = self._parse_tinfoilhat_packages(main["packages"])
-			if self.add_details:
-				out["metadata"] = self._parse_tinfoilhat_metadata(main["recipe"]["metadata"])
-				source_package.metadata = self._parse_tinfoilhat_metadata(main["recipe"]["metadata"])
-
 			source_package.name = main["recipe"]["metadata"]["name"]
 			source_package.version = main["recipe"]["metadata"]["version"]
 			source_package.revision = main["recipe"]["metadata"]["revision"]
 			source_package.tags = main["tags"]
-
 			source_package.binary_packages = self._parse_tinfoilhat_packages(main["packages"])
+			if self.add_details:
+				source_package.metadata = self._parse_tinfoilhat_metadata(main["recipe"]["metadata"])
 
 	@staticmethod
 	def execute(pool: Pool, add_details, add_missing, glob_name: str = "*", glob_version: str = "*"):
