@@ -13,7 +13,7 @@ from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.settings import Settings
 
 from aliens4friends.models.harvest import (
-	Harvest as HarvestModel,
+	HarvestModel,
 	SourcePackage,
 	Statistics,
 	StatisticsFiles,
@@ -21,10 +21,13 @@ from aliens4friends.models.harvest import (
 	AuditFindings,
 	BaseModelEncoder,
 	License,
-	DebianMatch,
+	DebianMatchBasic,
 	BinaryPackage,
-	LicenseFinding
+	LicenseFinding,
+	Tool
 )
+
+from aliens4friends.models.alienmatcher import AlienMatcherModel
 
 logger = logging.getLogger(__name__)
 
@@ -91,42 +94,41 @@ class Harvest:
 
 
 	def readfile(self):
-		self.result = HarvestModel(__name__, Settings.VERSION)
+		self.result = HarvestModel(Tool(__name__, Settings.VERSION))
 		cur_package_id = None
 		cur_package_inputs = []
 		old_package = None
 		for path in self.input_files:
 			try:
-				with open(path) as f:
-					logger.debug(f"Parsing {path}... ")
-					try:
-						package_id, ext = Harvest._filename_split(path)
-					except HarvestException as ex:
-						if str(ex) == "Unsupported file extension":
-							logger.debug(f"File {path} is not supported. Skipping...")
-							continue
-					package_id += f"+{self.package_id_ext}"
-					if not cur_package_id or package_id != cur_package_id:
-						if cur_package_id:
-							self._warn_missing_input(old_package, cur_package_inputs)
-						cur_package_id = package_id
-						source_package = SourcePackage(package_id)
-						self.result.add_source_package(source_package)
-						old_package = source_package
-						cur_package_inputs = []
-					cur_package_inputs.append(ext)
-					if ext == ".fossy.json":
-						self._parse_fossy_main(json.load(f), source_package)
-					elif ext == ".tinfoilhat.json":
-						self._parse_tinfoilhat_main(json.load(f), source_package)
-					elif ext == ".alienmatcher.json":
-						self._parse_alienmatcher_main(json.load(f), source_package)
-					elif ext == ".deltacode.json":
-						self._parse_deltacode_main(json.load(f), source_package)
-					elif ext == ".scancode.json":
-						self._parse_scancode_main(json.load(f), source_package)
-					elif ext == ".aliensrc":
-						self._parse_aliensrc_main(path, source_package)
+				logger.debug(f"Parsing {path}... ")
+				try:
+					package_id, ext = Harvest._filename_split(path)
+				except HarvestException as ex:
+					if str(ex) == "Unsupported file extension":
+						logger.debug(f"File {path} is not supported. Skipping...")
+						continue
+				package_id += f"+{self.package_id_ext}"
+				if not cur_package_id or package_id != cur_package_id:
+					if cur_package_id:
+						self._warn_missing_input(old_package, cur_package_inputs)
+					cur_package_id = package_id
+					source_package = SourcePackage(package_id)
+					self.result.source_packages.append(source_package)
+					old_package = source_package
+					cur_package_inputs = []
+				cur_package_inputs.append(ext)
+				if ext == ".fossy.json":
+					self._parse_fossy_main(path, source_package)
+				elif ext == ".tinfoilhat.json":
+					self._parse_tinfoilhat_main(path, source_package)
+				elif ext == ".alienmatcher.json":
+					self._parse_alienmatcher_main(path, source_package)
+				elif ext == ".deltacode.json":
+					self._parse_deltacode_main(path, source_package)
+				elif ext == ".scancode.json":
+					self._parse_scancode_main(path, source_package)
+				elif ext == ".aliensrc":
+					self._parse_aliensrc_main(path, source_package)
 			except Exception as ex:
 				logger.error(f"{self.pool.clnpath(path)} --> {ex.__class__.__name__}: {ex}")
 				raise ex
@@ -134,10 +136,7 @@ class Harvest:
 		self._warn_missing_input(source_package, cur_package_inputs)
 
 	def write_results(self):
-		#FIXME Remove this line
-		self.result_file = "/home/pemoser/projects/noi/solda/aliens4friends/tmp/test-harvest-out.json"
-		with open(self.result_file, "w") as f:
-			json.dump(self.result, f, indent=2, cls=BaseModelEncoder)
+		self.pool.write_json(self.result, self.pool.clnpath(self.result_file))
 
 	def _parse_aliensrc_main(self, path, source_package: SourcePackage):
 		apkg = AlienPackage(path)
@@ -160,19 +159,27 @@ class Harvest:
 		stats_files.total = known_provenance + unknown_provenance
 
 
-	def _parse_alienmatcher_main(self, cur, source_package: SourcePackage):
+	def _parse_alienmatcher_main(self, path, source_package: SourcePackage):
 		try:
-			name = cur["debian"]["match"]["name"]
-			version = cur["debian"]["match"]["version"]
-			source_package.debian_matching = DebianMatch(name, version)
+			amm = AlienMatcherModel.from_file(path)
+			source_package.debian_matching = DebianMatchBasic(
+				amm.debian.match.name,
+				amm.debian.match.version
+			)
 		except KeyError:
 			pass
 
-	def _parse_scancode_main(self, cur, source_package: SourcePackage):
+	def _parse_scancode_main(self, path, source_package: SourcePackage):
+		with open(path) as f:
+			cur = json.load(f)
+
 		files = [f for f in cur['files'] if f['type'] == 'file']
 		source_package.statistics.files.upstream_source_total = len(files)
 
-	def _parse_deltacode_main(self, cur, source_package: SourcePackage):
+	def _parse_deltacode_main(self, path, source_package: SourcePackage):
+		with open(path) as f:
+			cur = json.load(f)
+
 		try:
 			stats = cur["header"]["stats"]
 			matching = (
@@ -219,7 +226,9 @@ class Harvest:
 		return sorted(result, reverse = True)
 
 
-	def _parse_fossy_main(self, cur, source_package: SourcePackage):
+	def _parse_fossy_main(self, path, source_package: SourcePackage):
+		with open(path) as f:
+			cur = json.load(f)
 		stat_agents = {}
 		stat_conclusions = {}
 		for fileobj in cur["licenses"]:
@@ -286,7 +295,10 @@ class Harvest:
 			result.tags = cur["tags"]
 		return result
 
-	def _parse_tinfoilhat_main(self, cur, source_package: SourcePackage):
+	def _parse_tinfoilhat_main(self, path, source_package: SourcePackage):
+		with open(path) as f:
+			cur = json.load(f)
+
 		for recipe_name, main in cur.items():
 			source_package.name = main["recipe"]["metadata"]["name"]
 			source_package.version = main["recipe"]["metadata"]["version"]

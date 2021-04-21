@@ -41,6 +41,14 @@ from aliens4friends.commons.package import AlienPackage, Package, PackageError, 
 from aliens4friends.commons.version import Version
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.settings import Settings
+from aliens4friends.models.alienmatcher import (
+	AlienMatcherModel,
+	Tool,
+	AlienSrc,
+	DebianMatch,
+	DebianMatchContainer,
+	VersionCandidate
+)
 
 logger = logging.getLogger(__name__)
 
@@ -390,32 +398,28 @@ class AlienMatcher:
 			if not Settings.POOLCACHED:
 				raise FileNotFoundError()
 			json_data = self.pool.get_json(resultpath)
+			amm = AlienMatcherModel(**json_data)
 			debpkg = DebianPackage(
-				json_data["debian"]["match"]["name"],
-				json_data["debian"]["match"]["version"],
-				json_data["debian"]["match"]["debsrc_orig"],
-				json_data["debian"]["match"]["debsrc_debian"],
-				json_data["debian"]["match"]["dsc_format"]
+				amm.debian.match.name,
+				amm.debian.match.version,
+				amm.debian.match.debsrc_orig,
+				amm.debian.match.debsrc_debian,
+				amm.debian.match.dsc_format
 			)
 			logger.debug(f"[{self.curpkg}] Result already exists, skipping.")
 		except (FileNotFoundError, KeyError):
 
-			json_data = {
-				"tool": {
-					"name": __name__,
-					"version": Settings.VERSION
-				},
-				"aliensrc": {
-					"name": apkg.name,
-					"version": apkg.version.str,
-					"alternative_names": apkg.alternative_names,
-					"internal_archive_name": apkg.internal_archive_name,
-					"filename": apkg.archive_name,
-					"files": apkg.package_files
-				},
-				"debian": {
-				}
-			}
+			amm = AlienMatcherModel(
+				tool=Tool(__name__, Settings.VERSION),
+				aliensrc=AlienSrc(
+					apkg.name,
+					apkg.version.str,
+					apkg.alternative_names,
+					apkg.internal_archive_name,
+					apkg.archive_name,
+					apkg.package_files
+				)
+			)
 
 			try:
 				if apkg.has_internal_primary_archive():
@@ -426,30 +430,27 @@ class AlienMatcher:
 					# SPDX was already generated from the Debian sources.
 					debpkg = self.fetch_debian_sources(match)
 
-					json_data["debian"]["match"] = {
-						"name": debpkg.name,
-						"version": debpkg.version.str,
-						"debsrc_debian": debpkg.debsrc_debian,
-						"debsrc_orig": debpkg.debsrc_orig,
-						"dsc_format": debpkg.format,
-						"version_candidates": [
-							{
-								"version" : c[0].str,
-								"distance": c[1],
-								"is_aliensrc": c[2]
-							} for c in self.candidate_list
-						],
-					}
+					amm.debian.match = DebianMatch(
+						debpkg.name,
+						debpkg.version.str,
+						debpkg.debsrc_debian,
+						debpkg.debsrc_orig,
+						debpkg.format,
+						[
+							VersionCandidate(c[0].str, c[1], c[2])
+							for c in self.candidate_list
+						]
+					)
 				else:
 					self.errors.append("No internal archive")
 
 			except AlienMatcherError as ex:
 				self.errors.append(str(ex))
 
-			json_data["errors"] = self.errors
-			self.pool.write_json(json_data, resultpath)
+			amm.errors = self.errors
+			self.pool.write_json(amm, resultpath)
 			logger.debug(f"[{self.curpkg}] Result written to {resultpath}.")
-		return json_data
+		return amm
 
 	def run(self, package_path):
 		try:
@@ -458,29 +459,22 @@ class AlienMatcher:
 			self.curpkg = f"{package.name}-{package.version.str}"
 			logger.info(f"[{self.curpkg}] Processing {filename}...")
 			package.expand()
-			match = self.match(package)
-			errors = match["errors"]
+			amm = self.match(package)
 
-			try:
-				debsrc_debian = match["debian"]["match"]["debsrc_debian"]
-				debsrc_debian = os.path.basename(debsrc_debian) if debsrc_debian else ''
-			except KeyError:
-				debsrc_debian = ""
+			debsrc_debian = amm.debian.match.debsrc_debian
+			debsrc_debian = os.path.basename(debsrc_debian) if debsrc_debian else ''
 
-			try:
-				debsrc_orig = match["debian"]["match"]["debsrc_orig"]
-				debsrc_orig = os.path.basename(debsrc_orig) if debsrc_orig else ''
-			except KeyError:
-				debsrc_orig = ""
+			debsrc_orig = amm.debian.match.debsrc_orig
+			debsrc_orig = os.path.basename(debsrc_orig) if debsrc_orig else ''
 
 			outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'
-			if not debsrc_debian and not debsrc_orig and not errors:
-				errors = 'FATAL: NO MATCH without errors'
+			if not debsrc_debian and not debsrc_orig and not amm.errors:
+				amm.errors = 'FATAL: NO MATCH without errors'
 			logger.info(
 				f"[{self.curpkg}] {outcome}:"
-				f" {debsrc_debian} {debsrc_orig} {errors or ''}"
+				f" {debsrc_debian} {debsrc_orig} {amm.errors or ''}"
 			)
-			return match
+			return amm
 		except (AlienMatcherError, PackageError) as ex:
 			if str(ex) == "No internal archive":
 				logger.warning(f"[{self.curpkg}] IGNORED: {ex}")

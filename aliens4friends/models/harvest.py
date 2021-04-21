@@ -1,19 +1,10 @@
 
-from typing import Union
 from .base import BaseModel, BaseModelEncoder, ModelError
-from .common import License, Tool
+from .common import License, Tool, SourceFile
 from json import load as json_load
 
 
-class SourceFile(BaseModel):
-	def __init__(self, name: str = None, sha1: str = None, src_uri: str = None, files_in_archive: Union[int, bool] = False):
-		self.name = name
-		self.sha1 = sha1
-		self.src_uri = src_uri
-		self.files_in_archive = files_in_archive
-
-
-class DebianMatch(BaseModel):
+class DebianMatchBasic(BaseModel):
 	def __init__(self, name: str = None, version: str = None, ip_matching_files: int = 0):
 		self.name = name
 		self.version = version
@@ -41,20 +32,24 @@ class StatisticsFiles(BaseModel):
 
 
 class AuditFindings(BaseModel):
-	def __init__(self, main_licenses: list = None, all_licenses: list = None):
+	def __init__(
+		self,
+		main_licenses: list = None,
+		all_licenses: list = None
+	):
 		self.main_licenses = [
-			License(lic) for lic in main_licenses
+			License(lic).encode() for lic in main_licenses
 		] if main_licenses else []
-		self.all_licenses = all_licenses if all_licenses else []
+		self.all_licenses = self.drilldown(all_licenses, LicenseFinding)
 
 class StatisticsLicenses(BaseModel):
 	def __init__(
 		self,
 		license_scanner_findings: list = None,
-		license_audit_findings: list = None
+		license_audit_findings: AuditFindings = None
 	):
-		self.license_scanner_findings = license_scanner_findings if license_scanner_findings else []
-		self.license_audit_findings = license_audit_findings if license_audit_findings else []
+		self.license_scanner_findings = self.drilldown(license_scanner_findings, LicenseFinding)
+		self.license_audit_findings = self.decode(license_audit_findings, AuditFindings)
 
 
 class Statistics(BaseModel):
@@ -63,8 +58,8 @@ class Statistics(BaseModel):
 		files: StatisticsFiles = None,
 		licenses: StatisticsLicenses = None
 	):
-		self.files = files if files else StatisticsFiles()
-		self.licenses = licenses if licenses else StatisticsLicenses()
+		self.files = self.decode(files, StatisticsFiles)
+		self.licenses = self.decode(licenses, StatisticsLicenses)
 
 
 class LicenseFinding(BaseModel):
@@ -96,7 +91,7 @@ class SourcePackage(BaseModel):
 		name: str = None,
 		version: str = None,
 		revision: str = None,
-		debian_matching: DebianMatch = None,
+		debian_matching: DebianMatchBasic = None,
 		source_files: list = None,
 		statistics: Statistics = None,
 		binary_packages: list = None,
@@ -107,35 +102,28 @@ class SourcePackage(BaseModel):
 		self.version = version
 		self.revision = revision
 		self.tags = tags
-		self.debian_matching = debian_matching if debian_matching else DebianMatch()
-		self.statistics = statistics if statistics else Statistics()
-		self.source_files = [
-			SourceFile.from_json(srcf) for srcf in source_files
-		] if source_files else []
-		self.binary_packages = [
-			#FIXME We have a list in a list; remove outer list
-			BinaryPackage.from_json(binp) for binp in binary_packages[0]
-		] if binary_packages else []
+		self.debian_matching = self.decode(debian_matching, DebianMatchBasic)
+		self.statistics = self.decode(statistics, Statistics)
+		self.source_files = self.drilldown(source_files, SourceFile)
+
+		#FIXME This is a hack! We have a list in a list; remove outer list
+		if (
+			binary_packages
+			and isinstance(binary_packages, list)
+			and len(binary_packages) > 0
+			and isinstance(binary_packages[0], list)
+		):
+			binary_packages = binary_packages[0]
+
+		self.binary_packages = self.drilldown(binary_packages, BinaryPackage)
 
 
-class Harvest(BaseModel):
+class HarvestModel(BaseModel):
 
-	def __init__(self, tool_name: str = None, tool_version: str = None, tool_parameters: str = None):
-		self.tool = Tool(tool_name, tool_version, tool_parameters)
-		self.source_packages = []
-
-	@classmethod
-	def from_file(cls, path):
-		with open(path, "r") as f:
-			j = json_load(f)
-
-		hrv = Harvest(**j["tool"])
-
-		for srcpckstr in j["source_packages"]:
-			srcpck = SourcePackage.from_json(srcpckstr)
-			hrv.source_packages.append(srcpck)
-
-		return hrv
-
-	def add_source_package(self, source_package: SourcePackage):
-		self.source_packages.append(source_package)
+	def __init__(
+		self,
+		tool: Tool = None,
+		source_packages: list = None
+	):
+		self.tool = self.decode(tool, Tool)
+		self.source_packages = source_packages if source_packages else []

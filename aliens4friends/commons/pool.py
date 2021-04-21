@@ -8,6 +8,7 @@ from pathlib import Path
 from shutil import rmtree
 from .utils import copy, mkdir
 from .settings import Settings
+from aliens4friends.models.base import BaseModelEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +65,7 @@ class Pool:
 		dest = os.path.join(dest_folder, path_args[-1])
 		self.mkdir(dest_folder)
 		with open(dest, 'w') as f:
-			jsondump(contents, f, indent = 2)
+			jsondump(contents, f, indent = 2, cls=BaseModelEncoder)
 		return dest
 
 	def get(self, *path_args):

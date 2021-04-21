@@ -1,4 +1,5 @@
 from .base import BaseModel
+from typing import Union
 
 class License(BaseModel):
 	def __init__(self, spdxid: str):
@@ -32,3 +33,10 @@ class Tool(BaseModel):
 		self.version = version
 		if parameters:
 			self.parameters = parameters
+
+class SourceFile(BaseModel):
+	def __init__(self, name: str = None, sha1: str = None, src_uri: str = None, files_in_archive: Union[int, bool] = False):
+		self.name = name
+		self.sha1 = sha1
+		self.src_uri = src_uri
+		self.files_in_archive = files_in_archive
