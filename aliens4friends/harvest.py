@@ -26,7 +26,7 @@ from aliens4friends.models.harvest import (
 	LicenseFinding,
 	Tool
 )
-
+from aliens4friends.models.fossy import FossyModel
 from aliens4friends.models.alienmatcher import AlienMatcherModel
 
 logger = logging.getLogger(__name__)
@@ -136,27 +136,16 @@ class Harvest:
 		self._warn_missing_input(source_package, cur_package_inputs)
 
 	def write_results(self):
-		self.pool.write_json(self.result, self.pool.clnpath(self.result_file))
+		self.pool.write_json(self.result, self.result_file)
 
 	def _parse_aliensrc_main(self, path, source_package: SourcePackage):
 		apkg = AlienPackage(path)
-		files = []
-		known_provenance = 0
-		unknown_provenance = 0
-		for f in apkg.package_files:
-			f['src_uri'] = f['src_uri'].split(";")[0] # remove bitbake params
-			files.append(f)
-			if f["src_uri"].startswith("file:"):
-				unknown_provenance += (f['files_in_archive'] or 1)
-				# (files_in_archive == False) means that it's no archive, just a single file
-			elif f["src_uri"].startswith("http") or f["src_uri"].startswith("git"):
-				known_provenance += (f['files_in_archive'] or 1)
-
-		source_package.source_files = files
+		apkg.calc_provenance()
+		source_package.source_files = apkg.package_files
 		stats_files = source_package.statistics.files
-		stats_files.known_provenance = known_provenance
-		stats_files.unknown_provenance = unknown_provenance
-		stats_files.total = known_provenance + unknown_provenance
+		stats_files.known_provenance = apkg.known_provenance
+		stats_files.unknown_provenance = apkg.unknown_provenance
+		stats_files.total = apkg.total
 
 
 	def _parse_alienmatcher_main(self, path, source_package: SourcePackage):
@@ -227,27 +216,26 @@ class Harvest:
 
 
 	def _parse_fossy_main(self, path, source_package: SourcePackage):
-		with open(path) as f:
-			cur = json.load(f)
+		cur = FossyModel.from_file(path)
 		stat_agents = {}
 		stat_conclusions = {}
-		for fileobj in cur["licenses"]:
+		for license_finding in cur.licenses:
 			# XXX I assume, that these are folder names, so they can be skipped
-			if not fileobj["agentFindings"] and not fileobj["conclusions"]:
+			if not license_finding.agentFindings and not license_finding.conclusions:
 				continue
-			cur_stat_agents = self._parse_fossy_licenselists(fileobj["agentFindings"])
+			cur_stat_agents = self._parse_fossy_licenselists(license_finding.agentFindings)
 			for k, v in cur_stat_agents.items():
 				Harvest._increment(stat_agents, k, v)
-			cur_stat_conclusions = self._parse_fossy_licenselists(fileobj["conclusions"])
+			cur_stat_conclusions = self._parse_fossy_licenselists(license_finding.conclusions)
 			for k, v in cur_stat_conclusions.items():
 				Harvest._increment(stat_conclusions, k, v)
 
 		# Some response key do not do what they promise...
 		# See https://git.ostc-eu.org/playground/fossology/-/blob/dev-packaging/fossywrapper/__init__.py#L565
-		audit_total = cur["summary"]["filesCleared"]
-		not_cleared = cur["summary"]["filesToBeCleared"]
+		audit_total = cur.summary.filesCleared
+		not_cleared = cur.summary.filesToBeCleared
 		cleared = audit_total - not_cleared
-		ml = cur["summary"]["mainLicense"]
+		ml = cur.summary.mainLicense
 		main_licenses = list(set(ml.split(","))) if ml else []
 
 		stats = source_package.statistics

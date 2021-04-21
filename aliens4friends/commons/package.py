@@ -104,8 +104,14 @@ class AlienPackage(Package):
 		self.manager = aliensrc.source_package.manager
 		self.metadata = aliensrc.source_package.metadata
 		self.package_files = aliensrc.source_package.files
+		self.expanded = False
 
 	def expand(self):
+		# We need this step only once for each instance...
+		if self.expanded:
+			return
+
+		self.expanded = True
 		checksums = self.archive.checksums("files/")
 
 		if len(checksums) != len(self.package_files):
@@ -119,6 +125,7 @@ class AlienPackage(Package):
 		self.internal_archive_rootfolder = None
 		self.internal_archive_src_uri = None
 		self.internal_archives = []
+
 		for src_file in self.package_files:
 			try:
 				if src_file.sha1 != checksums[src_file.name]:
@@ -188,6 +195,20 @@ class AlienPackage(Package):
 
 	def internal_archive_count(self):
 		return len(self.internal_archives)
+
+	def calc_provenance(self):
+		self.known_provenance = 0
+		self.unknown_provenance = 0
+		for f in self.package_files:
+			src_uri = f.src_uri.split(";")[0] # remove bitbake params
+			if src_uri.startswith("file:"):
+				self.unknown_provenance += (f.files_in_archive or 1)
+				# (files_in_archive == False) means that it's no archive, just a single file
+			elif src_uri.startswith("http") or src_uri.startswith("git"):
+				self.known_provenance += (f.files_in_archive or 1)
+		self.total = self.known_provenance + self.unknown_provenance
+
+
 
 	def print_info(self):
 		print(f"| Package:")
