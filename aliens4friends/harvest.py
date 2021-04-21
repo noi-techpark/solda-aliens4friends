@@ -131,7 +131,7 @@ class Harvest:
 					self._parse_aliensrc_main(path, source_package)
 			except Exception as ex:
 				logger.error(f"{self.pool.clnpath(path)} --> {ex.__class__.__name__}: {ex}")
-				raise ex
+				raise ex ## FIXME Remove this line
 
 		self._warn_missing_input(source_package, cur_package_inputs)
 
@@ -149,14 +149,11 @@ class Harvest:
 
 
 	def _parse_alienmatcher_main(self, path, source_package: SourcePackage):
-		try:
-			amm = AlienMatcherModel.from_file(path)
-			source_package.debian_matching = DebianMatchBasic(
-				amm.debian.match.name,
-				amm.debian.match.version
-			)
-		except KeyError:
-			pass
+		amm = AlienMatcherModel.from_file(path)
+		source_package.debian_matching = DebianMatchBasic(
+			amm.debian.match.name,
+			amm.debian.match.version
+		)
 
 	def _parse_scancode_main(self, path, source_package: SourcePackage):
 		with open(path) as f:

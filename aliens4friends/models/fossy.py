@@ -1,4 +1,4 @@
-from aliens4friends.models.base import BaseModel
+from .base import BaseModel
 
 class FossySummary(BaseModel):
 	def __init__(
