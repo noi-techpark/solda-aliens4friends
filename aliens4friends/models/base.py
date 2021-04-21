@@ -43,7 +43,7 @@ class BaseModel:
 		return cls(**input_dict)
 
 	@classmethod
-	def from_file(cls, path: str) -> cls:
+	def from_file(cls, path: str):
 		with open(path) as f:
 			return cls(**jsonload(f))
 

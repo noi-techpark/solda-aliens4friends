@@ -1,8 +1,5 @@
-
 from .base import BaseModel, BaseModelEncoder, ModelError
 from .common import License, Tool, SourceFile
-from json import load as json_load
-
 
 class DebianMatchBasic(BaseModel):
 	def __init__(self, name: str = None, version: str = None, ip_matching_files: int = 0):

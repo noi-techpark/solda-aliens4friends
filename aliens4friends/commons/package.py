@@ -10,6 +10,8 @@ from typing import Union
 from .archive import Archive, ArchiveError
 from .version import Version
 
+from aliens4friends.models.aliensrc import AlienSrc
+
 logger = logging.getLogger(__name__)
 
 class PackageError(Exception):
@@ -83,28 +85,25 @@ class AlienPackage(Package):
 		self.archive = Archive(full_archive_path)
 
 		try:
-			info_lines = self.archive.readfile(self.ALIEN_MATCHER_JSON)
+			aliensrc = self.archive.readfile(self.ALIEN_MATCHER_JSON)
+			aliensrc = json.loads("\n".join(aliensrc))
+			aliensrc = AlienSrc.from_json(aliensrc)
 		except ArchiveError as ex:
 			raise PackageError(f"Broken Alien Package: Error is {str(ex)}")
 
-		self._info_json = json.loads("\n".join(info_lines))
-
-		self.spec_version = self._info_json['version']
-		if self.spec_version != 1 and self.spec_version != "1":
+		if aliensrc.version != 1:
 			raise PackageError(
-				f"{self.ALIEN_MATCHER_JSON} with version {self.spec_version} not supported"
+				f"{self.ALIEN_MATCHER_JSON} with version {aliensrc.version} not supported"
 			)
 
 		super().__init__(
-			self._info_json['source_package']['name'],
-			self._info_json['source_package']['version'],
+			aliensrc.source_package.name,
+			aliensrc.source_package.version,
 			full_archive_path
 		)
-
-		self.manager = self._info_json['source_package'].get('manager')
-		self.metadata = self._info_json['source_package'].get('metadata')
-
-		self.package_files = self._info_json['source_package']['files']
+		self.manager = aliensrc.source_package.manager
+		self.metadata = aliensrc.source_package.metadata
+		self.package_files = aliensrc.source_package.files
 
 	def expand(self):
 		checksums = self.archive.checksums("files/")
@@ -120,29 +119,29 @@ class AlienPackage(Package):
 		self.internal_archive_rootfolder = None
 		self.internal_archive_src_uri = None
 		self.internal_archives = []
-		for rec in self.package_files:
+		for src_file in self.package_files:
 			try:
-				if rec['sha1'] != checksums[rec['name']]:
+				if src_file.sha1 != checksums[src_file.name]:
 					raise PackageError(
-						f"{rec['sha1']} is not {checksums[rec['name']]} for {rec['name']}."
+						f"{src_file.sha1} is not {checksums[src_file.name]} for {src_file.name}."
 					)
 			except KeyError:
 				raise PackageError(
-						f"{rec['sha1']} does not exist in checksums for {rec['name']}."
+						f"{src_file.sha1} does not exist in checksums for {src_file.name}."
 					)
 
-			if '.tar.' in rec['name'] or rec['name'].endswith('.tgz'):
+			if '.tar.' in src_file.name or src_file.name.endswith('.tgz'):
 				self.internal_archives.append(
 					{
-						"name" : rec["name"],
-						"checksums" : self.archive.in_archive_checksums(f"files/{rec['name']}"),
-						"rootfolder" : self.archive.in_archive_rootfolder(f"files/{rec['name']}"),
-						"src_uri" : rec["src_uri"]
+						"name" : src_file.name,
+						"checksums" : self.archive.in_archive_checksums(f"files/{src_file.name}"),
+						"rootfolder" : self.archive.in_archive_rootfolder(f"files/{src_file.name}"),
+						"src_uri" : src_file.src_uri
 					}
 				)
 				logger.debug(
 					f"[{self.name}-{self.version.str}]"
-					f" adding internal archive {rec['name']}")
+					f" adding internal archive {src_file.name}")
 
 		primary = None
 		if len(self.internal_archives) == 1:
@@ -154,16 +153,16 @@ class AlienPackage(Package):
 			# archive
 
 			# Special rules to find the primary archive
-			for rec in self.internal_archives:
+			for src_file in self.internal_archives:
 				if (
-					(("linux" in rec["name"] or "kernel" in rec["name"])
-					and "name=machine" in rec["src_uri"])
+					(("linux" in src_file["name"] or "kernel" in src_file["name"])
+					and "name=machine" in src_file["src_uri"])
 					or
-					("perl" in rec["name"] and "name=perl" in rec["src_uri"])
+					("perl" in src_file["name"] and "name=perl" in src_file["src_uri"])
 					or
-					("libxml2" in rec["name"] and "name=libtar" in rec["src_uri"])
+					("libxml2" in src_file["name"] and "name=libtar" in src_file["src_uri"])
 				):
-					primary = rec
+					primary = src_file
 					break
 
 		if primary:
