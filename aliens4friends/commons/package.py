@@ -87,7 +87,7 @@ class AlienPackage(Package):
 		try:
 			aliensrc = self.archive.readfile(self.ALIEN_MATCHER_JSON)
 			aliensrc = json.loads("\n".join(aliensrc))
-			aliensrc = AlienSrc.from_json(aliensrc)
+			aliensrc = AlienSrc.decode(aliensrc)
 		except ArchiveError as ex:
 			raise PackageError(f"Broken Alien Package: Error is {str(ex)}")
 
