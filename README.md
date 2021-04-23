@@ -857,7 +857,7 @@ optional arguments:
 - INPUT: `.tinfoilhat.json` file, generated through [TinfoilHat]
 
 This is a Yocto/BitBake-specific step. Add `.tinfoilhat.json` results to the
-pool to get more details to be included the final statistics.
+pool to get more details to be included in the final statistics.
 
 `.tinfoilhat.json` files contain data that are specific to the particular
 bitbake project that is being scanned, such as `DISTRO`, `IMAGE_NAME` and
