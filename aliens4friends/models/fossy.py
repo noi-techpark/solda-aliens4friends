@@ -35,8 +35,8 @@ class FossyLicenseFinding(BaseModel):
 		conclusions: list = None
 	):
 		self.filePath = filePath
-		self.agentFindings = self.drilldown(agentFindings, str)
-		self.conclusions = self.drilldown(conclusions, str)
+		self.agentFindings = agentFindings
+		self.conclusions = conclusions
 
 
 class FossyModel(BaseModel):
@@ -47,5 +47,5 @@ class FossyModel(BaseModel):
 		licenses: list = None
 	):
 		self.origin = origin
-		self.summary = self.decode(summary, FossySummary)
-		self.licenses = self.drilldown(licenses, FossyLicenseFinding)
+		self.summary = FossySummary.decode(summary)
+		self.licenses = FossyLicenseFinding.drilldown(licenses)

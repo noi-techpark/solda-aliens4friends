@@ -28,7 +28,7 @@ class DebianMatch(BaseModel):
 		self.debsrc_debian = debsrc_debian
 		self.debsrc_orig = debsrc_orig
 		self.dsc_format = dsc_format
-		self.version_candidates = self.drilldown(version_candidates, VersionCandidate)
+		self.version_candidates = VersionCandidate.drilldown(version_candidates)
 
 # FIXME Needed? It contains only the match itself, what else is on that json level?
 class DebianMatchContainer(BaseModel):
@@ -36,7 +36,7 @@ class DebianMatchContainer(BaseModel):
 		self,
 		match: DebianMatch = None
 	):
-		self.match = self.decode(match, DebianMatch)
+		self.match = DebianMatch.decode(match)
 
 class AlienSrc(BaseModel):
 	def __init__(
@@ -53,7 +53,7 @@ class AlienSrc(BaseModel):
 		self.filename = filename
 		self.internal_archive_name = internal_archive_name
 		self.alternative_names = alternative_names if alternative_names else []
-		self.files = self.drilldown(files, SourceFile)
+		self.files = SourceFile.drilldown(files)
 
 
 class AlienMatcherModel(BaseModel):
@@ -65,8 +65,8 @@ class AlienMatcherModel(BaseModel):
 		debian: DebianMatchContainer = None,
 		errors: list = None
 	):
-		self.tool = self.decode(tool, Tool)
-		self.aliensrc = self.decode(aliensrc, AlienSrc)
-		self.debian = self.decode(debian, DebianMatchContainer)
+		self.tool = Tool.decode(tool)
+		self.aliensrc = AlienSrc.decode(aliensrc)
+		self.debian = DebianMatchContainer.decode(debian)
 		self.errors = errors if errors else []
 

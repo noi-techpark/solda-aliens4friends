@@ -15,16 +15,16 @@ class Body(BaseModel):
 		new_files_with_no_license_and_copyright: list = None,
 		new_files_with_license_or_copyright: list = None
 	):
-		self.same_files = self.drilldown(same_files, str)
-		self.moved_files = self.drilldown(moved_files, str)
-		self.changed_files_with_no_license_and_copyright = self.drilldown(changed_files_with_no_license_and_copyright, str)
-		self.changed_files_with_same_copyright_and_license = self.drilldown(changed_files_with_same_copyright_and_license, str)
-		self.changed_files_with_updated_copyright_year_only = self.drilldown(changed_files_with_updated_copyright_year_only, str)
-		self.changed_files_with_changed_copyright_or_license = self.drilldown(changed_files_with_changed_copyright_or_license, str)
-		self.deleted_files_with_no_license_and_copyright = self.drilldown(deleted_files_with_no_license_and_copyright, str)
-		self.deleted_files_with_license_or_copyright = self.drilldown(deleted_files_with_license_or_copyright, str)
-		self.new_files_with_no_license_and_copyright = self.drilldown(new_files_with_no_license_and_copyright, str)
-		self.new_files_with_license_or_copyright = self.drilldown(new_files_with_license_or_copyright, str)
+		self.same_files = same_files
+		self.moved_files = moved_files
+		self.changed_files_with_no_license_and_copyright = changed_files_with_no_license_and_copyright
+		self.changed_files_with_same_copyright_and_license = changed_files_with_same_copyright_and_license
+		self.changed_files_with_updated_copyright_year_only = changed_files_with_updated_copyright_year_only
+		self.changed_files_with_changed_copyright_or_license = changed_files_with_changed_copyright_or_license
+		self.deleted_files_with_no_license_and_copyright = deleted_files_with_no_license_and_copyright
+		self.deleted_files_with_license_or_copyright = deleted_files_with_license_or_copyright
+		self.new_files_with_no_license_and_copyright = new_files_with_no_license_and_copyright
+		self.new_files_with_license_or_copyright = new_files_with_license_or_copyright
 
 
 class Stats(BaseModel):
@@ -71,8 +71,8 @@ class Header(BaseModel):
 		compared_json_files: Compared = None,
 		stats: Stats = None
 	):
-		self.compared_json_files = self.decode(compared_json_files, Compared)
-		self.stats = self.decode(stats, Stats)
+		self.compared_json_files = Compared.decode(compared_json_files)
+		self.stats = Stats.decode(stats)
 
 class DeltaCodeModel(BaseModel):
 	def __init__(
@@ -81,6 +81,6 @@ class DeltaCodeModel(BaseModel):
 		header: Header = None,
 		body: Body = None
 	):
-		self.tool = self.decode(tool, Tool)
-		self.header = self.decode(header, Header)
-		self.body = self.decode(body, Body)
+		self.tool = Tool.decode(tool)
+		self.header = Header.decode(header)
+		self.body = Body.decode(body)

@@ -37,7 +37,7 @@ class AuditFindings(BaseModel):
 		self.main_licenses = [
 			License(lic).encode() for lic in main_licenses
 		] if main_licenses else []
-		self.all_licenses = self.drilldown(all_licenses, LicenseFinding)
+		self.all_licenses = LicenseFinding.drilldown(all_licenses)
 
 class StatisticsLicenses(BaseModel):
 	def __init__(
@@ -45,8 +45,8 @@ class StatisticsLicenses(BaseModel):
 		license_scanner_findings: list = None,
 		license_audit_findings: AuditFindings = None
 	):
-		self.license_scanner_findings = self.drilldown(license_scanner_findings, LicenseFinding)
-		self.license_audit_findings = self.decode(license_audit_findings, AuditFindings)
+		self.license_scanner_findings = LicenseFinding.drilldown(license_scanner_findings)
+		self.license_audit_findings = AuditFindings.decode(license_audit_findings)
 
 
 class Statistics(BaseModel):
@@ -55,8 +55,8 @@ class Statistics(BaseModel):
 		files: StatisticsFiles = None,
 		licenses: StatisticsLicenses = None
 	):
-		self.files = self.decode(files, StatisticsFiles)
-		self.licenses = self.decode(licenses, StatisticsLicenses)
+		self.files = StatisticsFiles.decode(files)
+		self.licenses = StatisticsLicenses.decode(licenses)
 
 
 class LicenseFinding(BaseModel):
@@ -99,9 +99,9 @@ class SourcePackage(BaseModel):
 		self.version = version
 		self.revision = revision
 		self.tags = tags
-		self.debian_matching = self.decode(debian_matching, DebianMatchBasic)
-		self.statistics = self.decode(statistics, Statistics)
-		self.source_files = self.drilldown(source_files, SourceFile)
+		self.debian_matching = DebianMatchBasic.decode(debian_matching)
+		self.statistics = Statistics.decode(statistics)
+		self.source_files = SourceFile.drilldown(source_files)
 
 		#FIXME This is a hack! We have a list in a list; remove outer list
 		if (
@@ -112,7 +112,7 @@ class SourcePackage(BaseModel):
 		):
 			binary_packages = binary_packages[0]
 
-		self.binary_packages = self.drilldown(binary_packages, BinaryPackage)
+		self.binary_packages = BinaryPackage.drilldown(binary_packages)
 
 
 class HarvestModel(BaseModel):
@@ -122,5 +122,5 @@ class HarvestModel(BaseModel):
 		tool: Tool = None,
 		source_packages: list = None
 	):
-		self.tool = self.decode(tool, Tool)
-		self.source_packages = source_packages if source_packages else []
+		self.tool = Tool.decode(tool)
+		self.source_packages = SourcePackage.drilldown(source_packages)

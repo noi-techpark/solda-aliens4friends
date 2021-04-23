@@ -28,6 +28,8 @@ from aliens4friends.models.harvest import (
 )
 from aliens4friends.models.fossy import FossyModel
 from aliens4friends.models.alienmatcher import AlienMatcherModel
+from aliens4friends.models.deltacode import DeltaCodeModel
+from aliens4friends.models.tinfoilhat import TinfoilHatModel
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +133,6 @@ class Harvest:
 					self._parse_aliensrc_main(path, source_package)
 			except Exception as ex:
 				logger.error(f"{self.pool.clnpath(path)} --> {ex.__class__.__name__}: {ex}")
-				raise ex ## FIXME Remove this line
 
 		self._warn_missing_input(source_package, cur_package_inputs)
 
@@ -158,26 +159,17 @@ class Harvest:
 	def _parse_scancode_main(self, path, source_package: SourcePackage):
 		with open(path) as f:
 			cur = json.load(f)
-
 		files = [f for f in cur['files'] if f['type'] == 'file']
 		source_package.statistics.files.upstream_source_total = len(files)
 
 	def _parse_deltacode_main(self, path, source_package: SourcePackage):
-		with open(path) as f:
-			cur = json.load(f)
-
-		try:
-			stats = cur["header"]["stats"]
-			matching = (
-				stats["same_files"]
-				+ stats["changed_files_with_no_license_and_copyright"]
-				+ stats["changed_files_with_same_copyright_and_license"]
-				+ stats["changed_files_with_updated_copyright_year_only"]
-			)
-		except KeyError:
-			matching = 0
-
-		source_package.debian_matching.ip_matching_files = matching
+		cur = DeltaCodeModel.from_file(path)
+		source_package.debian_matching.ip_matching_files = (
+			cur.header.stats.same_files
+			+ cur.header.stats.changed_files_with_no_license_and_copyright
+			+ cur.header.stats.changed_files_with_same_copyright_and_license
+			+ cur.header.stats.changed_files_with_updated_copyright_year_only
+		)
 
 	@staticmethod
 	def _increment(dict, key, val):
@@ -272,26 +264,26 @@ class Harvest:
 	def _parse_tinfoilhat_package(self, name, cur):
 		result = BinaryPackage(
 			name,
-			cur["package"]["metadata"]["version"],
-			cur["package"]["metadata"]["revision"]
+			cur.package.metadata.version,
+			cur.package.metadata.revision
 		)
 		if self.add_details:
-			result.metadata = self._parse_tinfoilhat_metadata(cur["package"]["metadata"])
-			result.tags = cur["tags"]
+			result.metadata = self._parse_tinfoilhat_metadata(cur.package.metadata)
+			result.tags = cur.tags
 		return result
 
 	def _parse_tinfoilhat_main(self, path, source_package: SourcePackage):
-		with open(path) as f:
-			cur = json.load(f)
+		cur = TinfoilHatModel.from_file(path)
+		cur = cur._container
 
 		for recipe_name, main in cur.items():
-			source_package.name = main["recipe"]["metadata"]["name"]
-			source_package.version = main["recipe"]["metadata"]["version"]
-			source_package.revision = main["recipe"]["metadata"]["revision"]
-			source_package.tags = main["tags"]
-			source_package.binary_packages = self._parse_tinfoilhat_packages(main["packages"])
+			source_package.name = main.recipe.metadata.name
+			source_package.version = main.recipe.metadata.version
+			source_package.revision = main.recipe.metadata.revision
+			source_package.tags = main.tags
+			source_package.binary_packages = self._parse_tinfoilhat_packages(main.packages)
 			if self.add_details:
-				source_package.metadata = self._parse_tinfoilhat_metadata(main["recipe"]["metadata"])
+				source_package.metadata = self._parse_tinfoilhat_metadata(main.recipe.metadata)
 
 	@staticmethod
 	def execute(pool: Pool, add_details, add_missing, glob_name: str = "*", glob_version: str = "*"):

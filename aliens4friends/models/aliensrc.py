@@ -10,11 +10,11 @@ class SourcePackage(BaseModel):
 		metadata: dict = None,
 		files: list = None
 	):
-		self.name = self.drilldown(name, str)
+		self.name = name
 		self.version = version
 		self.manager = manager
-		self.metadata = self.decode(metadata, dict)
-		self.files = self.drilldown(files, SourceFile)
+		self.metadata = metadata
+		self.files = SourceFile.drilldown(files)
 
 class AlienSrc(BaseModel):
 	def __init__(
@@ -23,4 +23,4 @@ class AlienSrc(BaseModel):
 		source_package: SourcePackage = None
 	):
 		self.version = version
-		self.source_package = self.decode(source_package, SourcePackage)
+		self.source_package = SourcePackage.decode(source_package)

@@ -1,4 +1,4 @@
-from .base import BaseModel
+from .base import BaseModel, DictModel
 
 class Tags(BaseModel):
 	def __init__(
@@ -8,10 +8,10 @@ class Tags(BaseModel):
 		image: list = None,
 		release: list = None
 	):
-		self.distro = self.drilldown(distro, str)
-		self.machine = self.drilldown(machine, str)
-		self.image = self.drilldown(image, str)
-		self.release = self.drilldown(release, str)
+		self.distro = distro
+		self.machine = machine
+		self.image = image
+		self.release = release
 
 class SourceFile(BaseModel):
 	def __init__(
@@ -44,16 +44,43 @@ class FileContainer(BaseModel):
 		files: list = None
 	):
 		self.file_dir = file_dir
-		self.files = self.drilldown(files, FileWithSize)
+		self.files = FileWithSize.drilldown(files)
+
+class PackageMetaData(BaseModel):
+	def __init__(
+		self,
+		name: str = None,
+		base_name: str = None,
+		version: str = None,
+		revision: str = None,
+		recipe_name: str = None,
+		recipe_version: str = None,
+		recipe_revision: str = None,
+		license: str = None,
+		description: str = None,
+		depends: str = None,
+		provides: str = None
+	):
+		self.name = name
+		self.base_name = base_name
+		self.version = version
+		self.revision = revision
+		self.recipe_name = recipe_name
+		self.recipe_version = recipe_version
+		self.recipe_revision = recipe_revision
+		self.license = license
+		self.description = description
+		self.depends = depends
+		self.provides = provides
 
 class Package(BaseModel):
 	def __init__(
 		self,
-		metadata: dict = None,
+		metadata: PackageMetaData = None,
 		files: FileContainer = None
 	):
-		self.metadata = metadata
-		self.files = self.decode(files, FileContainer)
+		self.metadata = PackageMetaData.decode(metadata)
+		self.files = FileContainer.decode(files)
 
 class PackageWithTags(BaseModel):
 	def __init__(
@@ -61,25 +88,56 @@ class PackageWithTags(BaseModel):
 		package: Package = None,
 		tags: Tags = None
 	):
-		self.package = self.decode(package, Package)
-		self.tags = self.decode(tags, Tags)
+		self.package = Package.decode(package)
+		self.tags = Tags.decode(tags)
 
-class PackageContainer(BaseModel):
+class PackageContainer(DictModel):
+	subclass = PackageWithTags
+
+class RecipeMetaData(BaseModel):
 	def __init__(
 		self,
-		container: dict = None
+		name: str = None,
+		base_name: str = None,
+		version: str = None,
+		revision: str = None,
+		package_arch: str = None,
+		author: str = None,
+		homepage: str = None,
+		summary: str = None,
+		description: str = None,
+		license: str = None,
+		build_workdir: str = None,
+		compiled_source_dir: str = None,
+		depends: str = None,
+		provides: str = None,
+		cve_product: str = None
 	):
-		self._container = self.decode(container, PackageWithTags, True)
+		self.name = name
+		self.base_name = base_name
+		self.version = version
+		self.revision = revision
+		self.package_arch = package_arch
+		self.author = author
+		self.homepage = homepage
+		self.summary = summary
+		self.description = description
+		self.license = license
+		self.build_workdir = build_workdir
+		self.compiled_source_dir = compiled_source_dir
+		self.depends = depends
+		self.provides = provides
+		self.cve_product = cve_product
 
 class Recipe(BaseModel):
 	def __init__(
 		self,
-		metadata: dict = None,
+		metadata: RecipeMetaData = None,
 		source_files: list = None,
 		chk_sum: str = None
 	):
-		self.metadata = metadata
-		self.source_files = self.drilldown(source_files, SourceFile)
+		self.metadata = RecipeMetaData.decode(metadata)
+		self.source_files = SourceFile.drilldown(source_files)
 		self.chk_sum = chk_sum
 
 class Container(BaseModel):
@@ -89,14 +147,10 @@ class Container(BaseModel):
 		tags: Tags = None,
 		packages: dict = None
 	):
-		self.recipe = self.decode(recipe, Recipe)
-		self.tags = self.decode(tags, Tags)
-		self.packages = packages
+		self.recipe = Recipe.decode(recipe)
+		self.tags = Tags.decode(tags)
+		self.packages = PackageContainer.decode(packages)
 
 
-class TinfoilHatModel(BaseModel):
-	def __init__(
-		self,
-		container: dict = None
-	):
-		self._container = self.decode(container, Container, True)
+class TinfoilHatModel(DictModel):
+	subclass = Container

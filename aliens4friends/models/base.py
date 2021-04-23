@@ -12,21 +12,17 @@ class BaseModel:
 
 	def encode(self) -> dict:
 		"""Create dictionaries out of objects with attributes as keys and then
-		drill down into values and do their encoding. If a _container attribute
-		exists, return it as-is, to also allow dictionaries inside the encoded
-		hierarchy. This is useful for keys that are actually not object fields,
-		but names of json objects.
+		drill down into values and do their encoding.
 
 		Returns: dict: dictionary representation of this instance
 		"""
-		if hasattr(self, "_container"):
-			return self._container
 		return self.__dict__
 
 	def to_json(self) -> str:
 		return dumps(self, cls=BaseModelEncoder)
 
-	def drilldown(self, input_list: list, cls):
+	@classmethod
+	def drilldown(cls, input_list: list):
 		if not input_list:
 			return []
 
@@ -40,20 +36,17 @@ class BaseModel:
 			cls(**d) for d in input_list
 		]
 
-	def decode(self, input_dict: dict, cls, inner_cls = False):
+	@classmethod
+	def decode(cls, input_dict: dict):
 		if not input_dict:
 			return cls()
 
-		if isinstance(input_dict, cls) and not inner_cls:
+		if isinstance(input_dict, cls):
 			return input_dict
 
 		if not isinstance(input_dict, dict):
 			raise ModelError(f"We can only decode a dict: {type(input_dict)} given!")
 
-		if inner_cls:
-			return {
-				k: cls(**v) for k, v in input_dict.items()
-			}
 		return cls(**input_dict)
 
 	@classmethod
@@ -64,6 +57,37 @@ class BaseModel:
 			return cls(**jl)
 		except TypeError:
 			return cls(jl)
+
+
+class DictModel(BaseModel):
+	subclass = None
+	def __init__(
+		self,
+		container: dict
+	):
+		self._container = self.decode(container)
+
+	@classmethod
+	def from_file(cls, path: str):
+		with open(path) as f:
+			jl = jsonload(f)
+		return cls(jl)
+
+	@classmethod
+	def decode(cls, input_dict: dict):
+		if not input_dict:
+			return {}
+
+		if not isinstance(input_dict, dict):
+			raise ModelError(f"We can only decode a dict: {type(input_dict)} given!")
+
+		if not cls.subclass:
+			return input_dict
+
+		return {
+			k: cls.subclass(**v) for k, v in input_dict.items()
+		}
+
 
 
 class ModelError(Exception):
