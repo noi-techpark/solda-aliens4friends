@@ -440,7 +440,7 @@ optional arguments:
 
 ### Step 6: Find differences between Alien Packages and the corresponding Debian matching packages
 
-For "differences" we mean differences in terms of
+By "differences", we mean the differences in terms of
 licensing/copyright/intellectual property, so we just care if license and
 copyright statements (if any) have changed, not if just code has changed.
 
@@ -690,7 +690,7 @@ optional arguments:
 ### Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology
 
 - INPUT: `.aliensrc` and (if available) `.alien.spdx` files in the `userland`
-  pool path of the package  
+  pool path of the package
 - OUTPUT: `.fossy.json` file with metadata obtained through Fossology API
 
 In this step all source files contained in the `files` folder within the
