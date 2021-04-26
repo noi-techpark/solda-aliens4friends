@@ -37,6 +37,11 @@ class HarvestException(Exception):
 	pass
 
 class Harvest:
+	"""
+	Go through all files inside the pool and extract useful information to be
+	put inside a final report. This report can then be used for example in a
+	visual dashboard application to show what has been found.
+	"""
 
 	SUPPORTED_FILES = [
 		".aliensrc",

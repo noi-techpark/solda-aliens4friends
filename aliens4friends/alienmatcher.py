@@ -1,17 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
-#
-# Class to match an entry inside a yocto manifest file with debian packages
-# libraries through an API, exactly or if not possible find the closest
-# version.
-#
-# Information gathering:
-# - Semantic versioning: https://semver.org/
-# - Debian versioning: https://readme.phys.ethz.ch/documentation/debian_version_numbers/
-#
-# APIs used (by example):
-# - https://api.ftp-master.debian.org/madison?S&package=busybox
-# - https://launchpad.net/debian/+source/base-passwd/3.5.29
 
 import collections as col
 import json
@@ -56,6 +44,15 @@ class AlienMatcherError(Exception):
 	pass
 
 class AlienMatcher:
+	"""
+	Class to match an entry inside a yocto manifest file with debian packages
+	libraries through an API, exactly or if not possible find the closest
+	version.
+
+	Information taken from:
+	- Semantic versioning: https://semver.org/
+	- Debian versioning: https://readme.phys.ethz.ch/documentation/debian_version_numbers/
+	"""
 
 	DEBIAN_BASEURL = [
 		"http://deb.debian.org/debian/pool/main",

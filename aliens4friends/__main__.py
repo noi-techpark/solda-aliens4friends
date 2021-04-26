@@ -3,7 +3,12 @@
 
 #!/usr/bin/python3
 
-r"""## Aliens4friends: A toolset for Software Composition Analysis
+r"""
+#----------------#
+# Aliens4friends #
+#----------------#
+
+A toolset for Software Composition Analysis
 
 This tool tries to find matching license information about an input package on
 well-known source repositories, such as Debian.
@@ -117,6 +122,11 @@ class Aliens4Friends:
 		getattr(self, self.args.command)()
 
 	def setup(self):
+		try:
+			self._subcommand_args()
+		except AttributeError:
+			# Some commands (ex., help) have no subcommand arguments
+			pass
 		logger = logging.getLogger(PROGNAME)
 		logger.setLevel(Settings.LOGLEVEL)
 
@@ -125,12 +135,14 @@ class Aliens4Friends:
 		basepath_usr = self.pool.mkdir(Settings.PATH_USR)
 		basepath_tmp = self.pool.mkdir(Settings.PATH_TMP)
 		basepath_stt = self.pool.mkdir(Settings.PATH_STT)
-		logger.info(f"# ALIENS4FRIENDS v{Settings.VERSION} with cache pool {Settings.POOLPATH}")
-		logger.debug(f"  Pool directory structure created:")
-		logger.debug(f"    - Debian Path          : {basepath_deb}")
-		logger.debug(f"    - Userland Path        : {basepath_usr}")
-		logger.debug(f"    - Temporary Files Path : {basepath_tmp}")
-		logger.debug(f"    - Statistics Path      : {basepath_stt}")
+
+		if self.args.command != "help":
+			logger.info(f"# ALIENS4FRIENDS v{Settings.VERSION} with cache pool {Settings.POOLPATH}")
+			logger.debug(f"  Pool directory structure created:")
+			logger.debug(f"    - Debian Path          : {basepath_deb}")
+			logger.debug(f"    - Userland Path        : {basepath_usr}")
+			logger.debug(f"    - Temporary Files Path : {basepath_tmp}")
+			logger.debug(f"    - Statistics Path      : {basepath_stt}")
 
 		logger = logging.getLogger()
 		logger.setLevel(Settings.LOGLEVEL)
@@ -353,19 +365,16 @@ class Aliens4Friends:
 		)
 
 	def add(self):
-		self._subcommand_args()
 		file_list = [ f.name for f in self.args.FILES ]
 		Add.execute(file_list, self.pool)
 
 	def match(self):
-		self._subcommand_args()
 		AlienMatcher.execute(
 			self.args.glob_name,
 			self.args.glob_version
 		)
 
 	def scan(self):
-		self._subcommand_args()
 		Scancode.execute(
 			self.pool,
 			self.args.glob_name,
@@ -373,28 +382,24 @@ class Aliens4Friends:
 		)
 
 	def delta(self):
-		self._subcommand_args()
 		DeltaCodeNG.execute(
 			self.args.glob_name,
 			self.args.glob_version
 		)
 
 	def spdxdebian(self):
-		self._subcommand_args()
 		Debian2SPDX.execute(
 			self.args.glob_name,
 			self.args.glob_version
 		)
 
 	def spdxalien(self):
-		self._subcommand_args()
 		MakeAlienSPDX.execute(
 			self.args.glob_name,
 			self.args.glob_version
 		)
 
 	def upload(self):
-		self._subcommand_args()
 		UploadAliens2Fossy.execute(
 			self.pool,
 			self.args.glob_name,
@@ -402,7 +407,6 @@ class Aliens4Friends:
 		)
 
 	def fossy(self):
-		self._subcommand_args()
 		GetFossyData.execute(
 			self.pool,
 			self.args.glob_name,
@@ -410,7 +414,6 @@ class Aliens4Friends:
 	)
 
 	def harvest(self):
-		self._subcommand_args()
 		Harvest.execute(
 			self.pool,
 			self.args.add_details,
