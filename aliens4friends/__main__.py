@@ -43,9 +43,9 @@ from aliens4friends.tests import test_version
 from aliens4friends.tests import test_alienpackage
 from aliens4friends.tests import test_scancode
 
-logger = logging.getLogger(__name__)
 
 PROGNAME = "aliens4friends"
+
 SUPPORTED_COMMANDS = [
 	"add",
 	"match",
@@ -117,17 +117,23 @@ class Aliens4Friends:
 		getattr(self, self.args.command)()
 
 	def setup(self):
+		logger = logging.getLogger(PROGNAME)
+		logger.setLevel(Settings.LOGLEVEL)
+
 		self.pool = Pool(Settings.POOLPATH)
 		basepath_deb = self.pool.mkdir(Settings.PATH_DEB)
 		basepath_usr = self.pool.mkdir(Settings.PATH_USR)
 		basepath_tmp = self.pool.mkdir(Settings.PATH_TMP)
 		basepath_stt = self.pool.mkdir(Settings.PATH_STT)
-		logger.debug(f"# Initializing ALIENS4FRIENDS v{Settings.VERSION} with cache pool")
-		logger.debug(f"| Pool directory structure created:")
-		logger.debug(f"|   - Debian Path          : {basepath_deb}")
-		logger.debug(f"|   - Userland Path        : {basepath_usr}")
-		logger.debug(f"|   - Temporary Files Path : {basepath_tmp}")
-		logger.debug(f"|   - Statistics Path      : {basepath_stt}")
+		logger.info(f"# ALIENS4FRIENDS v{Settings.VERSION} with cache pool {Settings.POOLPATH}")
+		logger.debug(f"  Pool directory structure created:")
+		logger.debug(f"    - Debian Path          : {basepath_deb}")
+		logger.debug(f"    - Userland Path        : {basepath_usr}")
+		logger.debug(f"    - Temporary Files Path : {basepath_tmp}")
+		logger.debug(f"    - Statistics Path      : {basepath_stt}")
+
+		logger = logging.getLogger()
+		logger.setLevel(Settings.LOGLEVEL)
 
 
 	def _subcommand_args(self):
@@ -142,12 +148,6 @@ class Aliens4Friends:
 
 		if hasattr(self.args, 'print') and self.args.print:
 			Settings.DOTENV["A4F_PRINTRESULT"] = Settings.PRINTRESULT = True
-
-		# logger = logging.getLogger(LOGGERS[self.args.command])
-		# logger.setLevel(Settings.LOGLEVEL)
-
-		logger = logging.getLogger()
-		logger.setLevel(Settings.LOGLEVEL)
 
 
 	def _args_defaults(self, parser, describe_files = ""):
