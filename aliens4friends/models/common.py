@@ -32,14 +32,25 @@ class License(BaseModel):
 		return self.id
 
 class Tool(BaseModel):
-	def __init__(self, name: str, version: str, parameters: str = None):
+	def __init__(
+		self,
+		name: str,
+		version: str,
+		parameters: str = None
+	):
 		self.name = name
 		self.version = version
 		if parameters:
 			self.parameters = parameters
 
 class SourceFile(BaseModel):
-	def __init__(self, name: str = None, sha1: str = None, src_uri: str = None, files_in_archive: Union[int, bool] = False):
+	def __init__(
+		self,
+		name: str = None,
+		sha1: str = None,
+		src_uri: str = None,
+		files_in_archive: Union[int, bool] = False
+	):
 		self.name = name
 		self.sha1 = sha1
 		self.src_uri = src_uri

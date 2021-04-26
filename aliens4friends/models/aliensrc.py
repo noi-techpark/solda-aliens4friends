@@ -5,6 +5,22 @@
 from .base import BaseModel
 from .common import SourceFile
 
+class InternalArchive(BaseModel):
+	"""
+	This model is solely used internally when the AlienSrc package gets expanded.
+	"""
+	def __init__(
+		self,
+		name: str = None,
+		checksums: dict = None,
+		rootfolder: str = None,
+		src_uri: str = None,
+	):
+		self.name = name
+		self.checksums = checksums
+		self.rootfolder = rootfolder
+		self.src_uri = src_uri
+
 class SourcePackage(BaseModel):
 	def __init__(
 		self,

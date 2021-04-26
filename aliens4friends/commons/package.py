@@ -10,7 +10,7 @@ from typing import Union
 from .archive import Archive, ArchiveError
 from .version import Version
 
-from aliens4friends.models.aliensrc import AlienSrc
+from aliens4friends.models.aliensrc import AlienSrc, InternalArchive
 
 logger = logging.getLogger(__name__)
 
@@ -139,12 +139,12 @@ class AlienPackage(Package):
 
 			if '.tar.' in src_file.name or src_file.name.endswith('.tgz'):
 				self.internal_archives.append(
-					{
-						"name" : src_file.name,
-						"checksums" : self.archive.in_archive_checksums(f"files/{src_file.name}"),
-						"rootfolder" : self.archive.in_archive_rootfolder(f"files/{src_file.name}"),
-						"src_uri" : src_file.src_uri
-					}
+					InternalArchive(
+						name = src_file.name,
+						checksums = self.archive.in_archive_checksums(f"files/{src_file.name}"),
+						rootfolder = self.archive.in_archive_rootfolder(f"files/{src_file.name}"),
+						src_uri = src_file.src_uri
+					)
 				)
 				logger.debug(
 					f"[{self.name}-{self.version.str}]"
