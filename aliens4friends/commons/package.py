@@ -162,26 +162,26 @@ class AlienPackage(Package):
 			# Special rules to find the primary archive
 			for src_file in self.internal_archives:
 				if (
-					(("linux" in src_file["name"] or "kernel" in src_file["name"])
-					and "name=machine" in src_file["src_uri"])
+					(("linux" in src_file.name or "kernel" in src_file.name)
+					and "name=machine" in src_file.src_uri)
 					or
-					("perl" in src_file["name"] and "name=perl" in src_file["src_uri"])
+					("perl" in src_file.name and "name=perl" in src_file.src_uri)
 					or
-					("libxml2" in src_file["name"] and "name=libtar" in src_file["src_uri"])
+					("libxml2" in src_file.name and "name=libtar" in src_file.src_uri)
 				):
 					primary = src_file
 					break
 
 		if primary:
-			self.internal_archive_name = primary['name']
-			self.internal_archive_checksums = primary['checksums']
-			self.internal_archive_rootfolder = primary['rootfolder']
-			self.internal_archive_src_uri = primary['src_uri']
+			self.internal_archive_name = primary.name
+			self.internal_archive_checksums = primary.checksums
+			self.internal_archive_rootfolder = primary.rootfolder
+			self.internal_archive_src_uri = primary.src_uri
 			if len(self.internal_archives) > 1:
 				logger.warning(
 					f"[{self.name}-{self.version.str}]:"
 					 " more than one internal archive, using just primary"
-					f" archive '{primary['name']}' for comparison"
+					f" archive '{primary.name}' for comparison"
 			)
 		elif not primary and len(self.internal_archives) > 1:
 			logger.warning(
