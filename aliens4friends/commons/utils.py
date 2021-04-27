@@ -9,7 +9,9 @@ import hashlib
 from typing import List, Tuple, Type, Dict, Union, NoReturn
 
 def bash(
-	command: str, cwd: str = None, exception: Type[Exception] = Exception
+	command: str,
+	cwd: str = None,
+	exception: Type[Exception] = Exception
 ) -> Tuple[str, str]:
 	"""Run a command in bash shell, and return stdout and stderr
 	:param command: the command to run
@@ -40,7 +42,7 @@ def bash_live(
 	cwd: str = None,
 	exception: Type[Exception] = Exception,
 	prefix: str = ""
-) -> NoReturn:
+) -> None:
 	"""Run a command in bash shell in live mode to fetch output when it is available
 	:param command: the command to run
 	:param cwd: directory where to run the command (defaults to current dir)

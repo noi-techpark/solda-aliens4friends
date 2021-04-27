@@ -30,6 +30,8 @@ class Package:
 		if isinstance(name, list):
 			self.alternative_names = name[1:]
 			name = name[0]
+		else:
+			self.alternative_names = []
 
 		if not name or not isinstance(name, str):
 			raise PackageError("A package must have a valid name")

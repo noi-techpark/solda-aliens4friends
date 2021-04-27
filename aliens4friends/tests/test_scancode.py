@@ -22,13 +22,8 @@ def test_single():
 
 	package_name = "acl"
 	package_version_str = "2.2.53-2"
-	debsrc_debian = "acl_2.2.53-2.debian.tar.xz"
 
-	archive_path = pool.abspath("debian", package_name, package_version_str, debsrc_debian)
-
-	archive = Archive(archive_path)
-
-	res = Scancode.execute(archive, package_name, package_version_str)
+	res = Scancode.execute(pool, package_name, package_version_str)
 
 	print(res)
 
@@ -41,4 +36,4 @@ def test_single_from_matcheroutput():
 		)
 	)
 
-	Scancode.execute(pool.absglob("*.alienmatcher.json"))
+	Scancode.execute(pool)

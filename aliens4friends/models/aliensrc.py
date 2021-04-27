@@ -4,6 +4,7 @@
 
 from .base import BaseModel
 from .common import SourceFile
+from typing import List
 
 class InternalArchive(BaseModel):
 	"""
@@ -28,7 +29,7 @@ class SourcePackage(BaseModel):
 		version: str = None,
 		manager: str = None,
 		metadata: dict = None,
-		files: list = None
+		files: List[SourceFile] = None
 	):
 		self.name = name
 		self.version = version

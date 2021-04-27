@@ -44,6 +44,10 @@ class AlienMatcherError(Exception):
 	pass
 
 class AlienMatcher:
+
+	# Type hints for attributes not declared in __init__
+	curpkg: str
+
 	"""
 	Class to match an entry inside a yocto manifest file with debian packages
 	libraries through an API, exactly or if not possible find the closest

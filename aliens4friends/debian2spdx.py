@@ -187,6 +187,10 @@ class Debian2SPDXException(Exception):
 
 
 class Debian2SPDX:
+
+	# Type hints for attributes not declared in __init__
+	deb_license_defs: dict
+
 	"""Class to process a debian source pkg and generate an SPDX file out of it
 
 	:Example:
@@ -544,7 +548,7 @@ class Debian2SPDX:
 			else:
 				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
 		except TypeError as ex:
-			if not m["debsrc_orig"]:
+			if not j["debian"]["match"]["debsrc_orig"]:
 				logger.warning(f"[{package}] no debian orig archive to scan here")
 			else:
 				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")

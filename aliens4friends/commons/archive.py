@@ -28,7 +28,7 @@ class Archive:
 		}
 	}
 
-	def __init__(self, archive_path):
+	def __init__(self, archive_path: str):
 		self.path = archive_path
 		self.tar_param = Archive._get_tar_param(archive_path)
 		self.is_supported()
@@ -38,7 +38,7 @@ class Archive:
 		if not extension in self.SUPPORTED_ARCHIVES:
 			raise ArchiveError(f"Archive with extension {extension} is not supported!")
 
-	def _make_tar_cmd(self, params):
+	def _make_tar_cmd(self, params: str):
 		return bash(f'tar {self.tar_param}xvf {self.path} {params}', exception=ArchiveError)
 
 	def readfile(self, file_path):

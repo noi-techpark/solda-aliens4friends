@@ -17,6 +17,9 @@ class ScancodeError(Exception):
 
 class Scancode:
 
+	# Type hints for attributes not declared in __init__
+	curpkg: str
+
 	def __init__(self, pool: Pool):
 		super().__init__()
 		self.pool = pool
@@ -113,7 +116,7 @@ class Scancode:
 			except KeyError:
 				logger.warning(f"[{package}] no debian match, no debian package to scan here")
 			except TypeError as ex:
-				if not to_scan:
+				if not to_scan:  #pytype: disable=name-error
 					logger.warning(f"[{package}] no debian orig archive to scan here")
 				else:
 					logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")

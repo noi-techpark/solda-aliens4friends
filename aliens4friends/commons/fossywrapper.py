@@ -15,6 +15,7 @@ from fossology.obj import ReportFormat, TokenScope, Upload
 
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.spdxutils import parse_spdx_tv_str
+from tenacity import RetryError
 
 logger = logging.getLogger(__name__)
 
