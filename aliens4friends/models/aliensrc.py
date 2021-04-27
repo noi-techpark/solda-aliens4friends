@@ -4,7 +4,7 @@
 
 from .base import BaseModel
 from .common import SourceFile
-from typing import List
+from typing import List, Dict, Any
 
 class InternalArchive(BaseModel):
 	"""
@@ -13,7 +13,7 @@ class InternalArchive(BaseModel):
 	def __init__(
 		self,
 		name: str = None,
-		checksums: dict = None,
+		checksums: Dict[str, str] = None,
 		rootfolder: str = None,
 		src_uri: str = None,
 	):
@@ -28,7 +28,7 @@ class SourcePackage(BaseModel):
 		name: list = None,
 		version: str = None,
 		manager: str = None,
-		metadata: dict = None,
+		metadata: Dict[str, Any] = None,
 		files: List[SourceFile] = None
 	):
 		self.name = name

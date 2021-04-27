@@ -4,20 +4,21 @@
 
 from .base import BaseModel
 from .common import Tool
+from typing import List
 
 class Body(BaseModel):
 	def __init__(
 		self,
-		same_files: list = None,
-		moved_files: list = None,
-		changed_files_with_no_license_and_copyright: list = None,
-		changed_files_with_same_copyright_and_license: list = None,
-		changed_files_with_updated_copyright_year_only: list = None,
-		changed_files_with_changed_copyright_or_license: list = None,
-		deleted_files_with_no_license_and_copyright: list = None,
-		deleted_files_with_license_or_copyright: list = None,
-		new_files_with_no_license_and_copyright: list = None,
-		new_files_with_license_or_copyright: list = None
+		same_files: List[str] = None,
+		moved_files: List[str] = None,
+		changed_files_with_no_license_and_copyright: List[str] = None,
+		changed_files_with_same_copyright_and_license: List[str] = None,
+		changed_files_with_updated_copyright_year_only: List[str] = None,
+		changed_files_with_changed_copyright_or_license: List[str] = None,
+		deleted_files_with_no_license_and_copyright: List[str] = None,
+		deleted_files_with_license_or_copyright: List[str] = None,
+		new_files_with_no_license_and_copyright: List[str] = None,
+		new_files_with_license_or_copyright: List[str] = None
 	):
 		self.same_files = same_files
 		self.moved_files = moved_files

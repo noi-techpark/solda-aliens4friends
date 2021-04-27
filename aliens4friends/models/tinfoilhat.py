@@ -3,15 +3,16 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from .base import BaseModel, DictModel
+from typing import List, Dict
 
 class Tags(BaseModel):
 	def __init__(
 		self,
-		distro: list = None,
-		machine: list = None,
-		image: list = None,
-		release: list = None
-	):
+		distro: List[str] = None,
+		machine: List[str] = None,
+		image: List[str] = None,
+		release: List[str] = None
+	) -> None:
 		self.distro = distro
 		self.machine = machine
 		self.image = image
@@ -24,7 +25,7 @@ class SourceFile(BaseModel):
 		relpath: str = None,
 		src_uri: str = None,
 		sha1: str = None
-	):
+	) -> None:
 		self.rootpath = rootpath
 		self.relpath = relpath
 		self.src_uri = src_uri
@@ -36,7 +37,7 @@ class FileWithSize(BaseModel):
 		path: str = None,
 		sha1: str = None,
 		size: int = 0
-	):
+	) -> None:
 		self.path = path
 		self.sha1 = sha1
 		self.size = size
@@ -45,8 +46,8 @@ class FileContainer(BaseModel):
 	def __init__(
 		self,
 		file_dir: str = None,
-		files: list = None
-	):
+		files: List[FileWithSize] = None
+	) -> None:
 		self.file_dir = file_dir
 		self.files = FileWithSize.drilldown(files)
 
@@ -64,7 +65,7 @@ class PackageMetaData(BaseModel):
 		description: str = None,
 		depends: str = None,
 		provides: str = None
-	):
+	) -> None:
 		self.name = name
 		self.base_name = base_name
 		self.version = version
@@ -82,7 +83,7 @@ class Package(BaseModel):
 		self,
 		metadata: PackageMetaData = None,
 		files: FileContainer = None
-	):
+	) -> None:
 		self.metadata = PackageMetaData.decode(metadata)
 		self.files = FileContainer.decode(files)
 
@@ -91,7 +92,7 @@ class PackageWithTags(BaseModel):
 		self,
 		package: Package = None,
 		tags: Tags = None
-	):
+	) -> None:
 		self.package = Package.decode(package)
 		self.tags = Tags.decode(tags)
 
@@ -116,7 +117,7 @@ class RecipeMetaData(BaseModel):
 		depends: str = None,
 		provides: str = None,
 		cve_product: str = None
-	):
+	) -> None:
 		self.name = name
 		self.base_name = base_name
 		self.version = version
@@ -137,9 +138,9 @@ class Recipe(BaseModel):
 	def __init__(
 		self,
 		metadata: RecipeMetaData = None,
-		source_files: list = None,
+		source_files: List[SourceFile] = None,
 		chk_sum: str = None
-	):
+	) -> None:
 		self.metadata = RecipeMetaData.decode(metadata)
 		self.source_files = SourceFile.drilldown(source_files)
 		self.chk_sum = chk_sum
@@ -149,8 +150,8 @@ class Container(BaseModel):
 		self,
 		recipe: Recipe = None,
 		tags: Tags = None,
-		packages: dict = None
-	):
+		packages: Dict[str, PackageWithTags] = None
+	) -> None:
 		self.recipe = Recipe.decode(recipe)
 		self.tags = Tags.decode(tags)
 		self.packages = PackageContainer.decode(packages)

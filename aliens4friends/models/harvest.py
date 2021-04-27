@@ -4,9 +4,15 @@
 
 from .base import BaseModel, BaseModelEncoder, ModelError
 from .common import License, Tool, SourceFile
+from typing import Any, Dict, List
 
 class DebianMatchBasic(BaseModel):
-	def __init__(self, name: str = None, version: str = None, ip_matching_files: int = 0):
+	def __init__(
+		self,
+		name: str = None,
+		version: str = None,
+		ip_matching_files: int = 0
+	) -> None:
 		self.name = name
 		self.version = version
 		self.ip_matching_files = ip_matching_files
@@ -32,39 +38,8 @@ class StatisticsFiles(BaseModel):
 		self.total = total
 
 
-class AuditFindings(BaseModel):
-	def __init__(
-		self,
-		main_licenses: list = None,
-		all_licenses: list = None
-	):
-		self.main_licenses = [
-			License(lic).encode() for lic in main_licenses
-		] if main_licenses else []
-		self.all_licenses = LicenseFinding.drilldown(all_licenses)
-
-class StatisticsLicenses(BaseModel):
-	def __init__(
-		self,
-		license_scanner_findings: list = None,
-		license_audit_findings: AuditFindings = None
-	):
-		self.license_scanner_findings = LicenseFinding.drilldown(license_scanner_findings)
-		self.license_audit_findings = AuditFindings.decode(license_audit_findings)
-
-
-class Statistics(BaseModel):
-	def __init__(
-		self,
-		files: StatisticsFiles = None,
-		licenses: StatisticsLicenses = None
-	):
-		self.files = StatisticsFiles.decode(files)
-		self.licenses = StatisticsLicenses.decode(licenses)
-
-
 class LicenseFinding(BaseModel):
-	def __init__(self, shortname: str = None, file_count: int = 0):
+	def __init__(self, shortname: str = None, file_count: int = 0) -> None:
 		self.shortname = License(shortname).encode()
 		self.file_count = file_count
 
@@ -78,8 +53,39 @@ class LicenseFinding(BaseModel):
 		return self.shortname < o.shortname
 
 
+class AuditFindings(BaseModel):
+	def __init__(
+		self,
+		main_licenses: List[str] = None,
+		all_licenses: List[LicenseFinding] = None
+	):
+		self.main_licenses = [
+			License(lic).encode() for lic in main_licenses
+		] if main_licenses else []
+		self.all_licenses = LicenseFinding.drilldown(all_licenses)
+
+class StatisticsLicenses(BaseModel):
+	def __init__(
+		self,
+		license_scanner_findings: List[LicenseFinding] = None,
+		license_audit_findings: AuditFindings = None
+	) -> None:
+		self.license_scanner_findings = LicenseFinding.drilldown(license_scanner_findings)
+		self.license_audit_findings = AuditFindings.decode(license_audit_findings)
+
+
+class Statistics(BaseModel):
+	def __init__(
+		self,
+		files: StatisticsFiles = None,
+		licenses: StatisticsLicenses = None
+	) -> None:
+		self.files = StatisticsFiles.decode(files)
+		self.licenses = StatisticsLicenses.decode(licenses)
+
+
 class BinaryPackage(BaseModel):
-	def __init__(self, name: str = None, version: str = None, revision: str = None):
+	def __init__(self, name: str = None, version: str = None, revision: str = None) -> None:
 		self.name = name
 		self.version = version
 		self.revision = revision
@@ -93,10 +99,10 @@ class SourcePackage(BaseModel):
 		version: str = None,
 		revision: str = None,
 		debian_matching: DebianMatchBasic = None,
-		source_files: list = None,
+		source_files: List[SourceFile] = None,
 		statistics: Statistics = None,
-		binary_packages: list = None,
-		tags: dict = None
+		binary_packages: List[BinaryPackage] = None,
+		tags: Dict[str, Any] = None
 	):
 		self.id = id
 		self.name = name
@@ -124,7 +130,7 @@ class HarvestModel(BaseModel):
 	def __init__(
 		self,
 		tool: Tool = None,
-		source_packages: list = None
-	):
+		source_packages: List[SourcePackage] = None
+	) -> None:
 		self.tool = Tool.decode(tool)
 		self.source_packages = SourcePackage.drilldown(source_packages)

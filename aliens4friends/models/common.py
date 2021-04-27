@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from .base import BaseModel
-from typing import Union
+from typing import Union, Dict
 
 class License(BaseModel):
-	def __init__(self, spdxid: str):
+	def __init__(self, spdxid: str) -> None:
 		RENAME = {
 			"GPL-1.0" : "GPL-1.0-only",
 			"GPL-1.0+" : "GPL-1.0-or-later",
@@ -28,7 +28,7 @@ class License(BaseModel):
 			self.id = spdxid
 
 	# Override
-	def encode(self):
+	def encode(self) -> str:
 		return self.id
 
 class Tool(BaseModel):
@@ -36,8 +36,8 @@ class Tool(BaseModel):
 		self,
 		name: str,
 		version: str,
-		parameters: str = None
-	):
+		parameters: Dict[str, str] = None
+	) -> None:
 		self.name = name
 		self.version = version
 		if parameters:

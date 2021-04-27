@@ -12,7 +12,7 @@ class BaseModel:
 		pre-defined json from this model definition
 	"""
 
-	def encode(self) -> dict:
+	def encode(self) -> Dict[str, Any]:
 		"""
 		Create dictionaries out of objects with attributes as keys and then
 		drill down into values and do their encoding.
@@ -134,7 +134,7 @@ class DictModel(BaseModel):
 		self,
 		container: dict
 	):
-		self._container = self.decode(container)
+		self._container: Dict[str, Any] = self.decode(container)
 
 	@classmethod
 	def from_file(
@@ -185,7 +185,7 @@ class ModelError(Exception):
 	pass
 
 class BaseModelEncoder(JSONEncoder):
-	def default(self, obj):
+	def default(self, obj: BaseModel) -> Dict[str, Any]:
 		if isinstance(obj, BaseModel):
 			return obj.encode()
 		else:
