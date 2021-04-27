@@ -8,10 +8,12 @@ from time import sleep
 from bs4 import BeautifulSoup
 from urllib.parse import urlencode
 from datetime import datetime, timedelta
+from typing import Dict, List, Union, Any
 
 from fossology import Fossology, fossology_token
 from fossology import uploads, jobs, report
 from fossology.obj import ReportFormat, TokenScope, Upload
+from fossology.folders import Folder
 
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.spdxutils import parse_spdx_tv_str
@@ -19,7 +21,7 @@ from tenacity import RetryError
 
 logger = logging.getLogger(__name__)
 
-AGENTS = {
+AGENTS: Dict[str, str] = {
 	"copyright_email_author": "copyright",
 	"ecc": "ecc",
 	"keyword": "keyword",
@@ -33,12 +35,12 @@ class FossyWrapperException(Exception):
 	pass
 
 class FossyWrapper:
-	def __init__(self):
+	def __init__(self) -> None:
 		self.fossy_session = requests.Session()
 		self.fossyUI_login()
 		self.fossology = self._connect2fossyAPI()
 
-	def fossyUI_login(self):
+	def fossyUI_login(self) -> None:
 		self.fossy_session.cookies.clear()
 		self.fossy_session.post(
 			f"{Settings.FOSSY_SERVER}/?mod=auth",
@@ -50,7 +52,7 @@ class FossyWrapper:
 				"maybe wrong Settings.FOSSY_USER or Settings.FOSSY_PASSWORD?"
 			)
 
-	def _get_fossy_token(self):
+	def _get_fossy_token(self) -> None:
 		try:
 			token_expire = (datetime.now() + timedelta(days=2)).strftime("%Y-%m-%d")
 			self.fossy_token = fossology_token(
@@ -68,7 +70,7 @@ class FossyWrapper:
 				"a token with FOSSY_USER and FOSSY_PASSWORD"
 			)
 
-	def _connect2fossyAPI(self):
+	def _connect2fossyAPI(self) -> Fossology:
 		self._get_fossy_token()
 		try:
 			return Fossology(Settings.FOSSY_SERVER, self.fossy_token, Settings.FOSSY_USER)
@@ -79,7 +81,7 @@ class FossyWrapper:
 				"to fossology REST API with it"
 			)
 
-	def _wait_for_jobs_completion(self, upload: Upload):
+	def _wait_for_jobs_completion(self, upload: Upload) -> None:
 		all_completed = False
 		jobs = []
 		# FIXME: add time limit?
@@ -97,7 +99,7 @@ class FossyWrapper:
 						all_completed = False
 						break
 
-	def get_or_create_folder(self, folder):
+	def get_or_create_folder(self, folder: str) -> Folder:
 		logger.info(f'get or create folder "{folder}"')
 		parent = self.fossology.rootFolder
 		components = folder.split("/")
@@ -105,7 +107,7 @@ class FossyWrapper:
 			parent = self.fossology.create_folder(parent, component)
 		return parent
 
-	def check_already_uploaded(self, uploadname):
+	def check_already_uploaded(self, uploadname: str) -> Upload:
 		logger.info(f"checking if '{uploadname}' has already been uploaded")
 		# FIXME upstream: page_size missing in fossology-python 0.2.0, wait that
 		# fossology-python 1.x is made backwards compatibile with API 1.0.16 -
@@ -114,7 +116,7 @@ class FossyWrapper:
 		uploads = {u.uploadname: u for u in self.fossology.list_uploads()}
 		return uploads.get(uploadname)
 
-	def upload(self, filename, folder, description=''):
+	def upload(self, filename: str, folder: Folder, description: str = '') -> Upload:
 		logger.info(f"uploading {filename} to Fossology")
 		try:
 			upload = self.fossology.upload_file(
@@ -130,7 +132,7 @@ class FossyWrapper:
 		logger.info(f"upload id is {upload.id}")
 		return upload
 
-	def rename_upload(self, upload, newuploadname):
+	def rename_upload(self, upload: Upload, newuploadname: str) -> None:
 		self.fossyUI_login()
 		res = self.fossy_session.post(
 			(
@@ -148,7 +150,7 @@ class FossyWrapper:
 		if "Upload Properties successfully changed" not in res.text:
 			raise FossyWrapperException("upload renaming failed")
 
-	def get_not_scheduled_agents(self, upload):
+	def get_not_scheduled_agents(self, upload: Upload) -> List[str]:
 		res = self.fossy_session.get(
 			f"{Settings.FOSSY_SERVER}?mod=upload_agent_options&upload={upload.id}"
 		)
@@ -158,7 +160,7 @@ class FossyWrapper:
 			for option in html.find_all("option")
 		]
 
-	def schedule_fossy_scanners(self, upload):
+	def schedule_fossy_scanners(self, upload: Upload) -> None:
 		logger.info(f"[{upload.uploadname}] checking already scheduled scanners")
 		not_scheduled = self.get_not_scheduled_agents(upload)
 		analysis = {}
@@ -181,12 +183,12 @@ class FossyWrapper:
 			specs.update({"decider": {"ojo_decider": True}})
 		try:
 			folder = self.fossology.detail_folder(upload.folderid)
-			scanjob = self.fossology.schedule_jobs(
+			self.fossology.schedule_jobs(
 				folder, upload, specs, wait=True
 			)
 		except RetryError:
 			raise FossyWrapperException(
-				"Can't schedule jobs on fossology. " "Is fossology scheduler running?"
+				"Can't schedule jobs on fossology. Is fossology scheduler running?"
 			)
 		logger.info(
 			"waiting for scanner job completion "
@@ -195,7 +197,7 @@ class FossyWrapper:
 		self._wait_for_jobs_completion(upload)
 
 
-	def report_import(self, upload: Upload, spdxrdf_path: str):
+	def report_import(self, upload: Upload, spdxrdf_path: str) -> None:
 		"""import SPDX RDF report file into Fossology, via webUI"""
 		# TODO: upstream: add missing REST API for reportImport in Fossology
 		logger.info(f"uploading '{spdxrdf_path}' to Fossology")
@@ -204,7 +206,7 @@ class FossyWrapper:
 		# (that we need to in order to make reportImport actually work).
 		# We force Fossology to update upload_clearing table by
 		# calling upload_summary
-		summary = self.fossology.upload_summary(upload)
+		self.fossology.upload_summary(upload)
 		# Login again to fossology, since a lot of time may be passed, and
 		# login cookie could be expired
 		self.fossyUI_login()
@@ -227,7 +229,7 @@ class FossyWrapper:
 		logger.info("monitoring reportImport job status...")
 		self._wait_for_jobs_completion(upload)
 
-	def get_upload(self, name, version):
+	def get_upload(self, name: str, version: str) -> Upload:
 		"""Get Fossology Upload object from pakage name and version,
 		assuming that uploadname follows the scheme <name>@<version>, and
 		assuming that uploadnames are unique in queried Fossology instance"""
@@ -250,7 +252,7 @@ class FossyWrapper:
 	def check_already_imported_report(self, upload: Upload):
 		return self.get_licenses(upload, ["reportImport",], test=True)
 
-	def get_licenses(self, upload: Upload, agents: list, test: bool = False):
+	def get_licenses(self, upload: Upload, agents: list, test: bool = False) -> Union[bool, Any]:
 		params = { "agent":  agents}
 		res = self.fossology.session.get(f"{self.fossology.api}/uploads/{upload.id}/licenses", params=params)
 		if res.status_code == 200:
@@ -276,7 +278,7 @@ class FossyWrapper:
 				f"Unknown error: Fossology API returned status code {res.status_code}"
 			)
 
-	def get_summary(self, upload: Upload):
+	def get_summary(self, upload: Upload) -> Any:
 		res = self.fossology.session.get(f"{self.fossology.api}/uploads/{upload.id}/summary")
 		return res.json()
 
