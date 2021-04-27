@@ -20,11 +20,11 @@ class Add:
 	calculate the correct position inside the pool's userland repository.
 	"""
 
-	def __init__(self, pool: Pool):
+	def __init__(self, pool: Pool) -> None:
 		super().__init__()
 		self.pool = pool
 
-	def alienpackage(self, path):
+	def alienpackage(self, path: str) -> None:
 		alienpackage = AlienPackage(path)
 		if not isinstance(alienpackage, AlienPackage):
 			raise TypeError("Parameter must be a AlienPackage.")
@@ -35,7 +35,7 @@ class Add:
 			alienpackage.version.str
 		)
 
-	def tinfoilhat(self, path):
+	def tinfoilhat(self, path: str) -> None:
 		with open(path, "r") as jsonfile:
 			j = json.load(jsonfile)
 		recipe_name = next(iter(j))
@@ -50,7 +50,7 @@ class Add:
 		)
 
 	@staticmethod
-	def execute(file_list, pool: Pool):
+	def execute(file_list, pool: Pool) -> None:
 		adder = Add(pool)
 		for path in file_list:
 			try:

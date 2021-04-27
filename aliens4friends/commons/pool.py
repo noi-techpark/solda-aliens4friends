@@ -61,7 +61,7 @@ class Pool:
 			f.write(contents)
 		return dest
 
-	def write_json(self, contents: str, *path_args: str) -> str:
+	def write_json(self, contents: Any, *path_args: str) -> str:
 		dest_folder = self.abspath(*path_args[:-1])
 		dest = os.path.join(dest_folder, path_args[-1])
 		self.mkdir(dest_folder)

@@ -6,6 +6,7 @@ import sys
 import json
 import logging
 from typing import Union, List, Optional, Dict, Any
+from pathlib import Path
 
 from .archive import Archive, ArchiveError
 from .version import Version
@@ -100,7 +101,7 @@ class AlienPackage(Package):
 
 	ALIEN_MATCHER_JSON = "aliensrc.json"
 
-	def __init__(self, full_archive_path: str) -> None:
+	def __init__(self, full_archive_path: Union[Path, str]) -> None:
 		self.archive = Archive(full_archive_path)
 
 		try:
