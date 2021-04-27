@@ -7,7 +7,7 @@ import json
 import tempfile
 import logging
 from uuid import uuid4
-from typing import Optional
+from typing import Optional, Dict, Any, Generator
 
 from spdx.document import Document as SPDXDocument
 from spdx.package import Package as SPDXPackage

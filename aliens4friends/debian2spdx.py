@@ -210,7 +210,7 @@ class Debian2SPDX:
 	:raises Debian2SPDXException: if any error occurs during data processing
 	"""
 
-	def __init__(self, debsrc_orig: str, debsrc_debian: str = None):
+	def __init__(self, debsrc_orig: str, debsrc_debian: str = None) -> None:
 		self.debarchive_orig = Archive(debsrc_orig)
 		if debsrc_debian:
 			self.native_rootdir = ''
@@ -228,7 +228,7 @@ class Debian2SPDX:
 		self.spdx_pkg = None
 		self.spdx_doc = None
 
-	def get_files_sha1s(self):
+	def get_files_sha1s(self) -> None:
 		"""Use tar+sha1sum commands to generate a dict of SPDX File objects"""
 		lines = self.debarchive_orig.checksums("")
 		for path, sha1 in lines.items():
@@ -239,7 +239,7 @@ class Debian2SPDX:
 			)
 			self.spdx_files.update({path: spdx_file})
 
-	def parse_deb_copyright(self):
+	def parse_deb_copyright(self) -> None:
 		"""Extract and parse debian/copyright"""
 		try:
 			content = self.debarchive_debian.readfile(f"{self.native_rootdir}debian/copyright")
@@ -262,17 +262,17 @@ class Debian2SPDX:
 			for lp in self.deb_copyright.all_license_paragraphs()
 		}
 
-	def parse_deb_changelog(self):
+	def parse_deb_changelog(self) -> None:
 		"""Extract and parse debian/changelog"""
 		content = self.debarchive_debian.readfile(f"{self.native_rootdir}debian/changelog")
 		self.deb_changelog = DebChangelog(content)
 
-	def parse_deb_control(self):
+	def parse_deb_control(self) -> None:
 		"""Extract and parse debian/control"""
 		content = self.debarchive_debian.readfile(f"{self.native_rootdir}debian/control")
 		self.deb_control = Deb822(content)
 
-	def add_spdx_extracted_license(self, license_id: str, deb_license: DebLicense):
+	def add_spdx_extracted_license(self, license_id: str, deb_license: DebLicense) -> None:
 		"""Search for text of non-spdx licenses in debian/copyright (identified
 		by the prefix 'LicenseRef-') and create SPDX extracted license object
 
@@ -302,7 +302,7 @@ class Debian2SPDX:
 				# FIXME log a warning here
 			self.spdx_extracted_licenses.update({license_id: extracted_license})
 
-	def process_deb_license_expr(self, deb_license: DebLicense):
+	def process_deb_license_expr(self, deb_license: DebLicense) -> Tuple[SPDXLicense, List[SPDXLicense]]:
 		"""convert debian license expression into SPDX license expression, and
 		if there are any licenses not included in SPDX list, add them to SPDX
 		document as extracted licenses
@@ -318,7 +318,7 @@ class Debian2SPDX:
 		]
 		return spdx_conc_lics, spdx_licenses_in_file
 
-	def process_deb_files_and_license(self):
+	def process_deb_files_and_license(self) -> None:
 		"""Process debian Files and License Paragraphs"""
 		for deb_files in self.deb_copyright.all_files_paragraphs():
 			spdx_conc_lics, spdx_licenses_in_file = self.process_deb_license_expr(
@@ -341,7 +341,7 @@ class Debian2SPDX:
 				else:
 					self.catchall_deb_files = deb_files
 
-	def create_spdx_package(self):
+	def create_spdx_package(self) -> None:
 		"""create SPDX Package object with package data taken from
 		debian/copyright
 		"""
@@ -396,7 +396,7 @@ class Debian2SPDX:
 		spdx_pkg.verif_code = spdx_pkg.calc_verif_code()
 		self.spdx_pkg = spdx_pkg
 
-	def create_spdx_document(self):
+	def create_spdx_document(self) -> None:
 		"""create SPDX Document object"""
 		spdx_doc = SPDXDocument()
 		spdx_doc.version = SPDXVersion(2, 2)
@@ -419,7 +419,7 @@ class Debian2SPDX:
 			spdx_doc.add_extr_lic(extracted_license)
 		self.spdx_doc = spdx_doc
 
-	def generate_SPDX(self):
+	def generate_SPDX(self) -> None:
 		"""main method: perform all processing operations to generate SPDX file
 		from debian/copyright and original source tarball
 		"""
@@ -431,13 +431,13 @@ class Debian2SPDX:
 		self.create_spdx_package()
 		self.create_spdx_document()
 
-	def write_SPDX(self, filename: str = None):
+	def write_SPDX(self, filename: str = None) -> None:
 		"""write SPDX Document object to file (in tagvalue format)"""
 		filename = filename or f"{self.spdx_doc.name}.spdx"
 		with open(filename, "w") as f:
 			write_document(self.spdx_doc, f, validate=False)
 
-	def write_debian_copyright(self, filename: str):
+	def write_debian_copyright(self, filename: str) -> None:
 		"""export debian/copyright (useful if for instance it is not machine
 		parseable and needs to be manually examined)"""
 		try:
@@ -454,7 +454,7 @@ class Debian2SPDX:
 
 
 	@staticmethod
-	def execute(glob_name: str = "*", glob_version: str = "*"):
+	def execute(glob_name: str = "*", glob_version: str = "*") -> None:
 		pool = Pool(Settings.POOLPATH)
 		multiprocessing_pool = MultiProcessingPool()
 		multiprocessing_pool.map(
@@ -463,7 +463,7 @@ class Debian2SPDX:
 		)
 
 	@staticmethod
-	def _execute(path):
+	def _execute(path) -> None:
 		pool = Pool(Settings.POOLPATH)
 		package = f"{path.parts[-3]}-{path.parts[-2]}"
 		try:
