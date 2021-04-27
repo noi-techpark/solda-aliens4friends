@@ -5,12 +5,13 @@ import os
 import sys
 import json
 import logging
-from typing import Union
+from typing import Union, List, Optional, Dict, Any
 
 from .archive import Archive, ArchiveError
 from .version import Version
 
 from aliens4friends.models.aliensrc import AlienSrc, InternalArchive
+from aliens4friends.models.common import SourceFile
 
 logger = logging.getLogger(__name__)
 
@@ -19,19 +20,21 @@ class PackageError(Exception):
 
 class Package:
 
+	# type hints for attributes that are not defined inside __init__
+	archive_name: Optional[str]
+	archive_path: Optional[str]
+
 	def __init__(
 		self,
-		name : str,
+		name : Union[str, List[str]],
 		version : Union[str, Version],
-		archive_fullpath : str = None
-	):
-		super().__init__()
-
+		archive_fullpath: str = None
+	) -> None:
 		if isinstance(name, list):
 			self.alternative_names = name[1:]
 			name = name[0]
 		else:
-			self.alternative_names = []
+			self.alternative_names: List[str] = []
 
 		if not name or not isinstance(name, str):
 			raise PackageError("A package must have a valid name")
@@ -54,10 +57,10 @@ class Package:
 			self.archive_name = None
 			self.archive_path = None
 
-	def __str__(self):
+	def __str__(self) -> str:
 		return f"{self.name} v{self.version.str}"
 
-	def __repr__(self):
+	def __repr__(self) -> str:
 		return self.__str__()
 
 class DebianPackage(Package):
@@ -68,7 +71,14 @@ class DebianPackage(Package):
 		"3.0 (native)"
 	]
 
-	def __init__(self, name, version, debsrc_orig, debsrc_debian, dsc_format = None):
+	def __init__(
+		self,
+		name: str,
+		version: Union[str, Version],
+		debsrc_orig: str,
+		debsrc_debian: str,
+		dsc_format: str = None
+	) -> None:
 
 		if dsc_format and dsc_format not in self.SUPPORTED_DSC_FORMATS:
 			raise PackageError(f"Unknown Debian Source Control File Format: {dsc_format}.")
@@ -81,9 +91,16 @@ class DebianPackage(Package):
 
 class AlienPackage(Package):
 
+	# type hints
+	archive: Archive
+	manager: str
+	metadata: Dict[str, Any]
+	package_files: List[SourceFile]
+	expanded: bool
+
 	ALIEN_MATCHER_JSON = "aliensrc.json"
 
-	def __init__(self, full_archive_path):
+	def __init__(self, full_archive_path: str) -> None:
 		self.archive = Archive(full_archive_path)
 
 		try:
@@ -108,7 +125,7 @@ class AlienPackage(Package):
 		self.package_files = aliensrc.source_package.files
 		self.expanded = False
 
-	def expand(self):
+	def expand(self) -> None:
 		# We need this step only once for each instance...
 		if self.expanded:
 			return
@@ -192,13 +209,13 @@ class AlienPackage(Package):
 				" and no primary archive to use for comparison"
 			)
 
-	def has_internal_primary_archive(self):
+	def has_internal_primary_archive(self) -> bool:
 		return self.internal_archive_name and len(self.internal_archive_name) > 0
 
-	def internal_archive_count(self):
+	def internal_archive_count(self) -> int:
 		return len(self.internal_archives)
 
-	def calc_provenance(self):
+	def calc_provenance(self) -> None:
 		self.known_provenance = 0
 		self.unknown_provenance = 0
 		for f in self.package_files:
@@ -212,7 +229,7 @@ class AlienPackage(Package):
 
 
 
-	def print_info(self):
+	def print_info(self) -> None:
 		print(f"| Package:")
 		print(f"| - Name             : {self.name}")
 		print(f"| - Alternative Names: {self.alternative_names}")
