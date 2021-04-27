@@ -70,18 +70,18 @@ def bash_live(
 		if rc != 0:
 			raise exception(f"{prefix} (ERROR) >>> Command {command} failed! Return code = {rc}")
 
-def sha1sum(file_path):
+def sha1sum(file_path: str) -> str:
 	stdout, stderr = bash(
 		f'sha1sum {file_path}'
 	)
 	return stdout.split(' ', 1)[0]
 
-def copy(src_filename, dst_filename):
+def copy(src_filename: str, dst_filename: str) -> None:
 	with open(src_filename, 'rb') as fr:
 		with open(dst_filename, 'wb') as fw:
 			fw.write(fr.read())
 
-def mkdir(*sub_folders):
+def mkdir(*sub_folders: str) -> str:
 	path = os.path.join(*sub_folders)
 	os.makedirs(
 		path,
