@@ -278,7 +278,7 @@ class Harvest:
 			result.tags = cur.tags
 		return result
 
-	def _parse_tinfoilhat_main(self, path, source_package: SourcePackage):
+	def _parse_tinfoilhat_main(self, path, source_package: SourcePackage) -> None:
 		cur = TinfoilHatModel.from_file(path)
 		cur = cur._container
 
@@ -292,7 +292,7 @@ class Harvest:
 				source_package.metadata = self._parse_tinfoilhat_metadata(container.recipe.metadata)
 
 	@staticmethod
-	def execute(pool: Pool, add_details, add_missing, glob_name: str = "*", glob_version: str = "*"):
+	def execute(pool: Pool, add_details, add_missing, glob_name: str = "*", glob_version: str = "*") -> None:
 
 		result_path = pool.abspath("stats")
 		pool.mkdir(result_path)
