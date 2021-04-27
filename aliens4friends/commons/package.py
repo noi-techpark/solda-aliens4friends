@@ -210,7 +210,7 @@ class AlienPackage(Package):
 			)
 
 	def has_internal_primary_archive(self) -> bool:
-		return self.internal_archive_name and len(self.internal_archive_name) > 0
+		return self.internal_archive_name and len(self.internal_archive_name) > 0  #pytype: disable=bad-return-type
 
 	def internal_archive_count(self) -> int:
 		return len(self.internal_archives)
