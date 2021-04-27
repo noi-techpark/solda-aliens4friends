@@ -3,14 +3,14 @@
 
 from .utils import bash
 from os.path import splitext
-
+from typing import Dict, Tuple, List
 
 class ArchiveError(Exception):
 	pass
 
 class Archive:
 
-	SUPPORTED_ARCHIVES = {
+	SUPPORTED_ARCHIVES: Dict[str, Dict[str, str]] = {
 		".gz": {
 			"tarparam": "z"
 		},
@@ -28,33 +28,33 @@ class Archive:
 		}
 	}
 
-	def __init__(self, archive_path: str):
-		self.path = archive_path
-		self.tar_param = Archive._get_tar_param(archive_path)
+	def __init__(self, archive_path: str) -> None:
+		self.path: str = archive_path
+		self.tar_param: str = Archive._get_tar_param(archive_path)
 		self.is_supported()
 
-	def is_supported(self):
+	def is_supported(self) -> None:
 		_, extension = splitext(self.path)
 		if not extension in self.SUPPORTED_ARCHIVES:
 			raise ArchiveError(f"Archive with extension {extension} is not supported!")
 
-	def _make_tar_cmd(self, params: str):
+	def _make_tar_cmd(self, params: str) -> Tuple[str, str]:
 		return bash(f'tar {self.tar_param}xvf {self.path} {params}', exception=ArchiveError)
 
-	def readfile(self, file_path):
+	def readfile(self, file_path: str) -> List[str]:
 		stdout, _ = self._make_tar_cmd(f'{file_path} --to-command=cat')
 		return stdout.split('\n')[1:]
 
-	def checksums(self, file_path):
+	def checksums(self, file_path: str) -> Dict[str, str]:
 		stdout, _ = self._make_tar_cmd(f'{file_path} --to-command=sha1sum')
 		return Archive._parse_sha1sum(stdout)
 
-	def in_archive_checksums(self, archive_in_archive, file_path=""):
+	def in_archive_checksums(self, archive_in_archive: str, file_path: str = "") -> Dict[str, str]:
 		internal_cmd = f"tar {Archive._get_tar_param(archive_in_archive)}xvf - {file_path} --to-command=sha1sum"
 		stdout, _ = self._make_tar_cmd(f'{archive_in_archive} --to-command="{internal_cmd}"')
 		return Archive._parse_sha1sum(stdout)
 
-	def in_archive_rootfolder(self, archive_in_archive):
+	def in_archive_rootfolder(self, archive_in_archive: str) -> str:
 		"""Get internal archive rootfolder, eg. 'foo-1.0.0/'"""
 		internal_cmd = f"tar {Archive._get_tar_param(archive_in_archive)}tf -"
 		stdout, _ = self._make_tar_cmd(f'{archive_in_archive} --to-command="{internal_cmd}" | grep -v -E "^files/" | cut -d"/" -f 1 | uniq')
@@ -65,7 +65,7 @@ class Archive:
 			return '' # suited to be used with (and ignored by) os.path.join
 		return r[0]
 
-	def rootfolder(self):
+	def rootfolder(self) -> str:
 		"""Get archive rootfolder, eg. 'foo-1.0.0/'"""
 		stdout, _ = bash(f'tar {self.tar_param}tf {self.path} | cut -d"/" -f 1 | uniq')
 		r = stdout.split('\n')
@@ -75,18 +75,18 @@ class Archive:
 			return '' # suited to be used with (and ignored by) os.path.join
 		return r[0]
 
-	def extract(self, dest):
+	def extract(self, dest: str) -> Tuple[str, str]:
 		return self._make_tar_cmd(f'-C {dest} --strip 1')
 
-	def extract_raw(self, dest):
+	def extract_raw(self, dest: str) -> Tuple[str, str]:
 		return self._make_tar_cmd(f'-C {dest}')
 
-	def in_archive_extract(self, archive_in_archive, dest):
+	def in_archive_extract(self, archive_in_archive: str, dest: str) -> Dict[str, str]:
 		internal_cmd = f"tar {Archive._get_tar_param(archive_in_archive)}xvf - -C {dest} --strip 1"
 		stdout, _ = self._make_tar_cmd(f'{archive_in_archive} --to-command="{internal_cmd}"')
 		return Archive._parse_sha1sum(stdout)
 
-	def list(self):
+	def list(self) -> List[str]:
 		stdout, _ = bash(f'tar {self.tar_param}tf {self.path}', exception=ArchiveError)
 		l = stdout.split('\n')
 		if '' in l:
@@ -94,7 +94,7 @@ class Archive:
 		return l
 
 	@staticmethod
-	def _get_tar_param(archive_name):
+	def _get_tar_param(archive_name: str) -> str:
 		_, extension = splitext(archive_name)
 		try:
 			return Archive.SUPPORTED_ARCHIVES[extension]["tarparam"]
@@ -103,7 +103,7 @@ class Archive:
 		raise ArchiveError(f"Archive type unknown for {archive_name}.")
 
 	@staticmethod
-	def _parse_sha1sum(sha1stdout):
+	def _parse_sha1sum(sha1stdout: str) -> Dict[str, str]:
 		lines = sha1stdout.split('\n')
 		files = {}
 		i = 0
@@ -120,7 +120,7 @@ class Archive:
 		return files
 
 	@staticmethod
-	def _check_next_endswith(lines, index, ends):
+	def _check_next_endswith(lines: List[str], index: int, ends: str) -> bool:
 		if index >= len(lines) or index < 0 or not lines[index]:
 			return False
 		return lines[index].endswith(ends)
