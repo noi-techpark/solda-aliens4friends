@@ -40,6 +40,7 @@ class Tool(BaseModel):
 	):
 		self.name = name
 		self.version = version
+        # TODO: add tool parameters used to create the file
 		if parameters:
 			self.parameters = parameters
 
