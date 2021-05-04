@@ -200,11 +200,10 @@ class AlienPackage(Package):
 		self.known_provenance = 0
 		self.unknown_provenance = 0
 		for f in self.package_files:
-			src_uri = f.src_uri.split(";")[0] # remove bitbake params
-			if src_uri.startswith("file:"):
+			if f.src_uri.startswith("file:"):
 				self.unknown_provenance += (f.files_in_archive or 1)
 				# (files_in_archive == False) means that it's no archive, just a single file
-			elif src_uri.startswith("http") or src_uri.startswith("git"):
+			elif f.src_uri.startswith("http") or f.src_uri.startswith("git"):
 				self.known_provenance += (f.files_in_archive or 1)
 		self.total = self.known_provenance + self.unknown_provenance
 
