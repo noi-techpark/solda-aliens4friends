@@ -9,7 +9,7 @@ from typing import Tuple
 from spdx.parsers.tagvalue import Parser as SPDXTagValueParser
 from spdx.parsers.tagvaluebuilders import Builder as SPDXTagValueBuilder
 from spdx.writers.tagvalue import write_document as tv_write_document
-from spdx.document import Document
+from spdx.document import Document as SPDXDocument
 
 from aliens4friends.commons.utils import bash
 from aliens4friends.commons.settings import Settings
@@ -23,18 +23,18 @@ class SPDXWriterLogger:
 class SPDXUtilsException(Exception):
 	pass
 
-def parse_spdx_tv_str(spdx_tv: str) -> Tuple[Document, bool]:
+def parse_spdx_tv_str(spdx_tv: str) -> Tuple[SPDXDocument, bool]:
 	p = SPDXTagValueParser(SPDXTagValueBuilder(), SPDXWriterLogger())
 	p.build()
 	doc, error = p.parse(spdx_tv)
 	return doc, error
 
-def parse_spdx_tv(filename: str) -> Tuple[Document, bool]:
+def parse_spdx_tv(filename: str) -> Tuple[SPDXDocument, bool]:
 	with open(filename, 'r') as f:
 		spdx_tv = f.read()
 		return parse_spdx_tv_str(spdx_tv)
 
-def write_spdx_tv(spdx_doc_obj: Document, filename: str) -> None:
+def write_spdx_tv(spdx_doc_obj: SPDXDocument, filename: str) -> None:
 	"""write SPDX Document object to file (in tagvalue format)"""
 	with open(filename, "w") as f:
 		tv_write_document(spdx_doc_obj, f, validate=False)
