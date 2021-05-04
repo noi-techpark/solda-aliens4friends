@@ -10,6 +10,8 @@ from typing import Union
 from .archive import Archive, ArchiveError
 from .version import Version
 
+from aliens4friends.models.aliensrc import AlienSrc, InternalArchive
+
 logger = logging.getLogger(__name__)
 
 class PackageError(Exception):
@@ -83,30 +85,33 @@ class AlienPackage(Package):
 		self.archive = Archive(full_archive_path)
 
 		try:
-			info_lines = self.archive.readfile(self.ALIEN_MATCHER_JSON)
+			aliensrc = self.archive.readfile(self.ALIEN_MATCHER_JSON)
+			aliensrc = json.loads("\n".join(aliensrc))
+			aliensrc = AlienSrc.decode(aliensrc)
 		except ArchiveError as ex:
 			raise PackageError(f"Broken Alien Package: Error is {str(ex)}")
 
-		self._info_json = json.loads("\n".join(info_lines))
-
-		self.spec_version = self._info_json['version']
-		if self.spec_version != 1 and self.spec_version != "1":
+		if aliensrc.version != 1:
 			raise PackageError(
-				f"{self.ALIEN_MATCHER_JSON} with version {self.spec_version} not supported"
+				f"{self.ALIEN_MATCHER_JSON} with version {aliensrc.version} not supported"
 			)
 
 		super().__init__(
-			self._info_json['source_package']['name'],
-			self._info_json['source_package']['version'],
+			aliensrc.source_package.name,
+			aliensrc.source_package.version,
 			full_archive_path
 		)
-
-		self.manager = self._info_json['source_package'].get('manager')
-		self.metadata = self._info_json['source_package'].get('metadata')
-
-		self.package_files = self._info_json['source_package']['files']
+		self.manager = aliensrc.source_package.manager
+		self.metadata = aliensrc.source_package.metadata
+		self.package_files = aliensrc.source_package.files
+		self.expanded = False
 
 	def expand(self):
+		# We need this step only once for each instance...
+		if self.expanded:
+			return
+
+		self.expanded = True
 		checksums = self.archive.checksums("files/")
 
 		if len(checksums) != len(self.package_files):
@@ -120,29 +125,30 @@ class AlienPackage(Package):
 		self.internal_archive_rootfolder = None
 		self.internal_archive_src_uri = None
 		self.internal_archives = []
-		for rec in self.package_files:
+
+		for src_file in self.package_files:
 			try:
-				if rec['sha1'] != checksums[rec['name']]:
+				if src_file.sha1 != checksums[src_file.name]:
 					raise PackageError(
-						f"{rec['sha1']} is not {checksums[rec['name']]} for {rec['name']}."
+						f"{src_file.sha1} is not {checksums[src_file.name]} for {src_file.name}."
 					)
 			except KeyError:
 				raise PackageError(
-						f"{rec['sha1']} does not exist in checksums for {rec['name']}."
+						f"{src_file.sha1} does not exist in checksums for {src_file.name}."
 					)
 
-			if '.tar.' in rec['name'] or rec['name'].endswith('.tgz'):
+			if '.tar.' in src_file.name or src_file.name.endswith('.tgz'):
 				self.internal_archives.append(
-					{
-						"name" : rec["name"],
-						"checksums" : self.archive.in_archive_checksums(f"files/{rec['name']}"),
-						"rootfolder" : self.archive.in_archive_rootfolder(f"files/{rec['name']}"),
-						"src_uri" : rec["src_uri"]
-					}
+					InternalArchive(
+						name = src_file.name,
+						checksums = self.archive.in_archive_checksums(f"files/{src_file.name}"),
+						rootfolder = self.archive.in_archive_rootfolder(f"files/{src_file.name}"),
+						src_uri = src_file.src_uri
+					)
 				)
 				logger.debug(
 					f"[{self.name}-{self.version.str}]"
-					f" adding internal archive {rec['name']}")
+					f" adding internal archive {src_file.name}")
 
 		primary = None
 		if len(self.internal_archives) == 1:
@@ -154,28 +160,28 @@ class AlienPackage(Package):
 			# archive
 
 			# Special rules to find the primary archive
-			for rec in self.internal_archives:
+			for src_file in self.internal_archives:
 				if (
-					(("linux" in rec["name"] or "kernel" in rec["name"])
-					and "name=machine" in rec["src_uri"])
+					(("linux" in src_file.name or "kernel" in src_file.name)
+					and "name=machine" in src_file.src_uri)
 					or
-					("perl" in rec["name"] and "name=perl" in rec["src_uri"])
+					("perl" in src_file.name and "name=perl" in src_file.src_uri)
 					or
-					("libxml2" in rec["name"] and "name=libtar" in rec["src_uri"])
+					("libxml2" in src_file.name and "name=libtar" in src_file.src_uri)
 				):
-					primary = rec
+					primary = src_file
 					break
 
 		if primary:
-			self.internal_archive_name = primary['name']
-			self.internal_archive_checksums = primary['checksums']
-			self.internal_archive_rootfolder = primary['rootfolder']
-			self.internal_archive_src_uri = primary['src_uri']
+			self.internal_archive_name = primary.name
+			self.internal_archive_checksums = primary.checksums
+			self.internal_archive_rootfolder = primary.rootfolder
+			self.internal_archive_src_uri = primary.src_uri
 			if len(self.internal_archives) > 1:
 				logger.warning(
 					f"[{self.name}-{self.version.str}]:"
 					 " more than one internal archive, using just primary"
-					f" archive '{primary['name']}' for comparison"
+					f" archive '{primary.name}' for comparison"
 			)
 		elif not primary and len(self.internal_archives) > 1:
 			logger.warning(
@@ -189,6 +195,19 @@ class AlienPackage(Package):
 
 	def internal_archive_count(self):
 		return len(self.internal_archives)
+
+	def calc_provenance(self):
+		self.known_provenance = 0
+		self.unknown_provenance = 0
+		for f in self.package_files:
+			if f.src_uri.startswith("file:"):
+				self.unknown_provenance += (f.files_in_archive or 1)
+				# (files_in_archive == False) means that it's no archive, just a single file
+			elif f.src_uri.startswith("http") or f.src_uri.startswith("git"):
+				self.known_provenance += (f.files_in_archive or 1)
+		self.total = self.known_provenance + self.unknown_provenance
+
+
 
 	def print_info(self):
 		print(f"| Package:")

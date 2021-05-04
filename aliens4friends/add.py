@@ -14,6 +14,11 @@ class AddError(Exception):
 	pass
 
 class Add:
+	"""
+    Add packages or result files from another Aliens4Friends pool to this pool
+	structure. Depending of the internal data of each input artifact we
+	calculate the correct position inside the pool's userland repository.
+	"""
 
 	def __init__(self, pool: Pool):
 		super().__init__()
