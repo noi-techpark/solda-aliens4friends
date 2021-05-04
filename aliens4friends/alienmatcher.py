@@ -10,7 +10,7 @@ from urllib.parse import quote as url_encode
 from multiprocessing import Pool as MultiProcessingPool
 
 from enum import Enum
-from typing import Union
+from typing import Union, Any, Optional
 
 import requests
 from debian.deb822 import Deb822
@@ -44,6 +44,10 @@ class AlienMatcherError(Exception):
 	pass
 
 class AlienMatcher:
+
+	# Type hints for attributes not declared in __init__
+	curpkg: str
+
 	"""
 	Class to match an entry inside a yocto manifest file with debian packages
 	libraries through an API, exactly or if not possible find the closest
@@ -84,7 +88,7 @@ class AlienMatcher:
 		"zlib-intel": "zlib",
 	}
 
-	def __init__(self):
+	def __init__(self) -> None:
 		super().__init__()
 		self.errors = []
 		self.pool = Pool(Settings.POOLPATH)
@@ -94,11 +98,11 @@ class AlienMatcher:
 
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
 
-	def _reset(self):
+	def _reset(self) -> None:
 		self.errors = []
 
 	@staticmethod
-	def get_deb_all_sources():
+	def get_deb_all_sources() -> Any:
 		# we need a static method that can be invoked before using
 		# multiprocessing in execute()
 		pool = Pool(Settings.POOLPATH)
@@ -124,11 +128,11 @@ class AlienMatcher:
 		return json.loads(response)
 
 	@staticmethod
-	def _clean_name(name):
+	def _clean_name(name: str) -> str:
 		return name.rstrip("0123456789.~+").replace("-v", "").replace("-", "")
 
 	# XXX Add an edit-distance, since not all similar matches are equally good (Levensthein)
-	def _similar_package_name(self, given, new):
+	def _similar_package_name(self, given: str, new: str) -> int:
 
 		if given == new:
 			return 100
@@ -182,7 +186,7 @@ class AlienMatcher:
 		# --> Not matching at all
 		return 0
 
-	def search(self, package: Package):
+	def search(self, package: Package) -> Package:
 		logger.debug(f"[{self.curpkg}] Search for similar packages with {self.API_URL_ALLSRC}.")
 		if not isinstance(package, Package):
 			raise TypeError("Parameter must be a Package.")
@@ -256,7 +260,7 @@ class AlienMatcher:
 
 		return Package(name = cur_package_name, version = best_version)
 
-	def download_to_debian(self, package_name, package_version, filename):
+	def download_to_debian(self, package_name: str, package_version: str, filename: str) -> bytes:
 		logger.debug(
 			f"[{self.curpkg}] Retrieving file from Debian:"
 			f" '{package_name}/{package_version}/{filename}'."
@@ -306,7 +310,7 @@ class AlienMatcher:
 			response = r.content
 		return response
 
-	def fetch_debian_sources(self, package: Package):
+	def fetch_debian_sources(self, package: Package) -> DebianPackage:
 		dsc_filename = f'{package.name}_{package.version.str}.dsc'
 		dsc_file_content = self.download_to_debian(
 			package.name,
@@ -362,7 +366,7 @@ class AlienMatcher:
 			debian_control['Format']
 		)
 
-	def match(self, apkg: AlienPackage):
+	def match(self, apkg: AlienPackage) -> AlienMatcherModel:
 		logger.debug(f"[{self.curpkg}] Find a matching package on Debian repositories.")
 		int_arch_count = apkg.internal_archive_count()
 		if int_arch_count > 1:
@@ -449,7 +453,7 @@ class AlienMatcher:
 			logger.debug(f"[{self.curpkg}] Result written to {resultpath}.")
 		return amm
 
-	def run(self, package_path):
+	def run(self, package_path: str) -> Optional[AlienMatcherModel]:
 		try:
 			filename = os.path.basename(package_path)
 			package = AlienPackage(package_path)
@@ -482,19 +486,19 @@ class AlienMatcher:
 			return None
 
 	@staticmethod
-	def execute(glob_name: str = "*", glob_version: str = "*"):
+	def execute(glob_name: str = "*", glob_version: str = "*") -> None:
 		global DEB_ALL_SOURCES
 		DEB_ALL_SOURCES = AlienMatcher.get_deb_all_sources()
 		pool = Pool(Settings.POOLPATH)
 		multiprocessing_pool = MultiProcessingPool()
-		multiprocessing_pool.map(
+		multiprocessing_pool.map( # pytype: disable=wrong-arg-types
 			AlienMatcher._execute,
 			pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
 		)
 
 	@staticmethod
-	def _execute(p):
+	def _execute(path: str) -> None:
 		matcher = AlienMatcher()
-		result = matcher.run(p)
+		result = matcher.run(path)
 		if Settings.PRINTRESULT:
 			print(json.dumps(result, indent=2))

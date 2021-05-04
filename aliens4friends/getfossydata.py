@@ -7,6 +7,7 @@ import json
 import tempfile
 import logging
 from uuid import uuid4
+from typing import Optional, Dict, Any, Generator
 
 from spdx.document import Document as SPDXDocument
 from spdx.package import Package as SPDXPackage
@@ -76,7 +77,7 @@ class GetFossyData:
 		self,
 		fossy: FossyWrapper,
 		alien_package: AlienPackage,
-		alien_spdx_filename: str = None
+		alien_spdx_filename: Optional[str] = None
 	):
 		self.pkg = SPDXPackage()
 		self.pkg.comment = ""

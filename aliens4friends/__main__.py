@@ -78,7 +78,7 @@ LOGGERS = {
 
 class Aliens4Friends:
 
-	def __init__(self):
+	def __init__(self) -> None:
 		logging.basicConfig(
 			level=logging.WARNING,
 			format="%(asctime)s %(levelname)-8s %(name)-30s | %(message)s",
@@ -121,7 +121,7 @@ class Aliens4Friends:
 
 		getattr(self, self.args.command)()
 
-	def setup(self):
+	def setup(self) -> None:
 		try:
 			self._subcommand_args()
 		except AttributeError:
@@ -148,7 +148,7 @@ class Aliens4Friends:
 		logger.setLevel(Settings.LOGLEVEL)
 
 
-	def _subcommand_args(self):
+	def _subcommand_args(self) -> None:
 		if self.args.ignore_cache:
 			Settings.DOTENV["A4F_CACHE"] = Settings.POOLCACHED = False
 
@@ -162,7 +162,7 @@ class Aliens4Friends:
 			Settings.DOTENV["A4F_PRINTRESULT"] = Settings.PRINTRESULT = True
 
 
-	def _args_defaults(self, parser, describe_files = ""):
+	def _args_defaults(self, parser: argparse.ArgumentParser, describe_files: str = "") -> None:
 		parser.add_argument(
 			"-i",
 			"--ignore-cache",
@@ -201,7 +201,7 @@ class Aliens4Friends:
 			nargs="?"
 		)
 
-	def _args_files(self, parser, describe_files):
+	def _args_files(self, parser: argparse.ArgumentParser, describe_files: str) -> None:
 		parser.add_argument(
 			"FILES",
 			nargs = "*",
@@ -209,7 +209,7 @@ class Aliens4Friends:
 			help = describe_files
 		)
 
-	def _args_print_to_stdout(self, parser):
+	def _args_print_to_stdout(self, parser: argparse.ArgumentParser) -> None:
 		parser.add_argument(
 			"-p",
 			"--print",
@@ -218,11 +218,11 @@ class Aliens4Friends:
 			help = "Print result also to stdout."
 		)
 
-	def config(self):
+	def config(self) -> None:
 		for k, v in Settings.DOTENV.items():
 			print(f"{k}={v}")
 
-	def help(self):
+	def help(self) -> None:
 		docparts = __doc__.split(
 			"Usage\n-----\n(automatically printed from `argparse` module)\n", 1
 		)
@@ -232,13 +232,13 @@ class Aliens4Friends:
 		print(docparts[1])     # Print the rest
 		exit(0)
 
-	def parser_help(self, cmd):
+	def parser_help(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Show a help message"
 		)
 
-	def parser_config(self, cmd):
+	def parser_config(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			formatter_class=argparse.RawTextHelpFormatter,
@@ -263,7 +263,7 @@ class Aliens4Friends:
 				""")
 		)
 
-	def parser_add(self, cmd):
+	def parser_add(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Verify and add Alien Packages to the pool"
@@ -276,7 +276,7 @@ class Aliens4Friends:
 			"The Alien Packages (also wildcards allowed)"
 		)
 
-	def parser_match(self, cmd):
+	def parser_match(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Find a matching source package on Debian"
@@ -285,7 +285,7 @@ class Aliens4Friends:
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
 
-	def parser_scan(self, cmd):
+	def parser_scan(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Scan a source code folder and find license/copyright information (scancode)"
@@ -296,7 +296,7 @@ class Aliens4Friends:
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
 
-	def parser_delta(self, cmd):
+	def parser_delta(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Understand differences between matching packages (deltacode)"
@@ -305,7 +305,7 @@ class Aliens4Friends:
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
 
-	def parser_spdxdebian(self, cmd):
+	def parser_spdxdebian(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Translate Debian dep5 license information into SPDX files"
@@ -314,7 +314,7 @@ class Aliens4Friends:
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
 
-	def parser_spdxalien(self, cmd):
+	def parser_spdxalien(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Generate SPDX files out of Alien Package and Deltacode information"
@@ -323,7 +323,7 @@ class Aliens4Friends:
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
 
-	def parser_upload(self, cmd):
+	def parser_upload(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Upload Alien Packages to Fossology"
@@ -331,7 +331,7 @@ class Aliens4Friends:
 		self._args_defaults(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
 
-	def parser_fossy(self, cmd):
+	def parser_fossy(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Get final SPDX and json data from Fossology"
@@ -340,7 +340,7 @@ class Aliens4Friends:
 		self._args_glob(self.parsers[cmd])
 
 
-	def parser_harvest(self, cmd):
+	def parser_harvest(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Harvest tinfoilhat, alienmatcher, deltacode, fossy and " \
@@ -364,56 +364,56 @@ class Aliens4Friends:
 			help = "Add missing input files to the report while harvesting."
 		)
 
-	def add(self):
+	def add(self) -> None:
 		file_list = [ f.name for f in self.args.FILES ]
 		Add.execute(file_list, self.pool)
 
-	def match(self):
+	def match(self) -> None:
 		AlienMatcher.execute(
 			self.args.glob_name,
 			self.args.glob_version
 		)
 
-	def scan(self):
+	def scan(self) -> None:
 		Scancode.execute(
 			self.pool,
 			self.args.glob_name,
 			self.args.glob_version
 		)
 
-	def delta(self):
+	def delta(self) -> None:
 		DeltaCodeNG.execute(
 			self.args.glob_name,
 			self.args.glob_version
 		)
 
-	def spdxdebian(self):
+	def spdxdebian(self) -> None:
 		Debian2SPDX.execute(
 			self.args.glob_name,
 			self.args.glob_version
 		)
 
-	def spdxalien(self):
+	def spdxalien(self) -> None:
 		MakeAlienSPDX.execute(
 			self.args.glob_name,
 			self.args.glob_version
 		)
 
-	def upload(self):
+	def upload(self) -> None:
 		UploadAliens2Fossy.execute(
 			self.pool,
 			self.args.glob_name,
 			self.args.glob_version
 		)
 
-	def fossy(self):
+	def fossy(self) -> None:
 		GetFossyData.execute(
 			self.pool,
 			self.args.glob_name,
 			self.args.glob_version
 	)
 
-	def harvest(self):
+	def harvest(self) -> None:
 		Harvest.execute(
 			self.pool,
 			self.args.add_details,

@@ -9,6 +9,8 @@ import logging
 from datetime import datetime
 import difflib
 from multiprocessing import Pool as MultiProcessingPool
+from typing import List, Dict, Any, Generator
+from pathlib import Path
 
 from deepdiff import DeepDiff
 
@@ -27,7 +29,7 @@ RELEVANT_FINDINGS = [
 
 EMPTY_FILE_SHA1 = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
-def get_word_list(string: str) -> list:
+def get_word_list(string: str) -> List[str]:
 	p = re.compile('[^\d\w]')
 	only_alphanumerical_chars_str = p.sub(' ', string)
 	return only_alphanumerical_chars_str.split()
@@ -38,7 +40,7 @@ def is_year(year: str) -> bool:
 	else:
 		return False
 
-def get_changed_new_deleted_words(old: list, new: list) -> list:
+def get_changed_new_deleted_words(old: list, new: list) -> List[str]:
 	changed_new_deleted_words = []
 	d = difflib.Differ()
 	diffs = d.compare(old, new)
@@ -80,7 +82,7 @@ def only_copyright_year_has_been_updated(findings_diff: dict) -> bool:
 				return False
 	return True
 
-def get_paths_and_relevant_findings(scan_out: dict) -> dict:
+def get_paths_and_relevant_findings(scan_out: dict) -> Dict[str, Dict[str, Any]]:
 	root = scan_out['files'][0]['path']
 	p = re.compile(f'^{root}/')
 	paths_and_relevant_findings = {}
@@ -103,7 +105,7 @@ class DeltaCodeNGException(Exception):
 
 class DeltaCodeNG:
 
-	def __init__(self, old_scan_out_file, new_scan_out_file, result_file):
+	def __init__(self, old_scan_out_file: str, new_scan_out_file: str, result_file: str) -> None:
 		"""Class to compare two scancode json output files resulting from the
 		scan of two similar package versions, in order to assess their
 		similarity as to license and copyright statements.
@@ -172,11 +174,11 @@ class DeltaCodeNG:
 				f' must be {SCANCODE_VERSION}'
 			)
 
-	def _fix_finding_diffs_for_json_serialization(self, findings_diff):
+	def _fix_finding_diffs_for_json_serialization(self, findings_diff: dict) -> None:
 		if findings_diff.get("type_changes"):
 			del findings_diff["type_changes"]
 
-	def compare(self):
+	def compare(self) -> dict:
 		moved = []
 		for path in self.old:
 			sha1 = self.old[path]['sha1']
@@ -225,7 +227,7 @@ class DeltaCodeNG:
 		self.add_stats()
 		return self.res
 
-	def add_stats(self):
+	def add_stats(self) -> None:
 		for k,v in self.res['body'].items():
 			self.res['header']['stats'].update({k: len(v)})
 		self.res['header']['stats'].update({
@@ -233,29 +235,29 @@ class DeltaCodeNG:
 			'new_files_count': len(list(self.new.keys()))
 		})
 
-	def print_stats(self):
+	def print_stats(self) -> None:
 		for stat in self.get_stats():
 			print(stat)
 
-	def get_stats(self):
+	def get_stats(self) -> Generator[str, None, None]:
 		for k,v in self.res['body'].items():
 			yield (f'{k}: {len(v)}')
 
-	def write_results(self):
+	def write_results(self) -> None:
 		with open(self.result_file, "w") as f:
 			json.dump(self.res, f, indent=2)
 
 	@staticmethod
-	def execute(glob_name: str = "*", glob_version: str = "*"):
+	def execute(glob_name: str = "*", glob_version: str = "*") -> None:
 		pool = Pool(Settings.POOLPATH)
 		multiprocessing_pool = MultiProcessingPool()
-		multiprocessing_pool.map(
+		multiprocessing_pool.map(  #pytype: disable=wrong-arg-types
 			DeltaCodeNG._execute,
 			pool.absglob(f"userland/{glob_name}/{glob_version}/*.alienmatcher.json")
 		)
 
 	@staticmethod
-	def _execute(path):
+	def _execute(path: Path) -> None:
 		pool = Pool(Settings.POOLPATH)
 		package = f"{path.parts[-3]}-{path.parts[-2]}"
 		try:

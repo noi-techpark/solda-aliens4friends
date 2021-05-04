@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+from typing import List, Dict, Any
 
 from datetime import datetime
 
@@ -29,7 +30,7 @@ from aliens4friends.models.harvest import (
 from aliens4friends.models.fossy import FossyModel
 from aliens4friends.models.alienmatcher import AlienMatcherModel
 from aliens4friends.models.deltacode import DeltaCodeModel
-from aliens4friends.models.tinfoilhat import TinfoilHatModel
+from aliens4friends.models.tinfoilhat import TinfoilHatModel, PackageWithTags, PackageMetaData
 
 logger = logging.getLogger(__name__)
 
@@ -144,7 +145,7 @@ class Harvest:
 	def write_results(self):
 		self.pool.write_json(self.result, self.result_file)
 
-	def _parse_aliensrc_main(self, path, source_package: SourcePackage):
+	def _parse_aliensrc_main(self, path, source_package: SourcePackage) -> None:
 		apkg = AlienPackage(path)
 		apkg.calc_provenance()
 		source_package.source_files = apkg.package_files
@@ -154,20 +155,20 @@ class Harvest:
 		stats_files.total = apkg.total
 
 
-	def _parse_alienmatcher_main(self, path, source_package: SourcePackage):
+	def _parse_alienmatcher_main(self, path, source_package: SourcePackage) -> None:
 		amm = AlienMatcherModel.from_file(path)
 		source_package.debian_matching = DebianMatchBasic(
 			amm.debian.match.name,
 			amm.debian.match.version
 		)
 
-	def _parse_scancode_main(self, path, source_package: SourcePackage):
+	def _parse_scancode_main(self, path, source_package: SourcePackage) -> None:
 		with open(path) as f:
 			cur = json.load(f)
 		files = [f for f in cur['files'] if f['type'] == 'file']
 		source_package.statistics.files.upstream_source_total = len(files)
 
-	def _parse_deltacode_main(self, path, source_package: SourcePackage):
+	def _parse_deltacode_main(self, path, source_package: SourcePackage) -> None:
 		cur = DeltaCodeModel.from_file(path)
 		source_package.debian_matching.ip_matching_files = (
 			cur.header.stats.same_files
@@ -177,13 +178,13 @@ class Harvest:
 		)
 
 	@staticmethod
-	def _increment(dict, key, val):
+	def _increment(dict: dict, key: str, val: Any) -> None:
 		try:
 			dict[key] += val
 		except KeyError:
 			dict[key] = val
 
-	def _parse_fossy_licenselists(self, cur):
+	def _parse_fossy_licenselists(self, cur: List[str]) -> Dict[str, int]:
 		result = {}
 		if not cur:
 			return result
@@ -202,14 +203,14 @@ class Harvest:
 			Harvest._increment(result, license_id, 1)
 		return result
 
-	def _parse_fossy_ordered_licenses(self, list):
+	def _parse_fossy_ordered_licenses(self, licenses: dict) -> List[LicenseFinding]:
 		result = [
-			LicenseFinding(k, v) for k, v in list.items()
+			LicenseFinding(k, v) for k, v in licenses.items()
 		]
 		return sorted(result, reverse = True)
 
 
-	def _parse_fossy_main(self, path, source_package: SourcePackage):
+	def _parse_fossy_main(self, path, source_package: SourcePackage) -> None:
 		cur = FossyModel.from_file(path)
 		stat_agents = {}
 		stat_conclusions = {}
@@ -245,13 +246,13 @@ class Harvest:
 			)
 		)
 
-	def _parse_tinfoilhat_packages(self, cur):
+	def _parse_tinfoilhat_packages(self, cur: Dict[str, PackageWithTags]) -> List[BinaryPackage]:
 		result = []
 		for name, package in cur.items():
 			result.append(self._parse_tinfoilhat_package(name, package))
 		return result
 
-	def _parse_tinfoilhat_metadata(self, cur):
+	def _parse_tinfoilhat_metadata(self, package_metadata: PackageMetaData) -> Dict[str, str]:
 		SKIP_LIST = [
 			"license",
 			"compiled_source_dir",
@@ -260,13 +261,13 @@ class Harvest:
 			"name"
 		]
 		result = {}
-		for k, v in cur.items():
+		for k, v in package_metadata.items():
 			if k in SKIP_LIST:
 				continue
 			result[k] = v
 		return result
 
-	def _parse_tinfoilhat_package(self, name, cur):
+	def _parse_tinfoilhat_package(self, name: str, cur: PackageWithTags) -> BinaryPackage:
 		result = BinaryPackage(
 			name,
 			cur.package.metadata.version,
@@ -277,21 +278,21 @@ class Harvest:
 			result.tags = cur.tags
 		return result
 
-	def _parse_tinfoilhat_main(self, path, source_package: SourcePackage):
+	def _parse_tinfoilhat_main(self, path, source_package: SourcePackage) -> None:
 		cur = TinfoilHatModel.from_file(path)
 		cur = cur._container
 
-		for recipe_name, main in cur.items():
-			source_package.name = main.recipe.metadata.name
-			source_package.version = main.recipe.metadata.version
-			source_package.revision = main.recipe.metadata.revision
-			source_package.tags = main.tags
-			source_package.binary_packages = self._parse_tinfoilhat_packages(main.packages)
+		for recipe_name, container in cur.items():
+			source_package.name = container.recipe.metadata.name
+			source_package.version = container.recipe.metadata.version
+			source_package.revision = container.recipe.metadata.revision
+			source_package.tags = container.tags
+			source_package.binary_packages = self._parse_tinfoilhat_packages(container.packages)
 			if self.add_details:
-				source_package.metadata = self._parse_tinfoilhat_metadata(main.recipe.metadata)
+				source_package.metadata = self._parse_tinfoilhat_metadata(container.recipe.metadata)
 
 	@staticmethod
-	def execute(pool: Pool, add_details, add_missing, glob_name: str = "*", glob_version: str = "*"):
+	def execute(pool: Pool, add_details, add_missing, glob_name: str = "*", glob_version: str = "*") -> None:
 
 		result_path = pool.abspath("stats")
 		pool.mkdir(result_path)

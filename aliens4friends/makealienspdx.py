@@ -66,6 +66,8 @@ class Scancode2AlienSPDX:
 
 class Debian2AlienSPDX(Scancode2AlienSPDX):
 
+	proximity: int  # pytype hint to resolve attribute-errors
+
 	def __init__(self,
 			scancode_spdx: SPDXDocument,
 			alien_package: AlienPackage,

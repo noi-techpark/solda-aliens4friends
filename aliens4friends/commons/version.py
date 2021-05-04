@@ -5,8 +5,15 @@ import re
 
 from debian.debian_support import Version as DebVersion
 from packaging.version import Version as PkgVersion, parse, InvalidVersion
+from typing import Union, Any, Optional, TypeVar
+
+_TVersion = TypeVar('_TVersion', bound='Version')
 
 class Version:
+
+	# type hints
+	package_version: PkgVersion
+	debian_version: DebVersion
 
 	FLAG_DEB_VERSION_ORIG = 1<<0
 	FLAG_DEB_VERSION_SIMPLIFIED = 1<<1
@@ -17,7 +24,7 @@ class Version:
 
 	MAX_DISTANCE = 10000000
 
-	def __init__(self, version_str, remove_epoc=True):
+	def __init__(self, version_str: str, remove_epoc: bool = True) -> None:
 		super().__init__()
 		self.str = version_str
 		if remove_epoc:
@@ -29,7 +36,7 @@ class Version:
 		self._make_debian_version()
 		self._make_package_version()
 
-	def _make_package_version(self):
+	def _make_package_version(self) -> None:
 		try:
 			self.package_version = PkgVersion(self.str)
 			self.version_conversion |= Version.FLAG_PKG_VERSION_ORIG
@@ -40,7 +47,7 @@ class Version:
 			except Exception:
 				self.version_conversion |= Version.FLAG_PKG_VERSION_ERROR
 
-	def _make_debian_version(self):
+	def _make_debian_version(self) -> None:
 		try:
 			self.debian_version = DebVersion(self.str)
 			self.version_conversion |= Version.FLAG_DEB_VERSION_ORIG
@@ -51,7 +58,7 @@ class Version:
 			except Exception:
 				self.version_conversion |= Version.FLAG_DEB_VERSION_ERROR
 
-	def _version_simplify(self):
+	def _version_simplify(self) -> str:
 		result = self._remove_epoc(self.str)
 		result = self._fix_tcp_wrappers_version(result) #FIXME generalize
 		countdots = 0
@@ -65,10 +72,10 @@ class Version:
 
 		return result
 
-	def has_flag(self, flag):
+	def has_flag(self, flag: int) -> bool:
 		return (self.version_conversion & flag) != 0
 
-	def distance(self, other_version):
+	def distance(self, other_version: Union[_TVersion, Any]) -> int:
 
 		if not isinstance(other_version, Version):
 			return Version.MAX_DISTANCE
@@ -102,7 +109,7 @@ class Version:
 			((dist_revision1 + dist_revision2 + dist_post) * 10 if dist_major == 0 and dist_minor == 0 and dist_micro == 0 else 0)
 		)
 
-	def distance_note(self, distance):
+	def distance_note(self, distance: Union[int, str]) -> Union[int, str]:
 		if not isinstance(distance, int):
 			return distance
 
@@ -116,23 +123,23 @@ class Version:
 			return "RED"
 		return "VERSION INVALID"
 
-	def __lt__(self, other):
+	def __lt__(self, other: _TVersion) -> bool:
 		return self.debian_version < other.debian_version
 
-	def __eq__(self, other):
+	def __eq__(self, other: _TVersion) -> bool:
 		return self.str == other.str
 
-	def __str__(self):
+	def __str__(self) -> str:
 		simple = ""
 		if (self.has_flag(Version.FLAG_DEB_VERSION_SIMPLIFIED | Version.FLAG_PKG_VERSION_SIMPLIFIED)):
 			simple = " -> " + self.str_simple
 		return f"{self.str}{simple} ({self.version_conversion:06b})"
 
-	def __repr__(self):
+	def __repr__(self) -> str:
 		return self.__str__()
 
 	@staticmethod
-	def _safe_abs_dist(a, b):
+	def _safe_abs_dist(a: Optional[int], b: Optional[int]) -> int:
 		if not a:
 			a = 0
 		if not b:
@@ -140,7 +147,7 @@ class Version:
 		return abs(a - b)
 
 	@staticmethod
-	def _remove_epoc(vers_str):
+	def _remove_epoc(vers_str: str) -> str:
 		for i in range(len(vers_str)):
 			if not vers_str[i].isdigit():
 				break
@@ -149,7 +156,7 @@ class Version:
 		return vers_str
 
 	@staticmethod
-	def _fix_tcp_wrappers_version(vers_str):
+	def _fix_tcp_wrappers_version(vers_str: str) -> str:
 		p = re.compile('(\d+\.\d+\.)q-(\d+)')
 		m = p.match(vers_str)
 		if m:

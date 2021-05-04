@@ -4,6 +4,7 @@
 import os
 import logging
 import json
+from typing import Optional
 
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.archive import Archive
@@ -17,11 +18,14 @@ class ScancodeError(Exception):
 
 class Scancode:
 
-	def __init__(self, pool: Pool):
+	# Type hints for attributes not declared in __init__
+	curpkg: str
+
+	def __init__(self, pool: Pool) -> None:
 		super().__init__()
 		self.pool = pool
 
-	def _unpack(self, archive : Archive, archive_in_archive : str = None):
+	def _unpack(self, archive : Archive, archive_in_archive : str = None) -> str:
 		dest = os.path.join(os.path.dirname(archive.path), "__unpacked")
 		if not Settings.POOLCACHED:
 			self.pool.rm(dest)
@@ -38,7 +42,7 @@ class Scancode:
 		return dest
 
 
-	def run(self, archive : Archive, package_name, package_version_str, archive_in_archive = None):
+	def run(self, archive: Archive, package_name: str, package_version_str: str, archive_in_archive: str = None) -> Optional[str]:
 		self.curpkg = f"{package_name}-{package_version_str}"
 		result_filename = f"{package_name}-{package_version_str}.scancode.json"
 		spdx_filename = f"{package_name}-{package_version_str}.scancode.spdx"
@@ -90,7 +94,7 @@ class Scancode:
 		return scancode_result
 
 	@staticmethod
-	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
+	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*") -> None:
 		scancode = Scancode(pool)
 
 		for path in pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json"):
@@ -113,7 +117,7 @@ class Scancode:
 			except KeyError:
 				logger.warning(f"[{package}] no debian match, no debian package to scan here")
 			except TypeError as ex:
-				if not to_scan:
+				if not to_scan:  #pytype: disable=name-error
 					logger.warning(f"[{package}] no debian orig archive to scan here")
 				else:
 					logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")

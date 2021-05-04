@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from .base import BaseModel
+from typing import List
 
 class FossySummary(BaseModel):
 	def __init__(
@@ -35,8 +36,8 @@ class FossyLicenseFinding(BaseModel):
 	def __init__(
 		self,
 		filePath: str = None,
-		agentFindings: list = None,
-		conclusions: list = None
+		agentFindings: List[str] = None,
+		conclusions: List[str] = None
 	):
 		self.filePath = filePath
 		self.agentFindings = agentFindings
@@ -48,7 +49,7 @@ class FossyModel(BaseModel):
 		self,
 		origin: str = None,
 		summary: FossySummary = None,
-		licenses: list = None
+		licenses: List[FossyLicenseFinding] = None
 	):
 		self.origin = origin
 		self.summary = FossySummary.decode(summary)

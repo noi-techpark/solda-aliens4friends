@@ -4,6 +4,7 @@
 
 from .base import BaseModel
 from .common import Tool, SourceFile
+from typing import List
 
 class VersionCandidate(BaseModel):
 	def __init__(
@@ -25,7 +26,7 @@ class DebianMatch(BaseModel):
 		debsrc_debian: str = None,
 		debsrc_orig: str = None,
 		dsc_format: str = None,
-		version_candidates: list = None
+		version_candidates: List[VersionCandidate] = None
 	):
 		self.name = name
 		self.version = version
@@ -47,10 +48,10 @@ class AlienSrc(BaseModel):
 		self,
 		name: str = None,
 		version: str = None,
-		alternative_names: list = None,
+		alternative_names: List[str] = None,
 		internal_archive_name: str = None,
 		filename: str = None,
-		files: list = None
+		files: List[SourceFile] = None
 	):
 		self.name = name
 		self.version = version
@@ -67,7 +68,7 @@ class AlienMatcherModel(BaseModel):
 		tool: Tool = None,
 		aliensrc: AlienSrc = None,
 		debian: DebianMatchContainer = None,
-		errors: list = None
+		errors: List[str] = None
 	):
 		self.tool = Tool.decode(tool)
 		self.aliensrc = AlienSrc.decode(aliensrc)

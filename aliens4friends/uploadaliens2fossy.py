@@ -11,6 +11,7 @@ from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.fossywrapper import FossyWrapper
 from aliens4friends.commons.spdxutils import fix_spdxtv, spdxtv2rdf, parse_spdx_tv, write_spdx_tv
+from typing import List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,10 @@ class UploadAliens2FossyException(Exception):
 
 
 class UploadAliens2Fossy:
+
+	# Type hints for attributes not declared in __init__:
+	fossy_internal_archive_path: str
+	upload: Tuple[List[str], int]
 
 	def __init__(
 		self,

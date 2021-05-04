@@ -9,7 +9,9 @@ import hashlib
 from typing import List, Tuple, Type, Dict, Union, NoReturn
 
 def bash(
-	command: str, cwd: str = None, exception: Type[Exception] = Exception
+	command: str,
+	cwd: str = None,
+	exception: Type[Exception] = Exception
 ) -> Tuple[str, str]:
 	"""Run a command in bash shell, and return stdout and stderr
 	:param command: the command to run
@@ -40,7 +42,7 @@ def bash_live(
 	cwd: str = None,
 	exception: Type[Exception] = Exception,
 	prefix: str = ""
-) -> NoReturn:
+) -> None:
 	"""Run a command in bash shell in live mode to fetch output when it is available
 	:param command: the command to run
 	:param cwd: directory where to run the command (defaults to current dir)
@@ -68,18 +70,18 @@ def bash_live(
 		if rc != 0:
 			raise exception(f"{prefix} (ERROR) >>> Command {command} failed! Return code = {rc}")
 
-def sha1sum(file_path):
+def sha1sum(file_path: str) -> str:
 	stdout, stderr = bash(
 		f'sha1sum {file_path}'
 	)
 	return stdout.split(' ', 1)[0]
 
-def copy(src_filename, dst_filename):
+def copy(src_filename: str, dst_filename: str) -> None:
 	with open(src_filename, 'rb') as fr:
 		with open(dst_filename, 'wb') as fw:
 			fw.write(fr.read())
 
-def mkdir(*sub_folders):
+def mkdir(*sub_folders: str) -> str:
 	path = os.path.join(*sub_folders)
 	os.makedirs(
 		path,
