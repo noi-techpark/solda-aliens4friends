@@ -10,7 +10,7 @@ class Settings:
 	PATH_USR = "userland"
 	PATH_STT = "stats"
 
-	DOTENV = dotenv_values(find_dotenv())
+	DOTENV = dotenv_values(find_dotenv(usecwd=True))
 
 	# TODO: loop thru a dictionary of default settings instead,
 	# for better scalability
