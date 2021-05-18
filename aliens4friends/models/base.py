@@ -6,7 +6,7 @@ from json import JSONEncoder, dumps, load as jsonload
 from typing import Optional, Union, TypeVar, List, Type, Dict, Any
 
 _TBaseModel = TypeVar('_TBaseModel', bound='BaseModel')
-class BaseModel(dict):
+class BaseModel():
 	"""
 		Base model to create class instances out of json input data, or to write
 		pre-defined json from this model definition
