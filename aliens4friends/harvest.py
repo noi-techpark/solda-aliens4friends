@@ -260,11 +260,11 @@ class Harvest:
 			"version",
 			"name"
 		]
-		result = {}
-		for k, v in package_metadata.items():
+		result = PackageMetaData()
+		for k, v in package_metadata.__dict__.items():
 			if k in SKIP_LIST:
 				continue
-			result[k] = v
+			setattr(result, k, v)
 		return result
 
 	def _parse_tinfoilhat_package(self, name: str, cur: PackageWithTags) -> BinaryPackage:
