@@ -935,9 +935,10 @@ sudo apt-get install python3-pip python3-dev libbz2-1.0 xz-utils zlib1g libxml2-
 then:
 
 ```bash
-pip3 install --user setuptools wheel click==6.7 commoncode==20.10.20 \
-extractcode==20.10 plugincode==20.9 typecode==20.10.20 \
-scancode-toolkit[full]==3.2.3
+pip3 install --user setuptools wheel click==6.7 bitarray==0.8.1 \
+  pygments==2.4.2 commoncode==20.10.20 \
+  extractcode==20.10 plugincode==20.9 typecode==20.10.20 \
+  scancode-toolkit[full]==3.2.3
 
 . ~/.profile
 
