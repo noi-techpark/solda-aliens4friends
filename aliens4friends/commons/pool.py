@@ -42,6 +42,9 @@ class Pool:
 			return os.path.join(self.basepath, *sub_folders)
 		return self.basepath
 
+    def add_with_history(self, src: str, history_prefix: str, *path_args: str) -> str:
+        return self.add(src, *path_args)
+
 	def add(self, src: str, *path_args: str) -> str:
 		dest = self.abspath(*path_args)
 		pooldest = self.relpath(*path_args)
@@ -53,6 +56,9 @@ class Pool:
 		copy(src, dest_full)
 		return dest
 
+    def write_with_history(self, contents: bytes, history_prefix: str, *path_args: str) -> str:
+        return self.write(contents, *path_args)
+
 	def write(self, contents: bytes, *path_args: str) -> str:
 		dest_folder = self.abspath(*path_args[:-1])
 		dest = os.path.join(dest_folder, path_args[-1])
@@ -60,6 +66,9 @@ class Pool:
 		with open(dest, 'wb+') as f:
 			f.write(contents)
 		return dest
+
+    def write_json_with_history(self, contents: Any, history_prefix: str, *path_args: str) -> str:
+        return self.write_json(contents, *path_args)
 
 	def write_json(self, contents: Any, *path_args: str) -> str:
 		dest_folder = self.abspath(*path_args[:-1])
