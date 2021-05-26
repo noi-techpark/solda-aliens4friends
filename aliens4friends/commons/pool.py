@@ -7,9 +7,14 @@ from json import dump as jsondump, load as jsonload
 from pathlib import Path
 from shutil import rmtree
 from typing import Generator, Any, Union
+
+from spdx.document import Document as SPDXDocument
+
 from .utils import copy, mkdir
 from .settings import Settings
+
 from aliens4friends.models.base import BaseModelEncoder
+from aliens4friends.commons.spdxutils import write_spdx_tv
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +81,16 @@ class Pool:
 		self.mkdir(dest_folder)
 		with open(dest, 'w') as f:
 			jsondump(contents, f, indent = 2, cls=BaseModelEncoder)
+		return dest
+
+	def write_spdx_with_history(self, spdx_doc_obj: SPDXDocument, history_prefix: str, *path_args: str) -> str:
+		return self.write_spdx(spdx_doc_obj, *path_args)
+
+	def write_spdx(self, spdx_doc_obj: SPDXDocument, *path_args: str) -> str:
+		dest_folder = self.abspath(*path_args[:-1])
+		dest = os.path.join(dest_folder, path_args[-1])
+		self.mkdir(dest_folder)
+		write_spdx_tv(spdx_doc_obj, dest)
 		return dest
 
 	def get(self, *path_args: str) -> str:
