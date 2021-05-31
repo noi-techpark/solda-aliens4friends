@@ -14,12 +14,14 @@ from spdx.package import Package as SPDXPackage
 from spdx.creationinfo import Tool
 from spdx.document import License as SPDXLicense
 
+from aliens4friends.models.fossy import FossyModel
+
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.utils import bash
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.fossywrapper import FossyWrapper
-from aliens4friends.commons.spdxutils import parse_spdx_tv, write_spdx_tv
+from aliens4friends.commons.spdxutils import parse_spdx_tv
 
 logger = logging.getLogger(__name__)
 
@@ -254,10 +256,12 @@ class GetFossyData:
 				logger.info(f"[{package}] getting spdx and json data from Fossology")
 				gfd = GetFossyData(fossy, apkg, alien_spdx_filename)
 				doc = gfd.get_spdx()
-				write_spdx_tv(doc, out_spdx_filename)
+				pool.write_spdx_with_history(doc, out_spdx_filename)
 				fossy_json = gfd.get_metadata_from_fossology()
-				with open(alien_fossy_json_filename, "w") as f:
-					json.dump(fossy_json, f)
+				fossy_data = FossyModel.decode(fossy_json)
+				pool.write_json_with_history(
+					fossy_data, alien_fossy_json_filename
+				)
 
 			except Exception as ex:
 				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
