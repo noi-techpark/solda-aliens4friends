@@ -83,33 +83,24 @@ class Pool:
 		self,
 		src: Union[str, Any, bytes, SPDXDocument], # depends which src_type will be set
 		dir_in_pool: str,
-		history_prefix: str = "",
-		new_filename: str = "",
-		src_type: SRCTYPE = SRCTYPE.PATH
+		link_filename: str,
+		history_prefix: str,
+		src_type: SRCTYPE
 	) -> str:
-
-		if src_type != SRCTYPE.PATH and not new_filename:
-			raise PoolError(f"Cannot add a file without a name!")
-
-		filename = os.path.basename(new_filename if new_filename else src)
-		history_filename = history_prefix + filename
-
-		self._add(src, os.path.join(dir_in_pool, "history"), history_filename, src_type)
-		self._upsertlink(dir_in_pool, filename, history_filename)
+		history_filename = history_prefix + link_filename
+		history_path = os.path.join(dir_in_pool, "history")
+		self._add(src, history_path, history_filename, src_type)
+		self._upsertlink(dir_in_pool, link_filename, history_filename)
 
 
 	def _add(
 		self,
 		src: Union[str, Any, bytes, SPDXDocument], # depends which src_type will be set
 		dir_in_pool: str,
-		new_filename: str = "",
-		src_type: SRCTYPE = SRCTYPE.PATH
+		new_filename: str,
+		src_type: SRCTYPE
 	) -> str:
 
-		if src_type != SRCTYPE.PATH and not new_filename:
-			raise PoolError(f"Cannot add a file without a name!")
-
-		new_filename = os.path.basename(new_filename if new_filename else src)
 		dest = self.abspath(dir_in_pool)
 		dest_full = os.path.join(dest, new_filename)
 
@@ -138,14 +129,18 @@ class Pool:
 
 
 	def add(self, src: str, *path_args: str) -> str:
-		return self._add(src, self.relpath(*path_args))
+		filename = os.path.basename(src)
+		filepath = self.relpath(*path_args)
+		return self._add(src, filepath, filename, SRCTYPE.PATH)
 
 	def add_with_history(self, src: str, history_prefix: str, *path_args: str) -> str:
-		return self._add_with_history(src, self.relpath(*path_args), history_prefix, src_type=SRCTYPE.PATH)
+		filename = os.path.basename(src)
+		filepath = self.relpath(*path_args)
+		return self._add_with_history(src, filepath, filename, history_prefix, SRCTYPE.PATH)
 
 	def write_with_history(self, contents: bytes, history_prefix: str, *path_args: str) -> str:
 		filepath, filename = self._splitpath(*path_args)
-		return self._add_with_history(contents, filepath, history_prefix, filename, src_type=SRCTYPE.TEXT)
+		return self._add_with_history(contents, filepath, filename, history_prefix, SRCTYPE.TEXT)
 
 	def write(self, contents: bytes, *path_args: str) -> str:
 		filepath, filename = self._splitpath(*path_args)
@@ -153,7 +148,7 @@ class Pool:
 
 	def write_json_with_history(self, contents: Any, history_prefix: str, *path_args: str) -> str:
 		filepath, filename = self._splitpath(*path_args)
-		return self._add_with_history(contents, filepath, history_prefix, filename, src_type=SRCTYPE.JSON)
+		return self._add_with_history(contents, filepath, filename, history_prefix, SRCTYPE.JSON)
 
 	def write_json(self, contents: Any, *path_args: str) -> str:
 		filepath, filename = self._splitpath(*path_args)
@@ -161,7 +156,7 @@ class Pool:
 
 	def write_spdx_with_history(self, spdx_doc_obj: SPDXDocument, history_prefix: str, *path_args: str) -> str:
 		filepath, filename = self._splitpath(*path_args)
-		return self._add_with_history(spdx_doc_obj, filepath, history_prefix, filename, SRCTYPE.SPDX)
+		return self._add_with_history(spdx_doc_obj, filepath, filename, history_prefix, SRCTYPE.SPDX)
 
 	def write_spdx(self, spdx_doc_obj: SPDXDocument, *path_args: str) -> str:
 		filepath, filename = self._splitpath(*path_args)
