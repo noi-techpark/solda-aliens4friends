@@ -143,7 +143,11 @@ class Harvest:
 		self._warn_missing_input(source_package, cur_package_inputs)
 
 	def write_results(self):
-		self.pool.write_json(self.result, self.result_file)
+		self.pool.write_json_with_history(
+			self.result,
+			datetime.now().strftime("%Y-%m-%dT%H-%M-%S-"),
+			self.result_file
+		)
 
 	def _parse_aliensrc_main(self, path, source_package: SourcePackage) -> None:
 		apkg = AlienPackage(path)
@@ -296,7 +300,7 @@ class Harvest:
 
 		result_path = pool.abspath("stats")
 		pool.mkdir(result_path)
-		result_file = f'{datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}.harvest.json'
+		result_file = 'report.harvest.json'
 		output = os.path.join(result_path, result_file)
 
 		files = []
