@@ -3,7 +3,7 @@ import shutil
 import os
 
 from aliens4friends.commons.settings import Settings
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import Pool, PoolError
 
 TEST_PATH = "/tmp/a4f/tests"
 
@@ -99,5 +99,21 @@ class TestingPool(unittest.TestCase):
 		self.assertTrue(os.path.islink(link))
 		self.assertEqual(os.readlink(link), "history/PREFIX2tmpfile.txt")
 
+	def test_relpath(self):
+		try:
+			result = self.shared_pool.relpath("/test/abc.txt")
+			self.fail("Exception missing: only relative paths allowed as parameter")
+		except PoolError:
+			pass
 
-unittest.main()
+		result = self.shared_pool.relpath("test/abc.txt")
+		self.assertEqual(result, "test/abc.txt")
+
+		try:
+			result = self.shared_pool.clnpath(f"{TEST_PATH}/test/abc.txt")
+			self.fail("Exception missing: only paths inside the pool root directory allowed as parameter")
+		except PoolError:
+			pass
+
+if __name__ == '__main__':
+    unittest.main()

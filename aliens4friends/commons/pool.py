@@ -41,22 +41,33 @@ class Pool:
 	def clnpath(self, path: str) -> str:
 		if path.startswith(self.basepath):
 			return path[len(self.basepath):]
+
+		if path.startswith(os.path.sep):
+			raise PoolError(f'Path {path} is outside the pool!')
+
 		return path
 
 	def mkdir(self, *sub_folder: str) -> str:
 		return mkdir(self.abspath(*sub_folder))
 
 	def relpath(self, *sub_folders: str) -> str:
+		result = ""
 		if sub_folders:
-			return os.path.join(*sub_folders)
-		return ""
+			result = os.path.join(*sub_folders)
+			if result.startswith(os.path.sep):
+				raise PoolError(f'Path {result} is not a relative path: sub_folders must be relative!')
+		return result
 
 	def abspath(self, *sub_folders: str) -> str:
 		if sub_folders:
-			return os.path.join(self.basepath, *sub_folders)
+			return os.path.join(
+				self.basepath,
+				self.relpath(*sub_folders)
+			)
 		return self.basepath
 
 	def _upsertlink(self, dest: str, link: str, target: str) -> None:
+		dest = self.abspath(dest)
 		link = os.path.join(dest, link)
 		target = os.path.join(dest, "history", target)
 		if os.path.islink(link):
@@ -71,7 +82,7 @@ class Pool:
 	def _add_with_history(
 		self,
 		src: Union[str, Any, bytes, SPDXDocument], # depends which src_type will be set
-		path_args: List[str],
+		dir_in_pool: str,
 		history_prefix: str = "",
 		new_filename: str = "",
 		src_type: SRCTYPE = SRCTYPE.PATH
@@ -83,16 +94,14 @@ class Pool:
 		filename = os.path.basename(new_filename if new_filename else src)
 		history_filename = history_prefix + filename
 
-		dest = self.abspath(*path_args)
-		self._add(src, [dest, "history"], history_filename, src_type)
-		self._upsertlink(dest, filename, history_filename)
-
+		self._add(src, os.path.join(dir_in_pool, "history"), history_filename, src_type)
+		self._upsertlink(dir_in_pool, filename, history_filename)
 
 
 	def _add(
 		self,
 		src: Union[str, Any, bytes, SPDXDocument], # depends which src_type will be set
-		path_args: List[str],
+		dir_in_pool: str,
 		new_filename: str = "",
 		src_type: SRCTYPE = SRCTYPE.PATH
 	) -> str:
@@ -101,15 +110,14 @@ class Pool:
 			raise PoolError(f"Cannot add a file without a name!")
 
 		new_filename = os.path.basename(new_filename if new_filename else src)
-
-		dest = self.abspath(*path_args)
-		pooldest = self.relpath(*path_args)
-
+		dest = self.abspath(dir_in_pool)
 		dest_full = os.path.join(dest, new_filename)
+
 		if os.path.isfile(dest_full) and Settings.POOLCACHED:
-			logger.debug(f"Pool cache active and file {pooldest} exists... skipping!")
+			logger.debug(f"Pool cache active and file {self.clnpath(dest)} exists... skipping!")
 			return dest
-		self.mkdir(dest)
+
+		self.mkdir(dir_in_pool)
 		if src_type == SRCTYPE.PATH:
 			copy(src, dest_full)
 		elif src_type == SRCTYPE.JSON:
@@ -124,29 +132,40 @@ class Pool:
 			raise PoolError("Unknown source type to be written into the pool")
 		return dest
 
+	def _splitpath(self, *path_args: str) -> [str, str]:
+		relpath = self.relpath(*path_args)
+		return os.path.dirname(relpath), os.path.basename(relpath)
+
+
 	def add(self, src: str, *path_args: str) -> str:
-		return self._add(src, list(path_args))
+		return self._add(src, self.relpath(*path_args))
 
 	def add_with_history(self, src: str, history_prefix: str, *path_args: str) -> str:
-		return self._add_with_history(src, list(path_args), history_prefix, src_type=SRCTYPE.PATH)
+		return self._add_with_history(src, self.relpath(*path_args), history_prefix, src_type=SRCTYPE.PATH)
 
 	def write_with_history(self, contents: bytes, history_prefix: str, *path_args: str) -> str:
-		return self._add_with_history(contents, list(path_args[:-1]), history_prefix, path_args[-1], src_type=SRCTYPE.TEXT)
+		filepath, filename = self._splitpath(*path_args)
+		return self._add_with_history(contents, filepath, history_prefix, filename, src_type=SRCTYPE.TEXT)
 
 	def write(self, contents: bytes, *path_args: str) -> str:
-		return self._add(contents, list(path_args[:-1]), path_args[-1], SRCTYPE.TEXT)
+		filepath, filename = self._splitpath(*path_args)
+		return self._add(contents, filepath, filename, SRCTYPE.TEXT)
 
 	def write_json_with_history(self, contents: Any, history_prefix: str, *path_args: str) -> str:
-		return self._add_with_history(contents, list(path_args[:-1]), history_prefix, path_args[-1], src_type=SRCTYPE.JSON)
+		filepath, filename = self._splitpath(*path_args)
+		return self._add_with_history(contents, filepath, history_prefix, filename, src_type=SRCTYPE.JSON)
 
 	def write_json(self, contents: Any, *path_args: str) -> str:
-		return self._add(contents, list(path_args[:-1]), path_args[-1], SRCTYPE.JSON)
+		filepath, filename = self._splitpath(*path_args)
+		return self._add(contents, filepath, filename, SRCTYPE.JSON)
 
 	def write_spdx_with_history(self, spdx_doc_obj: SPDXDocument, history_prefix: str, *path_args: str) -> str:
-		return self._add_with_history(spdx_doc_obj, list(path_args[:-1]), history_prefix, path_args[-1], SRCTYPE.SPDX)
+		filepath, filename = self._splitpath(*path_args)
+		return self._add_with_history(spdx_doc_obj, filepath, history_prefix, filename, SRCTYPE.SPDX)
 
 	def write_spdx(self, spdx_doc_obj: SPDXDocument, *path_args: str) -> str:
-		return self._add(spdx_doc_obj, list(path_args[:-1]), path_args[-1], SRCTYPE.SPDX)
+		filepath, filename = self._splitpath(*path_args)
+		return self._add(spdx_doc_obj, filepath, filename, SRCTYPE.SPDX)
 
 	def get(self, *path_args: str) -> str:
 		return self._get(False, *path_args) #pytype: disable=bad-return-type

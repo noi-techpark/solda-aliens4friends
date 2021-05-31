@@ -298,7 +298,7 @@ class Harvest:
 	@staticmethod
 	def execute(pool: Pool, add_details, add_missing, glob_name: str = "*", glob_version: str = "*") -> None:
 
-		result_path = pool.abspath("stats")
+		result_path = pool.relpath("stats")
 		pool.mkdir(result_path)
 		result_file = 'report.harvest.json'
 		output = os.path.join(result_path, result_file)
