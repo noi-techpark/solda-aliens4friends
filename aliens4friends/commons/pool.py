@@ -80,7 +80,7 @@ class Pool:
 		if src_type != SRCTYPE.PATH and not new_filename:
 			raise PoolError(f"Cannot add a file without a name!")
 
-		filename = new_filename if new_filename else os.path.basename(src)
+		filename = os.path.basename(new_filename if new_filename else src)
 		history_filename = history_prefix + filename
 
 		dest = self.abspath(*path_args)
@@ -100,7 +100,7 @@ class Pool:
 		if src_type != SRCTYPE.PATH and not new_filename:
 			raise PoolError(f"Cannot add a file without a name!")
 
-		new_filename = new_filename if new_filename else os.path.basename(src)
+		new_filename = os.path.basename(new_filename if new_filename else src)
 
 		dest = self.abspath(*path_args)
 		pooldest = self.relpath(*path_args)
@@ -131,13 +131,13 @@ class Pool:
 		return self._add_with_history(src, list(path_args), history_prefix, src_type=SRCTYPE.PATH)
 
 	def write_with_history(self, contents: bytes, history_prefix: str, *path_args: str) -> str:
-		return self._add_with_history(contents, list(path_args), history_prefix, src_type=SRCTYPE.TEXT)
+		return self._add_with_history(contents, list(path_args[:-1]), history_prefix, path_args[-1], src_type=SRCTYPE.TEXT)
 
 	def write(self, contents: bytes, *path_args: str) -> str:
 		return self._add(contents, list(path_args[:-1]), path_args[-1], SRCTYPE.TEXT)
 
 	def write_json_with_history(self, contents: Any, history_prefix: str, *path_args: str) -> str:
-		return self._add_with_history(contents, list(path_args), history_prefix, src_type=SRCTYPE.JSON)
+		return self._add_with_history(contents, list(path_args[:-1]), history_prefix, path_args[-1], src_type=SRCTYPE.JSON)
 
 	def write_json(self, contents: Any, *path_args: str) -> str:
 		return self._add(contents, list(path_args[:-1]), path_args[-1], SRCTYPE.JSON)
