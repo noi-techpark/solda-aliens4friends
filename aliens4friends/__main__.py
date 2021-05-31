@@ -343,8 +343,8 @@ class Aliens4Friends:
 	def parser_harvest(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
-			help="Harvest tinfoilhat, alienmatcher, deltacode, fossy and " \
-			     "fossy-summary outputs and create a report for the dashboard"
+			help="Harvest tinfoilhat, alienmatcher, deltacode and fossy " \
+			     "outputs to create a report for the dashboard"
 		)
 		self._args_defaults(
 			self.parsers[cmd],
