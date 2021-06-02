@@ -179,6 +179,26 @@ class DictModel(BaseModel):
 			k: cls.subclass(**v) for k, v in input_dict.items()
 		}
 
+	def encode(self) -> Dict[str, Any]:
+		"""
+		Create dictionaries out of objects with attributes as keys and then
+		drill down into values and do their encoding.
+
+		Returns:
+			dict: dictionary representation of this instance
+		"""
+		return self._container
+
+	def to_json(self) -> str:
+		"""
+		Create a JSON string out of this object.
+
+		Returns:
+			str: JSON of this object
+		"""
+		return dumps(self._container, cls=BaseModelEncoder)
+
+
 
 
 class ModelError(Exception):
