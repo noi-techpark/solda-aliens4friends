@@ -2,9 +2,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from .base import BaseModel, DictModel
-from typing import List, Dict
+from typing import List, Dict, TypeVar
+from copy import deepcopy
 
+from deepdiff import DeepDiff
+
+from .base import BaseModel, DictModel, ModelError
+
+_TTags = TypeVar('_TTags', bound='TTags')
 class Tags(BaseModel):
 	def __init__(
 		self,
@@ -17,6 +22,16 @@ class Tags(BaseModel):
 		self.machine = machine
 		self.image = image
 		self.release = release
+
+	@staticmethod
+	def merge(old_tags: _TTags, new_tags: _TTags) -> _TTags:
+		res = Tags()
+		for attr in old_tags.encode():
+			old_list = getattr(old_tags, attr) or []
+			new_list = getattr(new_tags, attr) or []
+			res_list = list(set(old_list + new_list)) or None
+			setattr(res, attr, res_list)
+		return res
 
 class SourceFile(BaseModel):
 	def __init__(
@@ -78,6 +93,7 @@ class PackageMetaData(BaseModel):
 		self.depends = depends
 		self.provides = provides
 
+_TPackage = TypeVar('_TPackage', bound='Package')
 class Package(BaseModel):
 	def __init__(
 		self,
@@ -86,6 +102,7 @@ class Package(BaseModel):
 	) -> None:
 		self.metadata = PackageMetaData.decode(metadata)
 		self.files = FileContainer.decode(files)
+
 
 class PackageWithTags(BaseModel):
 	def __init__(
@@ -96,8 +113,59 @@ class PackageWithTags(BaseModel):
 		self.package = Package.decode(package)
 		self.tags = Tags.decode(tags)
 
+
+_TPackageContainer = TypeVar('_TPackageContainer', bound='PackageContainer')
 class PackageContainer(DictModel):
 	subclass = PackageWithTags
+
+	@staticmethod
+	def merge(
+		old: Dict[str, _TPackageContainer],
+		new: Dict[str, _TPackageContainer]
+	) -> Dict[str, _TPackageContainer]:
+		res = {}
+		ids = set(list(old) + list(new))
+		for id in ids:
+			if id in new and id in old:
+				print(f"{id} found in new and old, merging")
+				diff = DeepDiff(
+					old[id],
+					new[id],
+					ignore_order=True,
+					exclude_paths=[
+						'root.tags', # here we expect differences that we want
+									 # to merge
+						'root.package.files.file_dir',  # specific to
+									# local build, needed just for aliensrc
+									# package creation in a previous stage;
+									# we expect it may be different if
+									# tinfoilhat files to merge have been
+									# generated in different local builds, but
+									# it doesn't matter here
+					],
+					#exclude_regex_paths=[
+					#	r'root.package.files.files\[\d+\].sha1'
+					#] # this should not be needed, if we have reproducible
+					# builds in bitbake! Leaving it here, for future tests
+				)
+				if diff:
+					raise ModelError(
+						f"can't merge {id}, because some package fields"
+						f" mismatch, diff is: {diff}"
+					)
+				res[id] = deepcopy(new[id])
+				res[id].tags = Tags.merge(
+					old[id].tags,
+					new[id].tags
+				)
+			elif id in new and id not in old:
+				print(f"{id} found in new")
+				res[id] = new[id]
+			elif id not in new and id in old:
+				print(f"{id} found in old")
+				res[id] = old[id]
+		return res
+
 
 class RecipeMetaData(BaseModel):
 	def __init__(
@@ -134,6 +202,7 @@ class RecipeMetaData(BaseModel):
 		self.provides = provides
 		self.cve_product = cve_product
 
+
 class Recipe(BaseModel):
 	def __init__(
 		self,
@@ -145,6 +214,8 @@ class Recipe(BaseModel):
 		self.source_files = SourceFile.drilldown(source_files)
 		self.chk_sum = chk_sum
 
+
+_TContainer = TypeVar('_TContainer', bound='Container')
 class Container(BaseModel):
 	
 	def __init__(
@@ -157,6 +228,80 @@ class Container(BaseModel):
 		self.tags = Tags.decode(tags)
 		self.packages = PackageContainer.decode(packages)
 
+	@staticmethod
+	def merge(
+		old: Dict[str, _TContainer],
+		new: Dict[str, _TContainer],
+	) -> Dict[str, _TContainer]:
+		"""merge tags and packages of two tinfoilhat dicts in a new tinfoilhat
+		dict; all other attributes of the two tinfoilhat dict - except for
+		bitbake-specific paths - must be the same, otherwise a ModelError
+		exception is raised
+		"""
+		res = {}
+		ids = set(list(old) + list(new))
+		for id in ids:
+			if id in new and id in old:
+				print(f"{id} found in new and old, merging")
+				diff = DeepDiff(
+					old[id],
+					new[id],
+					ignore_order=True,
+					exclude_paths=[
+						"root.tags", # here we expect differences that we want
+						             # to merge
+						"root.packages", # same here
+						"root.recipe.metadata.package_arch", # FIXME we should
+						             # merge also this! But first it has to
+									 # become a list
+						"root.recipe.metadata.build_workdir", # specific to
+									# local build, needed just for aliensrc
+									# package creation in a previous stage;
+									# we expect it may be different if
+									# tinfoilhat files to merge have been
+									# generated in different local builds, but
+									# it doesn't matter here
+						"root.recipe.metadata.compiled_source_dir", # same here
+					],
+					exclude_regex_paths=r"root.recipe.source_files\[\d+\].rootpath"
+									# same here
+				)
+				if diff:
+					raise ModelError(
+						f"can't merge tags and packages for recipe {id}, "
+						f"because some fields mismatch, diff is: {diff}"
+					)
+				res[id] = deepcopy(new[id])
+				res[id].tags = Tags.merge(
+					old[id].tags,
+					new[id].tags
+				)
+				res[id].packages = PackageContainer.merge(
+					old[id].packages,
+					new[id].packages
+				)
+			elif id in new and id not in old:
+				print(f"{id} found in new")
+				res[id] = new[id]
+			elif id in old and id not in new:
+				print(f"{id} found in old")
+				res[id] = old[id]
+		return res
 
+_TTinfoilHatModel = TypeVar('_TTinfoilHatModel', bound='TinfoilHatModel')
 class TinfoilHatModel(DictModel):
 	subclass = Container
+
+	@staticmethod
+	def merge(
+		old: _TTinfoilHatModel,
+		new: _TTinfoilHatModel
+	) -> _TTinfoilHatModel:
+		"""merge tags and packages of two tinfoilhat objects in a new tinfoilhat
+		object; all other attributes of the two tinfoilhat objs - except for
+		bitbake-specific paths - must be the same, otherwise a ModelError
+		exception is raised
+		"""
+		res = TinfoilHatModel({})
+		res._container = Container.merge(old._container, new._container)
+		return res
