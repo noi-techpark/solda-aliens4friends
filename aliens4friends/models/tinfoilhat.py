@@ -77,6 +77,7 @@ class PackageMetaData(BaseModel):
 		base_name: str = None,
 		version: str = None,
 		revision: str = None,
+		package_arch: str = None,
 		recipe_name: str = None,
 		recipe_version: str = None,
 		recipe_revision: str = None,
@@ -89,6 +90,7 @@ class PackageMetaData(BaseModel):
 		self.base_name = base_name
 		self.version = version
 		self.revision = revision
+		self.package_arch = package_arch
 		self.recipe_name = recipe_name
 		self.recipe_version = recipe_version
 		self.recipe_revision = recipe_revision
@@ -178,7 +180,6 @@ class RecipeMetaData(BaseModel):
 		base_name: str = None,
 		version: str = None,
 		revision: str = None,
-		package_arch: str = None,
 		author: str = None,
 		homepage: str = None,
 		summary: str = None,
@@ -194,7 +195,6 @@ class RecipeMetaData(BaseModel):
 		self.base_name = base_name
 		self.version = version
 		self.revision = revision
-		self.package_arch = package_arch
 		self.author = author
 		self.homepage = homepage
 		self.summary = summary
@@ -255,9 +255,9 @@ class Container(BaseModel):
 						"root.tags", # here we expect differences that we want
 						             # to merge
 						"root.packages", # same here
-						"root.recipe.metadata.package_arch", # FIXME we should
-						             # merge also this! But first it has to
-									 # become a list
+						#"root.recipe.metadata.package_arch", # FIXME we should
+						#             # merge also this! But first it has to
+						#			 # become a list
 						"root.recipe.metadata.build_workdir", # specific to
 									# local build, needed just for aliensrc
 									# package creation in a previous stage;
