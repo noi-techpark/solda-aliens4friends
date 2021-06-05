@@ -2,12 +2,16 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
+
 from typing import List, Dict, TypeVar
 from copy import deepcopy
 
 from deepdiff import DeepDiff
 
 from .base import BaseModel, DictModel, ModelError
+
+logger = logging.getLogger(__name__)
 
 _TTags = TypeVar('_TTags', bound='TTags')
 class Tags(BaseModel):
@@ -127,7 +131,7 @@ class PackageContainer(DictModel):
 		ids = set(list(old) + list(new))
 		for id in ids:
 			if id in new and id in old:
-				print(f"{id} found in new and old, merging")
+				logger.debug(f"{id} found in new and old, merging")
 				diff = DeepDiff(
 					old[id],
 					new[id],
@@ -159,10 +163,10 @@ class PackageContainer(DictModel):
 					new[id].tags
 				)
 			elif id in new and id not in old:
-				print(f"{id} found in new")
+				logger.debug(f"{id} found in new")
 				res[id] = new[id]
 			elif id not in new and id in old:
-				print(f"{id} found in old")
+				logger.debug(f"{id} found in old")
 				res[id] = old[id]
 		return res
 
@@ -242,7 +246,7 @@ class Container(BaseModel):
 		ids = set(list(old) + list(new))
 		for id in ids:
 			if id in new and id in old:
-				print(f"{id} found in new and old, merging")
+				logger.debug(f"{id} found in new and old, merging")
 				diff = DeepDiff(
 					old[id],
 					new[id],
@@ -281,10 +285,10 @@ class Container(BaseModel):
 					new[id].packages
 				)
 			elif id in new and id not in old:
-				print(f"{id} found in new")
+				logger.debug(f"{id} found in new")
 				res[id] = new[id]
 			elif id in old and id not in new:
-				print(f"{id} found in old")
+				logger.debug(f"{id} found in old")
 				res[id] = old[id]
 		return res
 
