@@ -23,6 +23,7 @@ ARG GROUP_ID=1000
 ENV SCANCODE_RELEASE=3.2.3
 
 RUN apt-get update && apt-get install -y bzip2
+
 RUN wget https://github.com/nexB/scancode-toolkit/releases/download/v${SCANCODE_RELEASE}/scancode-toolkit-${SCANCODE_RELEASE}.tar.bz2
 RUN mkdir scancode-toolkit && \
     tar xjvf scancode-toolkit-*.tar.bz2 -C scancode-toolkit --strip-components=1
@@ -30,8 +31,7 @@ RUN mkdir scancode-toolkit && \
 RUN groupadd -g ${GROUP_ID} scancode-user && \
     useradd -l -u ${USER_ID} -g scancode-user scancode-user && \
     install -d -m 0755 -o scancode-user -g scancode-user /home/scancode-user && \
-    chown --changes --silent --no-dereference --recursive ${USER_ID}:${GROUP_ID} \
-        /scancode-toolkit
+    chown --changes --silent --no-dereference --recursive ${USER_ID}:${GROUP_ID} /scancode-toolkit
 
 WORKDIR /scancode-toolkit
 ENV PATH=$HOME/scancode-toolkit:$PATH
