@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: CC0-1.0
-# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: 2021 NOI Techpark <p.moser@noi.bz.it>
 
 # EditorConfig is awesome: https://EditorConfig.org
 
@@ -13,3 +13,6 @@ end_of_line = lf
 charset = utf-8
 trim_trailing_whitespace = true
 insert_final_newline = true
+
+[*.{yml,yaml}]
+indent_style = space

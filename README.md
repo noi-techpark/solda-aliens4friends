@@ -39,27 +39,32 @@ More generally, the idea is that if a similar (or same) software package has
 been already included in Debian, it means that it is a well-known component, so
 it is a presumed friend, and we can safely invite it to our party.
 
-
 - [Aliens for Friends](#aliens-for-friends)
-    - [Installation](#installation)
-    - [Workflow](#workflow)
-        - [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
-        - [Step 2: Configure the tool](#step-2-configure-the-tool)
-        - [Step 3: Add the Alien to the pool](#step-3-add-the-alien-to-the-pool)
-        - [Step 4: Find a matching Debian source package](#step-4-find-a-matching-debian-source-package)
-        - [Step 5: Scan the code to detect license/copyright information](#step-5-scan-the-code-to-detect-licensecopyright-information)
-        - [Step 6: Find differences between Alien Packages and the corresponding Debian matching packages](#step-6-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
-        - [Step 7: Create Debian SPDX file from debian/copyright file](#step-7-create-debian-spdx-file-from-debiancopyright-file)
-        - [Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-8-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
-        - [Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-9-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
-        - [Step 10: Generate final SPDX file, after human review](#step-10-get-metadata-back-from-fossology-after-human-review)
-        - [Step 11: Enrich the result with tinfoilhat](#step-11-enrich-the-result-with-tinfoilhat)
-        - [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
-    - [Installation of Scancode](#installation-of-scancode)
-        - [Native](#native)
-        - [Wrapper](#wrapper)
+	- [Requirements and Installation](#requirements-and-installation)
+	- [Workflow](#workflow)
+		- [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
+		- [Step 2: Configure the tool](#step-2-configure-the-tool)
+		- [Step 3: Add the Alien to the pool](#step-3-add-the-alien-to-the-pool)
+		- [Step 4: Find a matching Debian source package](#step-4-find-a-matching-debian-source-package)
+		- [Step 5: Scan the code to detect license/copyright information](#step-5-scan-the-code-to-detect-licensecopyright-information)
+		- [Step 6: Find differences between Alien Packages and the corresponding Debian matching packages](#step-6-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
+		- [Step 7: Create Debian SPDX file from debian/copyright file](#step-7-create-debian-spdx-file-from-debiancopyright-file)
+		- [Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-8-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
+		- [Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-9-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
+		- [Step 10: Generate final SPDX file, after human review](#step-10-generate-final-spdx-file-after-human-review)
+		- [Step 11: Enrich the result with tinfoilhat](#step-11-enrich-the-result-with-tinfoilhat)
+		- [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
+	- [Installation of Scancode](#installation-of-scancode)
+		- [Native](#native)
+			- [Installation via pip](#installation-via-pip)
+		- [Wrapper](#wrapper)
+	- [Development with Docker](#development-with-docker)
 
 ## Requirements and Installation
+
+We provide also a docker-based development and execution environment. Go to
+[Development with Docker](#development-with-docker) for further details. If you
+prefer to install everything on your host machine, continue reading...
 
 To install `aliens4friends`, just do, on a `debian|ubuntu` machine:
 
@@ -77,7 +82,9 @@ pip3 install --user .
 a4f &>/dev/null # required for flanker initialization
 ```
 
-A Fossology 3.9.0 instance is required to run substantial parts of the workflow. Please refer to Fossology documentation to deploy it.  Fossology version must be 3.9.0, for API compatibility.
+A Fossology 3.9.0 instance is required to run substantial parts of the workflow.
+Please refer to Fossology documentation to deploy it.  Fossology version must be
+3.9.0, for API compatibility.
 
 Moreover, a couple of external dependencies are needed:
 
@@ -970,3 +977,40 @@ docker run -it -v $PWD:/userland scancode -n4 -cli --json /userland/scanresult.j
 
 The easiest way is to use the `scancode-wrapper` shell script. See comments
 inside that script for details.
+
+
+## Development with Docker
+
+In the root folder of this project, execute the following command, which will
+start all docker containers that you need for local development and testing.
+Please note, this is not meant to be used on production machines.
+
+```sh
+docker-compose up -d
+```
+
+Now you have several services at hand:
+
+1) Fossology: Go to `http://localhost:8999` (user = `fossy`; password = `fossy`)
+2) Postgres Database for Fossology: \
+   `PGPASSWORD=fossy psql -h localhost -p 5555 -U fossy fossology` \
+   The data storage is inside `fossydb/`
+3) A toolchain docker container that incorporates the following services:
+   1) Scancode \
+      `docker-compose run --rm toolchain scancode ...`
+   3) Aliens4Friends mounted from host machine \
+      `docker-compose run --rm toolchain a4f ...`
+   5) Spdx Java Tool \
+      `docker-compose run --rm toolchain spdxtool ...`
+
+Alternatively you can also install and run `a4f` locally, and just use scancode
+from within the container. See [Installation of Scancode/Wrapper](#wrapper) for
+further information.
+
+Example `.env` file for docker development (minimal):
+
+```ini
+A4F_POOL=${PWD}/your-pool
+A4F_LOGLEVEL=DEBUG
+FOSSY_SERVER=http://fossology
+```
