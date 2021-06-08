@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
 
 import subprocess
+import datetime
 import sys
 import os
 import requests
@@ -92,3 +93,7 @@ def mkdir(*sub_folders: str) -> str:
 
 def md5(string: str) -> str:
 	return hashlib.md5(string.encode('utf-8')).hexdigest()
+
+def get_now_prefix() -> str:
+	now = datetime.datetime.now()
+	return now.strftime("%Y%m%d-%H%M%S_")
