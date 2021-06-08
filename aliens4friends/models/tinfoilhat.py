@@ -172,6 +172,43 @@ class PackageContainer(DictModel):
 				res[id] = old[id]
 		return res
 
+class DependsProvides(BaseModel):
+	def __init__(self, depends: str, provides: str):
+		self.depends = depends
+		self.provides = provides
+
+_TDependsProvidesContainer = TypeVar('_TDependsProvidesContainer', bound='DependsProvidesContainer')
+class DependsProvidesContainer(DictModel):
+	"""DictModel for 'depends' and 'provides' of bitbake recipes; the key is the
+	machine name, since the same recipe, built for different machines, may have
+	different build dependencies
+	"""
+	subclass = DependsProvides
+
+	@staticmethod
+	def merge(
+		old: Dict[str, _TDependsProvidesContainer],
+		new: Dict[str, _TDependsProvidesContainer]
+	) -> Dict[str, _TDependsProvidesContainer]:
+		res = {}
+		ids = set(list(old) + list(new))
+		for id in ids:
+			if id in new and id in old:
+				logger.debug(f"{id} found in new and old, checking sameness")
+				diff = DeepDiff(old[id], new[id], ignore_order=True)
+				if diff:
+					raise ModelError(
+						"can't merge, depends_provides mismatch for machine"
+						f" '{id}', diff is: {diff}"
+					)
+				res[id] = new[id]
+			elif id in new:
+				logger.debug(f"depends_provides for machine '{id}' found in new")
+				res[id] = new[id]
+			elif id in old:
+				logger.debug(f"depends_provides for machine '{id}' found in old")
+				res[id] = old[id]
+		return res
 
 class RecipeMetaData(BaseModel):
 	def __init__(
@@ -187,8 +224,7 @@ class RecipeMetaData(BaseModel):
 		license: str = None,
 		build_workdir: str = None,
 		compiled_source_dir: str = None,
-		depends: str = None,
-		provides: str = None,
+		depends_provides: Dict[str, DependsProvides] = None,
 		cve_product: str = None
 	) -> None:
 		self.name = name
@@ -202,8 +238,7 @@ class RecipeMetaData(BaseModel):
 		self.license = license
 		self.build_workdir = build_workdir
 		self.compiled_source_dir = compiled_source_dir
-		self.depends = depends
-		self.provides = provides
+		self.depends_provides = DependsProvidesContainer.decode(depends_provides)
 		self.cve_product = cve_product
 
 
@@ -237,10 +272,10 @@ class Container(BaseModel):
 		old: Dict[str, _TContainer],
 		new: Dict[str, _TContainer],
 	) -> Dict[str, _TContainer]:
-		"""merge tags and packages of two tinfoilhat dicts in a new tinfoilhat
-		dict; all other attributes of the two tinfoilhat dict - except for
-		bitbake-specific paths - must be the same, otherwise a ModelError
-		exception is raised
+		"""merge tags, packages and depends_provides of two tinfoilhat dicts in
+		a new tinfoilhat dict; all other attributes of the two tinfoilhat dict -
+		except for bitbake-specific paths - must be the same, otherwise a
+		ModelError exception is raised
 		"""
 		res = {}
 		ids = set(list(old) + list(new))
@@ -255,9 +290,7 @@ class Container(BaseModel):
 						"root.tags", # here we expect differences that we want
 						             # to merge
 						"root.packages", # same here
-						#"root.recipe.metadata.package_arch", # FIXME we should
-						#             # merge also this! But first it has to
-						#			 # become a list
+						"root.recipe.metadata.depends_provides", # same here
 						"root.recipe.metadata.build_workdir", # specific to
 									# local build, needed just for aliensrc
 									# package creation in a previous stage;
@@ -284,10 +317,15 @@ class Container(BaseModel):
 					old[id].packages,
 					new[id].packages
 				)
-			elif id in new and id not in old:
+				res[id].recipe.metadata.depends_provides = (
+					DependsProvidesContainer.merge(
+						old[id].recipe.metadata.depends_provides,
+						new[id].recipe.metadata.depends_provides
+				))
+			elif id in new:
 				logger.debug(f"{id} found in new")
 				res[id] = new[id]
-			elif id in old and id not in new:
+			elif id in old:
 				logger.debug(f"{id} found in old")
 				res[id] = old[id]
 		return res
@@ -301,10 +339,10 @@ class TinfoilHatModel(DictModel):
 		old: _TTinfoilHatModel,
 		new: _TTinfoilHatModel
 	) -> _TTinfoilHatModel:
-		"""merge tags and packages of two tinfoilhat objects in a new tinfoilhat
-		object; all other attributes of the two tinfoilhat objs - except for
-		bitbake-specific paths - must be the same, otherwise a ModelError
-		exception is raised
+		"""merge tags, packages and depends_provides of two tinfoilhat objects
+		in a new tinfoilhat object; all other attributes of the two tinfoilhat
+		objs - except for bitbake-specific paths - must be the same, otherwise a
+		ModelError exception is raised
 		"""
 		res = TinfoilHatModel({})
 		res._container = Container.merge(old._container, new._container)
