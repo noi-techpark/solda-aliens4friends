@@ -54,11 +54,15 @@ it is a presumed friend, and we can safely invite it to our party.
 		- [Step 10: Generate final SPDX file, after human review](#step-10-generate-final-spdx-file-after-human-review)
 		- [Step 11: Enrich the result with tinfoilhat](#step-11-enrich-the-result-with-tinfoilhat)
 		- [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
-	- [Installation of Scancode](#installation-of-scancode)
-		- [Native](#native)
-			- [Installation via pip](#installation-via-pip)
-		- [Wrapper](#wrapper)
-	- [Development with Docker](#development-with-docker)
+	- [Installation and execution with docker](#installation-and-execution-with-docker)
+	- [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
+		- [Installation of Scancode](#installation-of-scancode)
+			- [Native](#native)
+			- [Wrapper](#wrapper)
+		- [Installation of the spdx-tools](#installation-of-the-spdx-tools)
+		- [Installation of Tinfoilhat](#installation-of-tinfoilhat)
+		- [Installation of Aliensrc Creator](#installation-of-aliensrc-creator)
+		- [Installation of Fossology (as docker container)](#installation-of-fossology-as-docker-container)
 
 ## Requirements and Installation
 
@@ -82,19 +86,16 @@ pip3 install --user .
 a4f &>/dev/null # required for flanker initialization
 ```
 
-A Fossology 3.9.0 instance is required to run substantial parts of the workflow.
-Please refer to Fossology documentation to deploy it.  Fossology version must be
-3.9.0, for API compatibility.
+A couple of external dependencies are needed:
 
-Moreover, a couple of external dependencies are needed:
+- Scancode v3.2.3
+- spdx-tools (java executable) v2.2.5
+- Fossology v3.9.0
+- Optional: Tinfoilhat and Aliensrc Creater
 
-- Scancode 3.2.3 (see '[Installation of Scancode](#installation-of-scancode)')
-- spdx-tools (java version):
-
-```bash
-sudo apt install openjdk-11-jre # you can also choose another java jre
-sudo wget -P /usr/local/lib https://github.com/spdx/tools/releases/download/v2.2.5/spdx-tools-2.2.5-jar-with-dependencies.jar
-```
+The dedicated section [Installation and execution with docker](#installation-and-execution-with-docker) **or**
+[Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
+shows you how to install those extra tools.
 
 ## Workflow
 
@@ -908,78 +909,8 @@ optional arguments:
 
 </details></p>
 
-## Installation of Scancode
 
-We have two possibilities:
-
-### Native
-
-Set the `.env` config: `A4F_SCANCODE=native`
-
-Presently,  only version
-[3.2.3](https://github.com/nexB/scancode-toolkit/releases/tag/v3.2.3) is
-supported. Follow the instructions inside the official [Scancode
-README](https://github.com/nexB/scancode-toolkit#readme) to install it; use
-the recommended installation method, not the pip method.
-
-#### Installation via pip
-
-If for any reason the recommended installation method did not work, you can try
-this method:
-
-(on Ubuntu)
-
-```bash
-sudo apt install python3-pip python3-dev bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0 build-essential
-```
-
-(on Debian)
-
-```bash
-sudo apt-get install python3-pip python3-dev libbz2-1.0 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0 build-essential
-```
-
-then:
-
-```bash
-pip3 install --user setuptools wheel click==6.7 bitarray==0.8.1 \
-  pygments==2.4.2 commoncode==20.10.20 \
-  extractcode==20.10 plugincode==20.9 typecode==20.10.20 \
-  scancode-toolkit[full]==3.2.3
-
-. ~/.profile
-
-scancode --reindex-licenses
-```
-
-It should work with python 3.6 or later versions; with later versions, you may
-get some warnings when executing it, but it should work anyway.
-
-### Wrapper
-
-If you do not want to install it, you can also use our scancode
-docker wrapper. Set the `.env` config: `A4F_SCANCODE=wrapper`
-
-1) Change directory: `cd <this-repos-root-dir>/scancode`
-2) Build the image: `docker build -t scancode .`
-3) Test it: `docker run -it scancode --help`
-4) Link it into your `$PATH`
-
-Full example which uses the current directory as working directory of Scancode:
-
-```
-docker run -it -v $PWD:/userland scancode -n4 -cli --json /userland/scanresult.json /userland
-```
-
-- `/userland` is the internal working path.
-- The output will have the owner/group id, that was defined during the build.
-- See `scancode/Dockerfile` for details.
-
-The easiest way is to use the `scancode-wrapper` shell script. See comments
-inside that script for details.
-
-
-## Development with Docker
+## Installation and execution with docker
 
 In the root folder of this project, execute the following command, which will
 start all docker containers that you need for local development and testing.
@@ -1014,3 +945,153 @@ A4F_POOL=${PWD}/your-pool
 A4F_LOGLEVEL=DEBUG
 FOSSY_SERVER=http://fossology
 ```
+
+For other configuration options execute `a4f config`.
+
+
+## Manual installation and execution on your host machine
+
+These steps are not required if you have opted for the Docker Installation
+described in chapter [Installation and execution with docker](#installation-and-execution-with-docker).
+
+We assume that you execute `aliens4friends` with `bin/a4f`, and that you have
+all requirements installed. See [Requirements and Installation](#requirements-and-installation).
+
+### Installation of Scancode
+
+We have two possibilities:
+
+#### Native
+
+Set the `.env` config: `A4F_SCANCODE=native`
+
+Presently,  only version
+[3.2.3](https://github.com/nexB/scancode-toolkit/releases/tag/v3.2.3) is
+supported. Follow the instructions inside the official [Scancode
+README](https://github.com/nexB/scancode-toolkit#readme) to install it; use
+the recommended installation method, not the pip method.
+
+If for any reason the recommended installation method did not work, you can try
+this method:
+
+(on Ubuntu)
+
+```bash
+apt install python3-pip python3-dev bzip2 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0 build-essential
+```
+
+(on Debian)
+
+```bash
+apt install python3-pip python3-dev libbz2-1.0 xz-utils zlib1g libxml2-dev libxslt1-dev libpopt0 build-essential
+```
+
+then:
+
+```bash
+pip3 install --user setuptools wheel click==6.7 bitarray==0.8.1 \
+  pygments==2.4.2 commoncode==20.10.20 \
+  extractcode==20.10 plugincode==20.9 typecode==20.10.20 \
+  scancode-toolkit[full]==3.2.3
+
+. ~/.profile
+
+cd /usr/local/lib/python3.8/dist-packages/scancode
+
+patch -p1 << EOT
+--- a/cli.py
++++ b/cli.py
+@@ -26,6 +26,9 @@
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
++
++import warnings
++warnings.filterwarnings("ignore")
+
+# Import first because this import has monkey-patching side effects
+from scancode.pool import get_pool
+EOT
+
+cd -
+
+scancode --reindex-licenses # required for scancode initialization
+```
+
+It should work with python 3.6 or later versions; with later versions, you may
+get some warnings when executing it, but it should work anyway.
+
+#### Wrapper
+
+If you do not want to install it, you can also use our scancode
+docker wrapper. Set the `.env` config: `A4F_SCANCODE=wrapper`
+
+1) Change directory: `cd <this-repos-root-dir>/scancode`
+2) Build the image: `docker build -t scancode .`
+3) Test it: `docker run -it scancode --help`
+4) Link it into your `$PATH`
+
+Full example which uses the current directory as working directory of Scancode:
+
+```
+docker run -it -v $PWD:/userland scancode -n4 -cli --json /userland/scanresult.json /userland
+```
+
+- `/userland` is the internal working path.
+- The output will have the owner/group id, that was defined during the build.
+- See `scancode/Dockerfile` for details.
+
+The easiest way is to use the `scancode-wrapper` shell script. See comments
+inside that script for details.
+
+### Installation of the spdx-tools
+
+As root:
+
+```shell
+apt install -y openjdk-11-jre
+
+wget -P /usr/local/lib \
+   https://github.com/spdx/tools/releases/download/v2.2.5/spdx-tools-2.2.5-jar-with-dependencies.jar
+```
+
+### Installation of Tinfoilhat
+
+wget -O /usr/local/bin/tinfoilhat https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat/-/raw/master/tinfoilhat.py
+chmod +x /usr/local/bin/tinfoilhat
+
+### Installation of Aliensrc Creator
+
+wget -O /usr/local/bin/aliensrc_creator https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat/-/raw/master/aliensrc_creator.py
+chmod +x /usr/local/bin/aliensrc_creator
+
+### Installation of Fossology (as docker container)
+
+A Fossology 3.9.0 instance is required to run substantial parts of the workflow.
+Please refer to Fossology documentation to deploy it.  Fossology version must be
+3.9.0, for API compatibility.
+
+The following commands will install a Fossology 3.9.0 docker container in your
+demo machine, optimized to import huge SPDX files (required to run the
+Aliens4Friends workflow).
+
+```shell
+docker pull noitechpark/fossology-on-steroids
+docker volume create fossy-var
+docker volume create fossy-srv
+docker run -d \
+  --name fossology_a4f \
+  --mount source=fossy-var,target=/var \
+  --mount source=fossy-srv,target=/srv \
+  -p 127.0.0.1:80:80 \
+  -p 443:443 \
+  noitechpark/fossology-on-steroids
+```
+
+The port 80 is open only locally, just to allow Aliens4Friends to locally
+connect to Fossology API without the need of configuring an SSL certificate.
+
+The Fossology WebUI will be accessible at `https://<MACHINE_FQDN_OR_IP>/repo`
+with the default user name and password `fossy`/`fossy` (change it at first
+login).
+
