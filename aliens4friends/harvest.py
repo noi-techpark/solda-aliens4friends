@@ -13,6 +13,8 @@ from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.settings import Settings
 
+from aliens4friends.commons.utils import get_now_prefix
+
 from aliens4friends.models.harvest import (
 	HarvestModel,
 	SourcePackage,
@@ -145,7 +147,7 @@ class Harvest:
 	def write_results(self):
 		self.pool.write_json_with_history(
 			self.result,
-			datetime.now().strftime("%Y-%m-%dT%H-%M-%S-"),
+			get_now_prefix(),
 			self.result_file
 		)
 

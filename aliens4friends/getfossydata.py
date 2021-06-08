@@ -17,7 +17,7 @@ from spdx.document import License as SPDXLicense
 from aliens4friends.models.fossy import FossyModel
 
 from aliens4friends.commons.pool import Pool
-from aliens4friends.commons.utils import bash
+from aliens4friends.commons.utils import bash, get_now_prefix
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.fossywrapper import FossyWrapper
@@ -256,11 +256,11 @@ class GetFossyData:
 				logger.info(f"[{package}] getting spdx and json data from Fossology")
 				gfd = GetFossyData(fossy, apkg, alien_spdx_filename)
 				doc = gfd.get_spdx()
-				pool.write_spdx_with_history(doc, out_spdx_filename)
+				pool.write_spdx_with_history(doc, get_now_prefix(), out_spdx_filename)
 				fossy_json = gfd.get_metadata_from_fossology()
 				fossy_data = FossyModel.decode(fossy_json)
 				pool.write_json_with_history(
-					fossy_data, alien_fossy_json_filename
+					fossy_data, get_now_prefix(), alien_fossy_json_filename
 				)
 
 			except Exception as ex:
