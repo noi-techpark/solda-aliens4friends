@@ -176,7 +176,8 @@ class DictModel(BaseModel):
 			return input_dict
 
 		return {
-			k: cls.subclass(**v) for k, v in input_dict.items()
+			k: (v if isinstance(v, cls.subclass) else cls.subclass(**v))
+			for k, v in input_dict.items()
 		}
 
 	def encode(self) -> Dict[str, Any]:
