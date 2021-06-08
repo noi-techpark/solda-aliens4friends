@@ -24,6 +24,11 @@ class SRCTYPE:
 	PATH = 2
 	SPDX = 3
 
+class OVERWRITE:
+	CACHE_SETTING = 0
+	ALWAYS = 1
+	RAISE = 2
+
 class PoolError(Exception):
 	pass
 
@@ -89,24 +94,32 @@ class Pool:
 	) -> str:
 		history_filename = history_prefix + link_filename
 		history_path = os.path.join(dir_in_pool, "history")
-		self._add(src, history_path, history_filename, src_type)
+		self._add(src, history_path, history_filename, src_type, OVERWRITE.RAISE)
 		self._upsertlink(dir_in_pool, link_filename, history_filename)
-
 
 	def _add(
 		self,
 		src: Union[str, Any, bytes, SPDXDocument], # depends which src_type will be set
 		dir_in_pool: str,
 		new_filename: str,
-		src_type: SRCTYPE
+		src_type: SRCTYPE,
+		overwrite: OVERWRITE = OVERWRITE.CACHE_SETTING
 	) -> str:
 
 		dest = self.abspath(dir_in_pool)
 		dest_full = os.path.join(dest, new_filename)
 
-		if os.path.isfile(dest_full) and Settings.POOLCACHED:
-			logger.debug(f"Pool cache active and file {self.clnpath(dest)} exists... skipping!")
-			return dest
+		if os.path.isfile(dest_full):
+			if overwrite == OVERWRITE.RAISE:
+				raise PoolError(
+					f"can't add {self.clnpath(dest_full)}: file already exists"
+				)
+			elif Settings.POOLCACHED and overwrite == OVERWRITE.CACHE_SETTING:
+				logger.debug(
+					f"Pool cache active and file {self.clnpath(dest_full)}"
+					" exists... skipping!"
+				)
+				return dest
 
 		self.mkdir(dir_in_pool)
 		if src_type == SRCTYPE.PATH:
