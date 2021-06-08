@@ -6,14 +6,14 @@ import logging
 from json import dump as jsondump, load as jsonload
 from pathlib import Path
 from shutil import rmtree
-from typing import Generator, Any, Union, List
+from typing import Generator, Any, Union, List, Type
 
 from spdx.document import Document as SPDXDocument
 
 from .utils import copy, mkdir
 from .settings import Settings
 
-from aliens4friends.models.base import BaseModelEncoder
+from aliens4friends.models.base import BaseModelEncoder, BaseModel
 from aliens4friends.commons.spdxutils import write_spdx_tv
 
 logger = logging.getLogger(__name__)
@@ -82,8 +82,6 @@ class Pool:
 		else:
 			os.symlink(os.path.relpath(target, dest), link)
 
-
-
 	def _add_with_history(
 		self,
 		src: Union[str, Any, bytes, SPDXDocument], # depends which src_type will be set
@@ -136,6 +134,32 @@ class Pool:
 			raise PoolError("Unknown source type to be written into the pool")
 		return dest
 
+	def _merge_json_with_history(
+		self,
+		src: BaseModel,
+		dir_in_pool,
+		filename: str,
+		history_prefix: str,
+	) -> str:
+
+		dest = self.abspath(dir_in_pool)
+		dest_full = os.path.join(dest, filename)
+
+		history_filename = history_prefix + filename
+		history_path = os.path.join(dir_in_pool, "history")
+
+		if not os.path.isfile(dest_full):
+			to_add = src
+		else:
+			model = type(src)
+			old = model.from_file(dest_full)
+			new = src
+			to_add = model.merge(old, new)
+		self._add(src, history_path, history_filename, SRCTYPE.JSON, OVERWRITE.RAISE)
+		self._add(to_add, dir_in_pool, filename, SRCTYPE.JSON, OVERWRITE.ALWAYS)
+		return dest
+
+
 	def _splitpath(self, *path_args: str) -> [str, str]:
 		relpath = self.relpath(*path_args)
 		return os.path.dirname(relpath), os.path.basename(relpath)
@@ -162,6 +186,10 @@ class Pool:
 	def write_json_with_history(self, contents: Any, history_prefix: str, *path_args: str) -> str:
 		filepath, filename = self._splitpath(*path_args)
 		return self._add_with_history(contents, filepath, filename, history_prefix, SRCTYPE.JSON)
+
+	def merge_json_with_history(self, contents: BaseModel, filename: str, history_prefix: str, *path_args: str) -> str:
+		filepath = self.relpath(*path_args)
+		return self._merge_json_with_history(contents, filepath, filename, history_prefix)
 
 	def write_json(self, contents: Any, *path_args: str) -> str:
 		filepath, filename = self._splitpath(*path_args)
