@@ -8,6 +8,10 @@ from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.settings import Settings
 
+from aliens4friends.models.tinfoilhat import TinfoilHatModel
+
+from aliens4friends.commons.utils import get_now_prefix
+
 logger = logging.getLogger(__name__)
 
 class AddError(Exception):
@@ -36,18 +40,24 @@ class Add:
 		)
 
 	def tinfoilhat(self, path: str) -> None:
-		with open(path, "r") as jsonfile:
-			j = json.load(jsonfile)
-		recipe_name = next(iter(j))
-		recipe = j[recipe_name]["recipe"]
-		package_name = recipe["metadata"]["base_name"]
-		package_version = f'{recipe["metadata"]["version"]}-{recipe["metadata"]["revision"]}'
-		self.pool.add(
-			path,
-			Settings.PATH_USR,
-			package_name,
-			package_version
-		)
+		"""add a tinfoilhat file to the pool, splitting it (if it contains
+		multiple recipes), and merging it with other possible existing
+		tinfoilhat data in the pool
+		"""
+		tfh = TinfoilHatModel.from_file(path)
+		for recipe_name, container in tfh._container.items():
+			metadata = container.recipe.metadata
+			package_name = metadata.base_name
+			package_version = f'{metadata.version}-{metadata.revision}'
+			filename = f'{package_name}-{package_version}.tinfoilhat.json'
+			self.pool.merge_json_with_history(
+				TinfoilHatModel({recipe_name: container}),
+				filename,
+				get_now_prefix(),
+				Settings.PATH_USR,
+				package_name,
+				package_version
+			)
 
 	@staticmethod
 	def execute(file_list, pool: Pool) -> None:
