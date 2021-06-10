@@ -7,6 +7,8 @@ import sys
 import os
 import requests
 import hashlib
+import logging
+import traceback
 from typing import List, Tuple, Type, Dict, Union, NoReturn
 
 def bash(
@@ -97,3 +99,11 @@ def md5(string: str) -> str:
 def get_now_prefix() -> str:
 	now = datetime.datetime.now()
 	return now.strftime("%Y%m%d-%H%M%S_")
+
+def debug_with_stacktrace(logger: logging.Logger):
+	if logger.getEffectiveLevel() == logging.DEBUG:
+		logger.debug(traceback.format_exc())
+
+def log_minimal_error(logger: logging.Logger, ex: Exception, prefix: str = ""):
+	logger.error(f"{prefix}{ex.__class__.__name__}: {ex}")
+	debug_with_stacktrace(logger)

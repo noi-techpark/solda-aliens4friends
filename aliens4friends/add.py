@@ -10,7 +10,7 @@ from aliens4friends.commons.settings import Settings
 
 from aliens4friends.models.tinfoilhat import TinfoilHatModel
 
-from aliens4friends.commons.utils import get_now_prefix
+from aliens4friends.commons.utils import get_now_prefix, log_minimal_error
 
 logger = logging.getLogger(__name__)
 
@@ -72,4 +72,4 @@ class Add:
 				else:
 					raise AddError(f"File {path} is not supported for manual adding!")
 			except Exception as ex:
-				logger.error(f"{path} --> {ex.__class__.__name__}: {ex}")
+				log_minimal_error(logger, ex, f"{path} --> ")
