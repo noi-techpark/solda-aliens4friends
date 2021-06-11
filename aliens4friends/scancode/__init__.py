@@ -10,6 +10,7 @@ from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.archive import Archive
 from aliens4friends.commons.utils import bash, bash_live
 from aliens4friends.commons.settings import Settings
+from aliens4friends.commons.utils import log_minimal_error
 
 logger = logging.getLogger(__name__)
 
@@ -120,9 +121,9 @@ class Scancode:
 				if not to_scan:  #pytype: disable=name-error
 					logger.warning(f"[{package}] no debian orig archive to scan here")
 				else:
-					logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+					log_minimal_error(logger, ex, f"[{package}] ")
 			except Exception as ex:
-				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+				log_minimal_error(logger, ex, f"[{package}] ")
 
 			try:
 				m = j["aliensrc"]
@@ -147,6 +148,6 @@ class Scancode:
 				if not m.get("internal_archive_name"):
 					logger.warning(f"[{package}] no internal archive to scan here")
 				else:
-					logger.error(f"[{package}]  {ex.__class__.__name__}: {ex}")
+					log_minimal_error(logger, ex, f"[{package}] ")
 			except Exception as ex:
-				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+				log_minimal_error(logger, ex, f"[{package}] ")

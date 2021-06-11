@@ -147,22 +147,24 @@ class AlienPackage(Package):
 		self.internal_archives = []
 
 		for src_file in self.package_files:
+			src_file_fullpath = os.path.join(src_file.path, src_file.name) if src_file.path else src_file.name
 			try:
-				if src_file.sha1 != checksums[src_file.name]:
+				if src_file.sha1 != checksums[src_file_fullpath]:
 					raise PackageError(
-						f"{src_file.sha1} is not {checksums[src_file.name]} for {src_file.name}."
+						f"{src_file.sha1} is not {checksums[src_file_fullpath]} for {src_file_fullpath}."
 					)
 			except KeyError:
 				raise PackageError(
-						f"{src_file.sha1} does not exist in checksums for {src_file.name}."
+						f"{src_file.sha1} does not exist in checksums for {src_file_fullpath}."
 					)
 
 			if '.tar.' in src_file.name or src_file.name.endswith('.tgz'):
+				files_path = os.path.join("files", src_file_fullpath)
 				self.internal_archives.append(
 					InternalArchive(
 						name = src_file.name,
-						checksums = self.archive.in_archive_checksums(f"files/{src_file.name}"),
-						rootfolder = self.archive.in_archive_rootfolder(f"files/{src_file.name}"),
+						checksums = self.archive.in_archive_checksums(files_path),
+						rootfolder = self.archive.in_archive_rootfolder(files_path),
 						src_uri = src_file.src_uri
 					)
 				)

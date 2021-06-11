@@ -106,7 +106,7 @@ class AlienMatcher:
 		# we need a static method that can be invoked before using
 		# multiprocessing in execute()
 		pool = Pool(Settings.POOLPATH)
-		api_response_cached = pool.abspath(
+		api_response_cached = pool.relpath(
 			Settings.PATH_TMP,
 			f"deb_all_sources.json"
 		)
