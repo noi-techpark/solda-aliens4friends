@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
 
 import subprocess
-import datetime
+from datetime import datetime
 import sys
 import os
 import requests
@@ -96,9 +96,8 @@ def mkdir(*sub_folders: str) -> str:
 def md5(string: str) -> str:
 	return hashlib.md5(string.encode('utf-8')).hexdigest()
 
-def get_now_prefix() -> str:
-	now = datetime.datetime.now()
-	return now.strftime("%Y%m%d-%H%M%S_")
+def get_prefix_formatted(date_time: datetime = datetime.now()) -> str:
+	return date_time.strftime("%Y%m%d-%H%M%S_")
 
 def debug_with_stacktrace(logger: logging.Logger):
 	if logger.getEffectiveLevel() == logging.DEBUG:

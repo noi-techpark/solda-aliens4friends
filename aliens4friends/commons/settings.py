@@ -32,8 +32,10 @@ class Settings:
 
 	try:
 		SCANCODE_WRAPPER = (DOTENV["A4F_SCANCODE"].lower() == "wrapper")
+		SCANCODE_COMMAND = "scancode-wrapper"
 	except KeyError:
 		SCANCODE_WRAPPER = DOTENV["A4F_SCANCODE"] = False
+		SCANCODE_COMMAND = "scancode"
 
 	try:
 		PRINTRESULT = (DOTENV["A4F_PRINTRESULT"].lower() == "true")

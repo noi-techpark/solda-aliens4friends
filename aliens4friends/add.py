@@ -5,12 +5,12 @@ import logging
 import json
 
 from aliens4friends.commons.package import AlienPackage
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import Pool, SRCTYPE, OVERWRITE
 from aliens4friends.commons.settings import Settings
 
 from aliens4friends.models.tinfoilhat import TinfoilHatModel
 
-from aliens4friends.commons.utils import get_now_prefix, log_minimal_error
+from aliens4friends.commons.utils import get_prefix_formatted, log_minimal_error
 
 logger = logging.getLogger(__name__)
 
@@ -28,16 +28,27 @@ class Add:
 		super().__init__()
 		self.pool = pool
 
-	def alienpackage(self, path: str) -> None:
+	def alienpackage(self, path: str, force: bool) -> None:
 		alienpackage = AlienPackage(path)
 		if not isinstance(alienpackage, AlienPackage):
-			raise TypeError("Parameter must be a AlienPackage.")
-		self.pool.add(
-			alienpackage.archive_fullpath,
+			raise TypeError("Parameter must be an AlienPackage.")
+		dir_in_pool = self.pool.relpath(
 			Settings.PATH_USR,
 			alienpackage.name,
 			alienpackage.version.str
 		)
+		new_filename = f"{alienpackage.name}-{alienpackage.version.str}.aliensrc"
+
+		logger.info(f"Position in pool will be: {dir_in_pool}/{new_filename}")
+
+		self.pool._add(
+			alienpackage.archive_fullpath,
+			dir_in_pool,
+			new_filename,
+			SRCTYPE.PATH,
+			overwrite=OVERWRITE.ALWAYS if force else OVERWRITE.RAISE
+		)
+
 
 	def tinfoilhat(self, path: str) -> None:
 		"""add a tinfoilhat file to the pool, splitting it (if it contains
@@ -53,20 +64,20 @@ class Add:
 			self.pool.merge_json_with_history(
 				TinfoilHatModel({recipe_name: container}),
 				filename,
-				get_now_prefix(),
+				get_prefix_formatted(),
 				Settings.PATH_USR,
 				package_name,
 				package_version
 			)
 
 	@staticmethod
-	def execute(file_list, pool: Pool) -> None:
+	def execute(file_list, pool: Pool, force: bool) -> None:
 		adder = Add(pool)
 		for path in file_list:
 			try:
 				logger.info(f"Adding {path}...")
 				if path.endswith(".aliensrc"):
-					adder.alienpackage(path)
+					adder.alienpackage(path, force)
 				elif path.endswith(".tinfoilhat.json"):
 					adder.tinfoilhat(path)
 				else:

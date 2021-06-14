@@ -6,7 +6,7 @@ import json
 import tempfile
 import logging
 from aliens4friends.commons.pool import Pool
-from aliens4friends.commons.utils import bash, copy
+from aliens4friends.commons.utils import bash, copy, log_minimal_error
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.fossywrapper import FossyWrapper
@@ -188,8 +188,7 @@ class UploadAliens2Fossy:
 				apkg_name = a["base_name"]
 				apkg_version = f'{a["version"]}-{a["revision"]}'
 			except Exception as ex:
-				logger.error(f"[{package}] Unable to load aliensrc from {path},"
-				f" got {ex.__class__.__name__}: {ex}")
+				log_minimal_error(logger, ex, f"[{package}] Unable to load aliensrc from {path} ")
 				continue
 			try:
 				alien_spdx_filename = pool.abspath(
@@ -214,4 +213,4 @@ class UploadAliens2Fossy:
 					json.dump(fossy_json, f)
 
 			except Exception as ex:
-				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+				log_minimal_error(logger, ex, f"[{package}] ")

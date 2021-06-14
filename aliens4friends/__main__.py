@@ -81,7 +81,7 @@ class Aliens4Friends:
 	def __init__(self) -> None:
 		logging.basicConfig(
 			level=logging.WARNING,
-			format="%(asctime)s %(levelname)-8s %(name)-30s | %(message)s",
+			format="%(asctime)s %(levelname)-8s %(name)-35s | %(message)s",
 			datefmt='%y-%m-%d %H:%M:%S',
 		)
 		self.parser = argparse.ArgumentParser(
@@ -268,6 +268,13 @@ class Aliens4Friends:
 			cmd,
 			help="Verify and add Alien Packages to the pool"
 		)
+		self.parsers[cmd].add_argument(
+			"-f",
+			"--force",
+			action = "store_true",
+			default = False,
+			help = "Force AlienSrc package overwrite."
+		)
 		self._args_defaults(
 			self.parsers[cmd]
 		)
@@ -366,7 +373,11 @@ class Aliens4Friends:
 
 	def add(self) -> None:
 		file_list = [ f.name for f in self.args.FILES ]
-		Add.execute(file_list, self.pool)
+		Add.execute(
+			file_list,
+			self.pool,
+			self.args.force
+		)
 
 	def match(self) -> None:
 		AlienMatcher.execute(

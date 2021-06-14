@@ -7,10 +7,11 @@ from json import dump as jsondump, load as jsonload
 from pathlib import Path
 from shutil import rmtree
 from typing import Generator, Any, Union, List, Type
+from datetime import datetime
 
 from spdx.document import Document as SPDXDocument
 
-from .utils import copy, mkdir
+from .utils import copy, mkdir, get_prefix_formatted
 from .settings import Settings
 
 from aliens4friends.models.base import BaseModelEncoder, BaseModel
@@ -80,6 +81,14 @@ class Pool:
 				os.unlink(link)
 				os.symlink(os.path.relpath(target, dest), link)
 		else:
+			if os.path.isfile(link):
+				prefix = get_prefix_formatted(datetime.fromtimestamp(os.path.getmtime(link)))
+				new_path = os.path.join(dest, "history", prefix + os.path.basename(link))
+				os.rename(link, new_path)
+				logger.warn(
+					f"File {self.clnpath(link)} already exists..."
+				    f"migrating to a history based structure: New file is {self.clnpath(new_path)}."
+				)
 			os.symlink(os.path.relpath(target, dest), link)
 
 	def _add_with_history(
@@ -129,7 +138,7 @@ class Pool:
 			with open(dest_full, 'wb+') as f:
 				f.write(src)
 		elif src_type == SRCTYPE.SPDX:
-			write_spdx_tv(src, dest)
+			write_spdx_tv(src, dest_full)
 		else:
 			raise PoolError("Unknown source type to be written into the pool")
 		return dest
@@ -234,3 +243,7 @@ class Pool:
 			rmtree(path)
 		elif os.path.isfile(path) or os.path.islink(path):
 			os.remove(path)
+
+	def exists(self, *path_args: str) -> bool:
+		path = self.abspath(*path_args)
+		return os.path.isfile(path) or os.path.isdir(path)

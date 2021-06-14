@@ -42,7 +42,6 @@ class Scancode:
 				archive.extract(dest)
 		return dest
 
-
 	def run(self, archive: Archive, package_name: str, package_version_str: str, archive_in_archive: str = None) -> Optional[str]:
 		self.curpkg = f"{package_name}-{package_version_str}"
 		result_filename = f"{package_name}-{package_version_str}.scancode.json"
@@ -57,7 +56,6 @@ class Scancode:
 		)
 		if not Settings.POOLCACHED:
 			self.pool.rm(scancode_result)
-
 
 		if os.path.exists(scancode_result): # FIXME cache controls should be moved to Pool
 			logger.debug(f"[{self.curpkg}] Skip {self.pool.clnpath(scancode_result)}. Result exists and cache is enabled.")
@@ -74,7 +72,7 @@ class Scancode:
 			if Settings.SCANCODE_WRAPPER:
 				bash_live(
 					f"cd {archive_unpacked}" +
-					f"&& scancode-wrapper -n {cores} --max-in-memory {max_in_mem} -cli --strip-root --json /userland/scanresult.json --spdx-tv /userland/scancode.spdx /userland",
+					f"&& {Settings.SCANCODE_COMMAND} -n {cores} --max-in-memory {max_in_mem} -cli --strip-root --json /userland/scanresult.json --spdx-tv /userland/scancode.spdx /userland",
 					prefix = "SCANCODE (wrapper)",
 					exception = ScancodeError
 				)
@@ -83,7 +81,7 @@ class Scancode:
 				os.rename(os.path.join(archive_unpacked, "scancode.spdx"), scancode_spdx)
 			else:
 				bash_live(
-					f"scancode -n {cores} --max-in-memory {max_in_mem} -cli --strip-root --json {scancode_result} --spdx-tv {scancode_spdx} {archive_unpacked} 2>&1",
+					f"{Settings.SCANCODE_COMMAND} -n {cores} --max-in-memory {max_in_mem} -cli --strip-root --json {scancode_result} --spdx-tv {scancode_spdx} {archive_unpacked} 2>&1",
 					prefix = "SCANCODE (native)",
 					exception = ScancodeError
 				)

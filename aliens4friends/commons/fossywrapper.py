@@ -113,8 +113,9 @@ class FossyWrapper:
 		# fossology-python 1.x is made backwards compatibile with API 1.0.16 -
 		# Fossology 3.9.0 (latest release), and upgrade it
 		# https://github.com/fossology/fossology-python/pull/51
-		uploads = {u.uploadname: u for u in self.fossology.list_uploads()}
-		return uploads.get(uploadname)
+		for upload in self.fossology.list_uploads():
+			if uploadname == upload.uploadname:
+				return upload
 
 	def upload(self, filename: str, folder: Folder, description: str = '') -> Upload:
 		logger.info(f"uploading {filename} to Fossology")
