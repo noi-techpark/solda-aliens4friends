@@ -32,22 +32,16 @@ from textwrap import dedent
 
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.pool import Pool
-from aliens4friends.alienmatcher import AlienMatcher
-from aliens4friends.scancode import Scancode
-from aliens4friends.deltacodeng import DeltaCodeNG
-from aliens4friends.debian2spdx import Debian2SPDX
-from aliens4friends.makealienspdx import MakeAlienSPDX
-from aliens4friends.harvest import Harvest
-from aliens4friends.getfossydata import GetFossyData
-from aliens4friends.add import Add
-from aliens4friends.uploadaliens2fossy import UploadAliens2Fossy
 
-from aliens4friends.tests import test_debian2spdx
-from aliens4friends.tests import test_alienmatcher
-from aliens4friends.tests import test_version
-from aliens4friends.tests import test_alienpackage
-from aliens4friends.tests import test_scancode
-
+from aliens4friends.commands.match import AlienMatcher
+from aliens4friends.commands.scan import Scancode
+from aliens4friends.commands.delta import DeltaCodeNG
+from aliens4friends.commands.spdxdebian import Debian2SPDX
+from aliens4friends.commands.spdxalien import MakeAlienSPDX
+from aliens4friends.commands.harvest import Harvest
+from aliens4friends.commands.fossy import GetFossyData
+from aliens4friends.commands.add import Add
+from aliens4friends.commands.upload import UploadAliens2Fossy
 
 PROGNAME = "aliens4friends"
 
@@ -64,17 +58,6 @@ SUPPORTED_COMMANDS = [
 	"harvest",
 	"help"
 ]
-LOGGERS = {
-	"add"        : 'aliens4friends.add',
-	"match"      : 'aliens4friends.alienmatcher',
-	"scan"       : 'aliens4friends.scancode',
-	"delta"      : 'aliens4friends.deltacodeng',
-	"spdxdebian" : 'aliens4friends.debian2spdx',
-	"spdxalien"  : 'aliens4friends.makealienspdx',
-	"upload"     : 'aliens4friends.uploadaliens2fossy',
-	"fossy"      : 'aliens4friends.getfossydata',
-	"harvest"    : 'aliens4friends.harvest'
-}
 
 class Aliens4Friends:
 
