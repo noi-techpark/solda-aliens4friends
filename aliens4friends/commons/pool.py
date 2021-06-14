@@ -32,6 +32,8 @@ class OVERWRITE:
 
 class PoolError(Exception):
 	pass
+class PoolErrorFileExists(PoolError):
+	pass
 
 class Pool:
 
@@ -46,7 +48,7 @@ class Pool:
 
 	def clnpath(self, path: str) -> str:
 		if path.startswith(self.basepath):
-			return path[len(self.basepath):]
+			return path[len(self.basepath) + 1:]
 
 		if path.startswith(os.path.sep):
 			raise PoolError(f'Path {path} is outside the pool!')
@@ -118,7 +120,7 @@ class Pool:
 
 		if os.path.isfile(dest_full):
 			if overwrite == OVERWRITE.RAISE:
-				raise PoolError(
+				raise PoolErrorFileExists(
 					f"can't add {self.clnpath(dest_full)}: file already exists"
 				)
 			elif Settings.POOLCACHED and overwrite == OVERWRITE.CACHE_SETTING:
@@ -247,3 +249,23 @@ class Pool:
 	def exists(self, *path_args: str) -> bool:
 		path = self.abspath(*path_args)
 		return os.path.isfile(path) or os.path.isdir(path)
+
+	def is_empty(self, *path_args: str) -> bool:
+		path = self.abspath(*path_args)
+		return not os.listdir(path)
+
+	def cached(self, path_in_pool: str, is_dir: bool = False, debug_prefix: str = "") -> bool:
+		if not Settings.POOLCACHED:
+			self.rm(path_in_pool)
+		if is_dir:
+			self.mkdir(path_in_pool)
+			if not self.is_empty(path_in_pool):
+				logger.debug(f"{debug_prefix}Skip {path_in_pool}. Folder not empty and cache is enabled.")
+				return True
+		elif self.exists(path_in_pool):
+			logger.debug(f"{debug_prefix}Skip {path_in_pool}. Result exists and cache is enabled.")
+			return True
+		return False
+
+
+

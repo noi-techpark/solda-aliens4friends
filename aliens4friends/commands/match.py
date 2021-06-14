@@ -389,7 +389,7 @@ class AlienMatcher:
 				 " no internal archive, nothing to compare!"
 			)
 		self._reset()
-		resultpath = self.pool.abspath(
+		resultpath = self.pool.relpath(
 			Settings.PATH_USR,
 			apkg.name,
 			apkg.version.str,

@@ -5,7 +5,7 @@ import logging
 import json
 
 from aliens4friends.commons.package import AlienPackage
-from aliens4friends.commons.pool import Pool, SRCTYPE, OVERWRITE
+from aliens4friends.commons.pool import Pool, SRCTYPE, OVERWRITE, PoolErrorFileExists
 from aliens4friends.commons.settings import Settings
 
 from aliens4friends.models.tinfoilhat import TinfoilHatModel
@@ -41,13 +41,16 @@ class Add:
 
 		logger.info(f"Position in pool will be: {dir_in_pool}/{new_filename}")
 
-		self.pool._add(
-			alienpackage.archive_fullpath,
-			dir_in_pool,
-			new_filename,
-			SRCTYPE.PATH,
-			overwrite=OVERWRITE.ALWAYS if force else OVERWRITE.RAISE
-		)
+		try:
+			self.pool._add(
+				alienpackage.archive_fullpath,
+				dir_in_pool,
+				new_filename,
+				SRCTYPE.PATH,
+				overwrite=OVERWRITE.ALWAYS if force else OVERWRITE.RAISE
+			)
+		except PoolErrorFileExists as ex:
+			logger.error(ex)
 
 
 	def tinfoilhat(self, path: str) -> None:

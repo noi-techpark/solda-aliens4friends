@@ -45,6 +45,8 @@ from aliens4friends.commands.upload import UploadAliens2Fossy
 
 PROGNAME = "aliens4friends"
 
+# FIXME Move this into commands/ and create a registration class
+# for new commands. All cmds should inherit that, and implement that interface
 SUPPORTED_COMMANDS = [
 	"add",
 	"match",

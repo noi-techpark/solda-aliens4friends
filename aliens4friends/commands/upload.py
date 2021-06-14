@@ -191,14 +191,14 @@ class UploadAliens2Fossy:
 				log_minimal_error(logger, ex, f"[{package}] Unable to load aliensrc from {path} ")
 				continue
 			try:
-				alien_spdx_filename = pool.abspath(
+				alien_spdx_filename = pool.relpath(
 					"userland",
 					apkg_name,
 					apkg_version,
 					f'{apkg.internal_archive_name}.alien.spdx'
 				) if apkg.internal_archive_name else ""
 
-				alien_fossy_json_filename = pool.abspath(
+				alien_fossy_json_filename = pool.relpath(
 					"userland",
 					apkg_name,
 					apkg_version,

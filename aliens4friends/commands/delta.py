@@ -270,7 +270,7 @@ class DeltaCodeNG:
 		try:
 			m = j["debian"]["match"]
 			a = j["aliensrc"]
-			result_path = pool.abspath(
+			result_path = pool.relpath(
 				"userland",
 				a["name"],
 				a["version"],
@@ -285,13 +285,13 @@ class DeltaCodeNG:
 				f" {a['name']}-{a['version']}"
 			)
 			deltacode = DeltaCodeNG(
-				pool.abspath(
+				pool.relpath(
 					"debian",
 					m["name"],
 					m["version"],
 					f'{m["name"]}-{m["version"]}.scancode.json'
 				),
-				pool.abspath(
+				pool.relpath(
 					"userland",
 					a["name"],
 					a["version"],

@@ -32,7 +32,7 @@ class Settings:
 
 	try:
 		SCANCODE_WRAPPER = (DOTENV["A4F_SCANCODE"].lower() == "wrapper")
-		SCANCODE_COMMAND = "scancode-wrapper"
+		SCANCODE_COMMAND = "scancode-wrapper" if (DOTENV["A4F_SCANCODE"].lower() == "wrapper") else "scancode"
 	except KeyError:
 		SCANCODE_WRAPPER = DOTENV["A4F_SCANCODE"] = False
 		SCANCODE_COMMAND = "scancode"

@@ -474,7 +474,7 @@ class Debian2SPDX:
 			return
 		try:
 			m = j["debian"]["match"]
-			debian_spdx_filename = pool.abspath(
+			debian_spdx_filename = pool.relpath(
 				"debian",
 				m["name"],
 				m["version"],
@@ -487,9 +487,9 @@ class Debian2SPDX:
 				# support for debian format 1.0 native
 				m["debsrc_orig"] = m["debsrc_debian"]
 				m["debsrc_debian"] = None
-			debsrc_orig = pool.abspath(m["debsrc_orig"])
+			debsrc_orig = pool.relpath(m["debsrc_orig"])
 			debsrc_debian = (
-				pool.abspath(m["debsrc_debian"])
+				pool.relpath(m["debsrc_debian"])
 				if m.get("debsrc_debian")
 				else None # native format, only 1 archive
 			)
@@ -530,7 +530,7 @@ class Debian2SPDX:
 			d2s.generate_SPDX()
 			logger.info(f"[{package}] writing spdx to {debian_spdx_filename}")
 			d2s.write_SPDX(debian_spdx_filename)
-			debian_copyright_filename = pool.abspath(
+			debian_copyright_filename = pool.relpath(
 				"debian",
 				m["name"],
 				m["version"],

@@ -15,7 +15,7 @@ from spdx.document import Document as SPDXDocument
 
 from aliens4friends.commons.archive import Archive
 from aliens4friends.commons.package import AlienPackage
-from aliens4friends.commons.utils import md5
+from aliens4friends.commons.utils import md5, log_minimal_error
 from aliens4friends.commons.spdxutils import parse_spdx_tv, write_spdx_tv, fix_spdxtv, EMPTY_FILE_SHA1
 
 from aliens4friends.commons.pool import Pool
@@ -208,7 +208,7 @@ class MakeAlienSPDX:
 				logger.warning(f"[{package}] No internal archive in aliensrc package, skipping")
 				return
 			a = j["aliensrc"]
-			alien_spdx_filename = pool.abspath(
+			alien_spdx_filename = pool.relpath(
 				"userland",
 				a["name"],
 				a["version"],
@@ -217,13 +217,13 @@ class MakeAlienSPDX:
 			if os.path.isfile(alien_spdx_filename) and Settings.POOLCACHED:
 				logger.debug(f"[{package}] {pool.clnpath(alien_spdx_filename)} already found in cache, skipping")
 				return
-			alien_package_filename = pool.abspath(
+			alien_package_filename = pool.relpath(
 				"userland",
 				a["name"],
 				a["version"],
 				a["filename"]
 			)
-			scancode_spdx_filename = pool.abspath(
+			scancode_spdx_filename = pool.relpath(
 				"userland",
 				a["name"],
 				a["version"],
@@ -239,13 +239,13 @@ class MakeAlienSPDX:
 
 			if j.get("debian") and j["debian"].get("match"):
 				m = j["debian"]["match"]
-				deltacodeng_results_filename = pool.abspath(
+				deltacodeng_results_filename = pool.relpath(
 					"userland",
 					a["name"],
 					a["version"],
 					f'{a["name"]}-{a["version"]}.deltacode.json'
 				)
-				debian_spdx_filename = pool.abspath(
+				debian_spdx_filename = pool.relpath(
 					"debian",
 					m["name"],
 					m["version"],
@@ -272,4 +272,4 @@ class MakeAlienSPDX:
 				s2as.process()
 				write_spdx_tv(s2as.alien_spdx, alien_spdx_filename)
 		except Exception as ex:
-			logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+			log_minimal_error(logger, ex, f"[{package}] ")

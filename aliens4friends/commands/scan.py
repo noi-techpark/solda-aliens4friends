@@ -28,10 +28,7 @@ class Scancode:
 
 	def _unpack(self, archive : Archive, archive_in_archive : str = None) -> str:
 		dest = os.path.join(os.path.dirname(archive.path), "__unpacked")
-		if not Settings.POOLCACHED:
-			self.pool.rm(dest)
-		self.pool.mkdir(dest)
-		if not os.listdir(dest):
+		if not self.pool.cached(dest, is_dir=True):
 			if archive_in_archive:
 				logger.debug(
 					f"[{self.curpkg}] Extracting archive {archive_in_archive} inside {archive.path} to {dest}"
@@ -45,43 +42,54 @@ class Scancode:
 	def run(self, archive: Archive, package_name: str, package_version_str: str, archive_in_archive: str = None) -> Optional[str]:
 		self.curpkg = f"{package_name}-{package_version_str}"
 		result_filename = f"{package_name}-{package_version_str}.scancode.json"
-		spdx_filename = f"{package_name}-{package_version_str}.scancode.spdx"
 		scancode_result = os.path.join(
 			os.path.dirname(archive.path),
 			result_filename
 		)
-		scancode_spdx = os.path.join(
-			os.path.dirname(archive.path),
-			spdx_filename
-		)
-		if not Settings.POOLCACHED:
-			self.pool.rm(scancode_result)
 
-		if os.path.exists(scancode_result): # FIXME cache controls should be moved to Pool
-			logger.debug(f"[{self.curpkg}] Skip {self.pool.clnpath(scancode_result)}. Result exists and cache is enabled.")
+		if self.pool.cached(scancode_result, f"[{self.curpkg}] "):
 			return None
-		archive_unpacked = self._unpack(archive, archive_in_archive)
 
-		logger.info(f"[{self.curpkg}] Run SCANCODE on {self.pool.clnpath(archive_unpacked)}... This may take a while!")
-		out, err = bash('grep "cpu cores" /proc/cpuinfo | uniq | cut -d" " -f3')
+		archive_unpacked_relpath = self._unpack(archive, archive_in_archive)
+		self.run_scancode(archive_unpacked_relpath, package_name, package_version_str)
+
+		return scancode_result
+
+
+	def run_scancode(self, path_in_pool: str, package_name: str, package_version: str) -> str:
+
+		# FIXME should only run once per host machine (during config maybe)
+		out, _ = bash('grep "cpu cores" /proc/cpuinfo | uniq | cut -d" " -f3')
 		cores = int(out)
-		out, err = bash("cat /proc/meminfo | grep MemTotal | grep -oP '\d+'")
+		out, _ = bash("cat /proc/meminfo | grep MemTotal | grep -oP '\d+'")
 		memory = int(out)
 		max_in_mem = int(memory/810) # rule of the thumb to optimize this setting
+
+		scancode_result = os.path.join(
+			path_in_pool,
+			f"{package_name}-{package_version}.scancode.json"
+		)
+		scancode_spdx = os.path.join(
+			path_in_pool,
+			f"{package_name}-{package_version}.scancode.spdx"
+		)
+		archive_unpacked_abspath = self.pool.abspath(path_in_pool)
+
+		logger.info(f"[{self.curpkg}] Run SCANCODE on {path_in_pool}... This may take a while!")
 		try:
 			if Settings.SCANCODE_WRAPPER:
 				bash_live(
-					f"cd {archive_unpacked}" +
+					f"cd {archive_unpacked_abspath}" +
 					f"&& {Settings.SCANCODE_COMMAND} -n {cores} --max-in-memory {max_in_mem} -cli --strip-root --json /userland/scanresult.json --spdx-tv /userland/scancode.spdx /userland",
 					prefix = "SCANCODE (wrapper)",
 					exception = ScancodeError
 				)
 				# Move scanresults into parent directory
-				os.rename(os.path.join(archive_unpacked, "scanresult.json"), scancode_result)
-				os.rename(os.path.join(archive_unpacked, "scancode.spdx"), scancode_spdx)
+				os.rename(os.path.join(archive_unpacked_abspath, "scanresult.json"), scancode_result)
+				os.rename(os.path.join(archive_unpacked_abspath, "scancode.spdx"), scancode_spdx)
 			else:
 				bash_live(
-					f"{Settings.SCANCODE_COMMAND} -n {cores} --max-in-memory {max_in_mem} -cli --strip-root --json {scancode_result} --spdx-tv {scancode_spdx} {archive_unpacked} 2>&1",
+					f"{Settings.SCANCODE_COMMAND} -n {cores} --max-in-memory {max_in_mem} -cli --strip-root --json {scancode_result} --spdx-tv {scancode_spdx} {archive_unpacked_abspath} 2>&1",
 					prefix = "SCANCODE (native)",
 					exception = ScancodeError
 				)
@@ -90,7 +98,7 @@ class Scancode:
 			if "Some files failed to scan properly" not in str(ex):
 				raise ex
 
-		return scancode_result
+
 
 	@staticmethod
 	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*") -> None:
@@ -109,7 +117,7 @@ class Scancode:
 			try:
 				m = j["debian"]["match"]
 				to_scan = m["debsrc_orig"] or m["debsrc_debian"] # support for Debian Format 1.0 native
-				a = Archive(pool.abspath(to_scan))
+				a = Archive(pool.relpath(to_scan))
 				result = scancode.run(a, m["name"], m["version"])
 				if result and Settings.PRINTRESULT:
 					print(result)
@@ -126,7 +134,7 @@ class Scancode:
 			try:
 				m = j["aliensrc"]
 				a = Archive(
-					pool.abspath(
+					pool.relpath(
 						"userland",
 						m["name"],
 						m["version"],
