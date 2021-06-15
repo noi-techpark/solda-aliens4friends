@@ -198,10 +198,13 @@ class AlienMatcher:
 		logger.debug(f"[{self.curpkg}] Package version {package.version.str} has a valid Debian versioning format.")
 
 		candidates = []
+		multi_names = False
 		for pkg in DEB_ALL_SOURCES:
 			similarity = self._similar_package_name(package.name, pkg["source"])
 			if similarity > 0:
 				candidates.append([similarity, pkg["source"], pkg["version"]])
+				if pkg["source"] != package.name:
+					multi_names = True
 
 		if len(candidates) == 0:
 			raise AlienMatcherError(
@@ -211,8 +214,9 @@ class AlienMatcher:
 		candidates = sorted(candidates, reverse=True)
 
 		cur_package_name = candidates[0][1]
-		logger.debug(f"[{self.curpkg}] Package with name {package.name} not found. Trying with {cur_package_name}.")
-		if len(candidates) > 0:
+		if package.name != cur_package_name:
+			logger.debug(f"[{self.curpkg}] Package with name {package.name} not found. Trying with {cur_package_name}.")
+		if multi_names:
 			logger.debug(f"[{self.curpkg}] Warning: We have more than one similarily named package for {package.name}: {candidates}.")
 
 		logger.debug(f"[{self.curpkg}] API call result OK. Find nearest neighbor of {cur_package_name}/{package.version.str}.")

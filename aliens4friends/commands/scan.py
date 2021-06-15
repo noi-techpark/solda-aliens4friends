@@ -47,7 +47,7 @@ class Scancode:
 			result_filename
 		)
 
-		if self.pool.cached(scancode_result, f"[{self.curpkg}] "):
+		if self.pool.cached(scancode_result, debug_prefix=f"[{self.curpkg}] "):
 			return None
 
 		archive_unpacked_relpath = self._unpack(archive, archive_in_archive)
@@ -104,7 +104,9 @@ class Scancode:
 	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*") -> None:
 		scancode = Scancode(pool)
 
+		found = False
 		for path in pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json"):
+			found = True
 			package = f"{path.parts[-3]}-{path.parts[-2]}"
 
 			try:
@@ -157,3 +159,9 @@ class Scancode:
 					log_minimal_error(logger, ex, f"[{package}] ")
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"[{package}] ")
+
+		if not found:
+			logger.info(
+				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+				f"Have you executed 'match' for these packages?"
+			)

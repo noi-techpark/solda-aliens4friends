@@ -115,20 +115,21 @@ class Pool:
 		overwrite: OVERWRITE = OVERWRITE.CACHE_SETTING
 	) -> str:
 
+		file_in_pool = os.path.join(dir_in_pool, new_filename)
 		dest = self.abspath(dir_in_pool)
 		dest_full = os.path.join(dest, new_filename)
 
 		if os.path.isfile(dest_full):
 			if overwrite == OVERWRITE.RAISE:
 				raise PoolErrorFileExists(
-					f"can't add {self.clnpath(dest_full)}: file already exists"
+					f"can't add {file_in_pool}: file already exists"
 				)
 			elif Settings.POOLCACHED and overwrite == OVERWRITE.CACHE_SETTING:
 				logger.debug(
-					f"Pool cache active and file {self.clnpath(dest_full)}"
+					f"Pool cache active and file {file_in_pool}"
 					" exists... skipping!"
 				)
-				return dest
+				return dir_in_pool
 
 		self.mkdir(dir_in_pool)
 		if src_type == SRCTYPE.PATH:
@@ -143,7 +144,7 @@ class Pool:
 			write_spdx_tv(src, dest_full)
 		else:
 			raise PoolError("Unknown source type to be written into the pool")
-		return dest
+		return dir_in_pool
 
 	def _merge_json_with_history(
 		self,
@@ -168,7 +169,7 @@ class Pool:
 			to_add = model.merge(old, new)
 		self._add(src, history_path, history_filename, SRCTYPE.JSON, OVERWRITE.RAISE)
 		self._add(to_add, dir_in_pool, filename, SRCTYPE.JSON, OVERWRITE.ALWAYS)
-		return dest
+		return dir_in_pool
 
 
 	def _splitpath(self, *path_args: str) -> [str, str]:
