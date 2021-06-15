@@ -13,7 +13,7 @@ from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.settings import Settings
 
-from aliens4friends.commons.utils import get_prefix_formatted
+from aliens4friends.commons.utils import get_prefix_formatted, log_minimal_error
 
 from aliens4friends.models.harvest import (
 	HarvestModel,
@@ -140,7 +140,7 @@ class Harvest:
 				elif ext == ".aliensrc":
 					self._parse_aliensrc_main(path, source_package)
 			except Exception as ex:
-				logger.error(f"{self.pool.clnpath(path)} --> {ex.__class__.__name__}: {ex}")
+				log_minimal_error(logger, ex, f"{self.pool.clnpath(path)} ")
 
 		self._warn_missing_input(source_package, cur_package_inputs)
 

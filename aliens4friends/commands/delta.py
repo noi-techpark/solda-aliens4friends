@@ -14,6 +14,7 @@ from pathlib import Path
 
 from deepdiff import DeepDiff
 
+from aliens4friends.commons.utils import log_minimal_error
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.settings import Settings
 
@@ -310,6 +311,6 @@ class DeltaCodeNG:
 			if not j["debian"].get("match"):
 				logger.warning(f"[{package}] no debian match to compare here")
 			else:
-				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+				log_minimal_error(logger, ex, f"[{package}] ")
 		except Exception as ex:
-			logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+			log_minimal_error(logger, ex, f"[{package}] ")
