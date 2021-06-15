@@ -172,9 +172,9 @@ class UploadAliens2Fossy:
 	@staticmethod
 	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
 		fossy = FossyWrapper()
-		# FIXME: add some control to log a message if no path is found
-		# (pool.absglob doesn't return a list, and you can iterate it only once)
+		found = False
 		for path in pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc"):
+			found = True
 			package = f"{path.parts[-3]}-{path.parts[-2]}"
 			try:
 				apkg = AlienPackage(path)
@@ -214,3 +214,9 @@ class UploadAliens2Fossy:
 
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"[{package}] ")
+
+		if not found:
+			logger.info(
+				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+				f"Have you executed 'add' or 'spdxalien' for these packages?"
+			)

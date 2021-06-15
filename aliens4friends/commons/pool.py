@@ -47,7 +47,9 @@ class Pool:
 				f"Unable to create the POOL at path '{self.basepath}'."
 			)
 
-	def clnpath(self, path: str) -> str:
+	def clnpath(self, path: Union[Path, str]) -> str:
+		if isinstance(path, Path):
+			path = os.path.join(path)
 		if path.startswith(self.basepath):
 			return path[len(self.basepath) + 1:]
 

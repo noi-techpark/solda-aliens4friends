@@ -14,7 +14,7 @@ from pathlib import Path
 
 from deepdiff import DeepDiff
 
-from aliens4friends.commons.utils import log_minimal_error
+from aliens4friends.commons.utils import log_minimal_error, debug_with_stacktrace
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.settings import Settings
 
@@ -252,20 +252,27 @@ class DeltaCodeNG:
 	def execute(glob_name: str = "*", glob_version: str = "*") -> None:
 		pool = Pool(Settings.POOLPATH)
 		multiprocessing_pool = MultiProcessingPool()
-		multiprocessing_pool.map(  #pytype: disable=wrong-arg-types
+		results = multiprocessing_pool.map(  #pytype: disable=wrong-arg-types
 			DeltaCodeNG._execute,
 			pool.absglob(f"userland/{glob_name}/{glob_version}/*.alienmatcher.json")
 		)
+		if not results:
+			logger.info(
+				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+				f"Have you executed 'match' for these packages?"
+			)
 
 	@staticmethod
 	def _execute(path: Path) -> None:
 		pool = Pool(Settings.POOLPATH)
 		package = f"{path.parts[-3]}-{path.parts[-2]}"
+		relpath = pool.clnpath(path)
+
 		try:
-			with open(path, "r") as jsonfile:
-				j = json.load(jsonfile)
+			j = pool.get_json(relpath)
 		except Exception as ex:
-			logger.error(f"[{package}] Unable to load json from {path}.")
+			logger.error(f"[{package}] Unable to load json from {relpath}.")
+			debug_with_stacktrace(logger)
 			return
 
 		try:
@@ -277,9 +284,8 @@ class DeltaCodeNG:
 				a["version"],
 				f'{a["name"]}-{a["version"]}.deltacode.json'
 			)
-			if os.path.isfile(result_path) and Settings.POOLCACHED:
-				logger.debug(f"[{package}] Skip {pool.clnpath(result_path)}. Result exists and cache is enabled.")
-				return
+			if pool.cached(result_path, debug_prefix=f"[{package}] "):
+				return result_path
 			logger.info(
 				f"[{package}] calculating delta between debian package"
 				f" {m['name']}-{m['version']} and alien package"
@@ -307,6 +313,7 @@ class DeltaCodeNG:
 				logger.debug(f'[{package}] Stats: {stat}')
 			if Settings.PRINTRESULT:
 				print(json.dumps(result, indent=2))
+			return result_path
 		except KeyError as ex:
 			if not j["debian"].get("match"):
 				logger.warning(f"[{package}] no debian match to compare here")

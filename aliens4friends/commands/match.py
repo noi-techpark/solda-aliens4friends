@@ -217,7 +217,8 @@ class AlienMatcher:
 		if package.name != cur_package_name:
 			logger.debug(f"[{self.curpkg}] Package with name {package.name} not found. Trying with {cur_package_name}.")
 		if multi_names:
-			logger.debug(f"[{self.curpkg}] Warning: We have more than one similarily named package for {package.name}: {candidates}.")
+			cand_set = set(c[1] for c in candidates)
+			logger.debug(f"[{self.curpkg}] Warning: We multiple similar packages for '{package.name}': {cand_set}.")
 
 		logger.debug(f"[{self.curpkg}] API call result OK. Find nearest neighbor of {cur_package_name}/{package.version.str}.")
 
@@ -495,14 +496,19 @@ class AlienMatcher:
 		DEB_ALL_SOURCES = AlienMatcher.get_deb_all_sources()
 		pool = Pool(Settings.POOLPATH)
 		multiprocessing_pool = MultiProcessingPool()
-		multiprocessing_pool.map( # pytype: disable=wrong-arg-types
+		results = multiprocessing_pool.map( # pytype: disable=wrong-arg-types
 			AlienMatcher._execute,
 			pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
 		)
+		if Settings.PRINTRESULT:
+			for match in results:
+				print(json.dumps(match, indent=2))
+		if not results:
+			logger.info(
+				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+				f"Have you executed 'add' for these packages?"
+			)
 
 	@staticmethod
 	def _execute(path: str) -> None:
-		matcher = AlienMatcher()
-		result = matcher.run(path)
-		if Settings.PRINTRESULT:
-			print(json.dumps(result, indent=2))
+		return AlienMatcher().run(path)
