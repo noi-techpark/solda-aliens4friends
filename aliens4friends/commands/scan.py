@@ -26,31 +26,22 @@ class Scancode:
 		super().__init__()
 		self.pool = pool
 
-	def _unpack(self, archive : Archive, archive_in_archive : str = None) -> str:
-		dest = os.path.join(os.path.dirname(archive.path), "__unpacked")
-		if not self.pool.cached(dest, is_dir=True):
-			if archive_in_archive:
-				logger.debug(
-					f"[{self.curpkg}] Extracting archive {archive_in_archive} inside {archive.path} to {dest}"
-				)
-				archive.in_archive_extract(archive_in_archive, dest)
-			else:
-				logger.debug(f"[{self.curpkg}] Extracting archive {archive.path} to {dest}")
-				archive.extract(dest)
-		return dest
-
 	def run(self, archive: Archive, package_name: str, package_version_str: str, archive_in_archive: str = None) -> Optional[str]:
 		self.curpkg = f"{package_name}-{package_version_str}"
 		result_filename = f"{package_name}-{package_version_str}.scancode.json"
 		scancode_result = os.path.join(
-			os.path.dirname(archive.path),
+			self.pool.clnpath(os.path.dirname(archive.path)),
 			result_filename
 		)
 
 		if self.pool.cached(scancode_result, debug_prefix=f"[{self.curpkg}] "):
 			return None
 
-		archive_unpacked_relpath = self._unpack(archive, archive_in_archive)
+		archive_unpacked_relpath = self.pool.unpack(
+			archive,
+			archive_in_archive=archive_in_archive,
+			debug_prefix=f"[{self.curpkg}] "
+		)
 		self.run_scancode(archive_unpacked_relpath, package_name, package_version_str)
 
 		return scancode_result

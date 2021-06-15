@@ -13,6 +13,7 @@ from spdx.document import Document as SPDXDocument
 
 from .utils import copy, mkdir, get_prefix_formatted
 from .settings import Settings
+from .archive import Archive
 
 from aliens4friends.models.base import BaseModelEncoder, BaseModel
 from aliens4friends.commons.spdxutils import write_spdx_tv
@@ -261,12 +262,29 @@ class Pool:
 		if is_dir:
 			self.mkdir(path_in_pool)
 			if not self.is_empty(path_in_pool):
-				logger.debug(f"{debug_prefix}Skip {path_in_pool}. Folder not empty and cache is enabled.")
+				logger.debug(f"{debug_prefix}Skip {path_in_pool}: Folder not empty and cache enabled.")
 				return True
 		elif self.exists(path_in_pool):
-			logger.debug(f"{debug_prefix}Skip {path_in_pool}. Result exists and cache is enabled.")
+			logger.debug(f"{debug_prefix}Skip {path_in_pool}: Result exists and cache enabled.")
 			return True
 		return False
 
+	def unpack(self, archive: Archive, dest_in_pool: str = "",  archive_in_archive: str = "", debug_prefix: str = "") -> str:
+		if not dest_in_pool:
+			dest_in_pool = os.path.join(os.path.dirname(archive.path), "__unpacked")
 
+		if self.cached(dest_in_pool, is_dir=True):
+			return dest_in_pool
+
+		dest_abspath = self.abspath(dest_in_pool)
+		archive_relpath = archive.path
+		archive.path = self.abspath(archive.path)
+		if archive_in_archive:
+			logger.debug(
+				f"{debug_prefix}Extracting archive {archive_in_archive} inside {archive_relpath} to {dest_in_pool}"
+			)
+			archive.in_archive_extract(archive_in_archive, dest_abspath)
+		else:
+			logger.debug(f"{debug_prefix}Extracting archive {archive_relpath} to {dest_in_pool}")
+			archive.extract(dest_abspath)
 
