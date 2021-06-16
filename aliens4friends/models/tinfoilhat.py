@@ -290,6 +290,7 @@ class Container(BaseModel):
 						"root.tags", # here we expect differences that we want
 						             # to merge
 						"root.packages", # same here
+						"root.recipe.chk_sum",
 						"root.recipe.metadata.depends_provides", # same here
 						"root.recipe.metadata.build_workdir", # specific to
 									# local build, needed just for aliensrc
@@ -299,9 +300,8 @@ class Container(BaseModel):
 									# generated in different local builds, but
 									# it doesn't matter here
 						"root.recipe.metadata.compiled_source_dir", # same here
-					],
-					exclude_regex_paths=r"root.recipe.source_files\[\d+\].rootpath"
-									# same here
+						"root.recipe.source_files"
+					]
 				)
 				if diff:
 					raise ModelError(
