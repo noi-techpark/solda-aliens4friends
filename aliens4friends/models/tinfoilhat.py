@@ -10,6 +10,7 @@ from copy import deepcopy
 from deepdiff import DeepDiff
 
 from .base import BaseModel, DictModel, ModelError
+from aliens4friends.commons.utils import sha1sum_str
 
 logger = logging.getLogger(__name__)
 
@@ -43,12 +44,14 @@ class SourceFile(BaseModel):
 		rootpath: str = None,
 		relpath: str = None,
 		src_uri: str = None,
-		sha1: str = None
+		sha1: str = None,
+		tags: List[str] = None
 	) -> None:
 		self.rootpath = rootpath
 		self.relpath = relpath
 		self.src_uri = src_uri
 		self.sha1 = sha1
+		self.tags = tags
 
 class FileWithSize(BaseModel):
 	def __init__(
@@ -114,10 +117,10 @@ class PackageWithTags(BaseModel):
 	def __init__(
 		self,
 		package: Package = None,
-		tags: Tags = None
+		tags: List[str] = None
 	) -> None:
 		self.package = Package.decode(package)
-		self.tags = Tags.decode(tags)
+		self.tags = tags
 
 
 _TPackageContainer = TypeVar('_TPackageContainer', bound='PackageContainer')
@@ -160,10 +163,7 @@ class PackageContainer(DictModel):
 						f" mismatch, diff is: {diff}"
 					)
 				res[id] = deepcopy(new[id])
-				res[id].tags = Tags.merge(
-					old[id].tags,
-					new[id].tags
-				)
+				res[id].tags = list(set(old[id].tags + new[id].tags))
 			elif id in new and id not in old:
 				logger.debug(f"{id} found in new")
 				res[id] = new[id]
@@ -256,15 +256,15 @@ class Recipe(BaseModel):
 
 _TContainer = TypeVar('_TContainer', bound='Container')
 class Container(BaseModel):
-	
+
 	def __init__(
 		self,
 		recipe: Recipe = None,
-		tags: Tags = None,
+		tags: List[str] = None,
 		packages: Dict[str, PackageWithTags] = None
 	) -> None:
 		self.recipe = Recipe.decode(recipe)
-		self.tags = Tags.decode(tags)
+		self.tags = tags
 		self.packages = PackageContainer.decode(packages)
 
 	@staticmethod
@@ -309,10 +309,7 @@ class Container(BaseModel):
 						f"because some fields mismatch, diff is: {diff}"
 					)
 				res[id] = deepcopy(new[id])
-				res[id].tags = Tags.merge(
-					old[id].tags,
-					new[id].tags
-				)
+				res[id].tags = list(set(old[id].tags + new[id].tags))
 				res[id].packages = PackageContainer.merge(
 					old[id].packages,
 					new[id].packages
@@ -322,6 +319,29 @@ class Container(BaseModel):
 						old[id].recipe.metadata.depends_provides,
 						new[id].recipe.metadata.depends_provides
 				))
+
+				### FIXME This is a tinfoilhat merge hack!
+				# Merging source_files
+				old_files = { f'{s.src_uri}-{s.sha1}': s for s in old[id].recipe.source_files }
+				new_files = { f'{s.src_uri}-{s.sha1}': s for s in new[id].recipe.source_files }
+				for new_id in new_files:
+					if new_id in old_files:
+						for el in new_files[new_id].tags:
+							old_files[new_id].tags.add(el)
+					else:
+						res[id].recipe.source_files.append(new_files[new_id])
+
+				### FIXME This is a tinfoilhat merge hack!
+				# Updating chk_sum
+				if not res[id].recipe.source_files:
+					# meta-recipe with no source files but only dependencies
+					m = res[id].recipe.metadata
+					res[id].recipe.chk_sum = sha1sum_str(f'{m.name}{m.version}{m.revision}')
+				else:
+					sha1list = [ f.sha1 for f in res[id].recipe.source_files ]
+					sha1list.sort()
+					res[id].recipe.chk_sum = sha1sum_str(''.join(sha1list))
+
 			elif id in new:
 				logger.debug(f"{id} found in new")
 				res[id] = new[id]

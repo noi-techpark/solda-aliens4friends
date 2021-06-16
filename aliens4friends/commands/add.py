@@ -64,6 +64,7 @@ class Add:
 			package_name = metadata.base_name
 			package_version = f'{metadata.version}-{metadata.revision}'
 			filename = f'{package_name}-{package_version}.tinfoilhat.json'
+			logger.info(f"Position in pool will be: {Settings.PATH_USR}/{package_name}/{package_version}/{filename}")
 			self.pool.merge_json_with_history(
 				TinfoilHatModel({recipe_name: container}),
 				filename,
