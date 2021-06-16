@@ -206,8 +206,9 @@ class ModelError(Exception):
 	pass
 
 class BaseModelEncoder(JSONEncoder):
-	def default(self, obj: BaseModel) -> Dict[str, Any]:
+	def default(self, obj: BaseModel) -> Union[Dict[str, Any], List[str]]:
 		if isinstance(obj, BaseModel):
 			return obj.encode()
-		else:
-			raise ModelError(f"Unknown instance type found! --> {obj}")
+		if isinstance(obj, set):
+			return list(obj)
+		raise ModelError(f"Unhandled instance type '{type(obj)}' found for '{obj}'")

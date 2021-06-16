@@ -85,10 +85,32 @@ class Statistics(BaseModel):
 
 
 class BinaryPackage(BaseModel):
-	def __init__(self, name: str = None, version: str = None, revision: str = None) -> None:
+	def __init__(
+		self,
+		name: str = None,
+		version: str = None,
+		revision: str = None,
+		tags: List[str] = None
+	) -> None:
 		self.name = name
 		self.version = version
 		self.revision = revision
+		self.tags = aggregate_tags(tags)
+
+
+def aggregate_tags(tags: List[str]) -> Dict[str, Any]:
+	if not tags:
+		return {}
+
+	keys = ['project', 'release', 'distro', 'machine', 'image']
+	res = {key: set() for key in keys}
+	for i, key in enumerate(keys):
+		for elem in tags:
+			try:
+				res[key].add(elem.split("/")[i])
+			except IndexError:
+				pass
+	return res
 
 
 class SourcePackage(BaseModel):
@@ -102,13 +124,13 @@ class SourcePackage(BaseModel):
 		source_files: List[SourceFile] = None,
 		statistics: Statistics = None,
 		binary_packages: List[BinaryPackage] = None,
-		tags: Dict[str, Any] = None
+		tags: List[str] = None
 	):
 		self.id = id
 		self.name = name
 		self.version = version
 		self.revision = revision
-		self.tags = tags
+		self.tags = aggregate_tags(tags)
 		self.debian_matching = DebianMatchBasic.decode(debian_matching)
 		self.statistics = Statistics.decode(statistics)
 		self.source_files = SourceFile.drilldown(source_files)

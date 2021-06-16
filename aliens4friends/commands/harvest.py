@@ -27,7 +27,8 @@ from aliens4friends.models.harvest import (
 	DebianMatchBasic,
 	BinaryPackage,
 	LicenseFinding,
-	Tool
+	Tool,
+	aggregate_tags
 )
 from aliens4friends.models.fossy import FossyModel
 from aliens4friends.models.alienmatcher import AlienMatcherModel
@@ -39,6 +40,7 @@ logger = logging.getLogger(__name__)
 class HarvestException(Exception):
 	pass
 
+# FIXME use the new models everywhere in this class!
 class Harvest:
 	"""
 	Go through all files inside the pool and extract useful information to be
@@ -108,6 +110,7 @@ class Harvest:
 		cur_package_id = None
 		cur_package_inputs = []
 		old_package = None
+		source_package = None
 		for path in self.input_files:
 			try:
 				logger.debug(f"Parsing {path}... ")
@@ -142,7 +145,8 @@ class Harvest:
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"{self.pool.clnpath(path)} ")
 
-		self._warn_missing_input(source_package, cur_package_inputs)
+		if source_package:
+			self._warn_missing_input(source_package, cur_package_inputs)
 
 	def write_results(self):
 		self.pool.write_json_with_history(
@@ -277,7 +281,8 @@ class Harvest:
 		result = BinaryPackage(
 			name,
 			cur.package.metadata.version,
-			cur.package.metadata.revision
+			cur.package.metadata.revision,
+			cur.tags
 		)
 		if self.add_details:
 			result.metadata = self._parse_tinfoilhat_metadata(cur.package.metadata)
@@ -292,7 +297,7 @@ class Harvest:
 			source_package.name = container.recipe.metadata.name
 			source_package.version = container.recipe.metadata.version
 			source_package.revision = container.recipe.metadata.revision
-			source_package.tags = container.tags
+			source_package.tags = aggregate_tags(container.tags)
 			source_package.binary_packages = self._parse_tinfoilhat_packages(container.packages)
 			if self.add_details:
 				source_package.metadata = self._parse_tinfoilhat_metadata(container.recipe.metadata)
