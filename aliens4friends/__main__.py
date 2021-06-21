@@ -241,6 +241,8 @@ class Aliens4Friends:
 				  - SPDX_TOOLS_CMD  : command to invoke java spdx tools (default =
 				                      'java -jar /usr/local/lib/spdx-tools-2.2.5-jar-with-dependencies.jar')
 				  - SPDX_DISCLAIMER : legal disclaimer to add into generated SPDX files (optional)
+				  - PACKAGE_ID_EXT  : extension to append to package IDs in harvest.json file
+				  					  (optional, arbitrary)
 				  - FOSSY_USER,
 				    FOSSY_PASSWORD,
 				    FOSSY_GROUP_ID,

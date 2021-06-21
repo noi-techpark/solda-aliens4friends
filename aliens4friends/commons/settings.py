@@ -71,3 +71,8 @@ class Settings:
 		SPDX_DISCLAIMER = DOTENV["SPDX_DISCLAIMER"]
 	except KeyError:
 		SPDX_DISCLAIMER = ""
+
+	try:
+		PACKAGE_ID_EXT = DOTENV["PACKAGE_ID_EXT"]
+	except KeyError:
+		PACKAGE_ID_EXT = "a4f"
