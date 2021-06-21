@@ -325,6 +325,12 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
+		self.parsers[cmd].add_argument(
+			"--folder",
+			type = str,
+			required = True,
+			help = "Fossology folder where to upload Alien Packages"
+		)
 
 	def parser_fossy(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -401,6 +407,7 @@ class Aliens4Friends:
 	def upload(self) -> None:
 		UploadAliens2Fossy.execute(
 			self.pool,
+			self.args.folder,
 			self.args.glob_name,
 			self.args.glob_version
 		)
