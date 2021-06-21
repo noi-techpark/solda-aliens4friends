@@ -176,8 +176,29 @@ class DictModel(BaseModel):
 			return input_dict
 
 		return {
-			k: cls.subclass(**v) for k, v in input_dict.items()
+			k: (v if isinstance(v, cls.subclass) else cls.subclass(**v))
+			for k, v in input_dict.items()
 		}
+
+	def encode(self) -> Dict[str, Any]:
+		"""
+		Create dictionaries out of objects with attributes as keys and then
+		drill down into values and do their encoding.
+
+		Returns:
+			dict: dictionary representation of this instance
+		"""
+		return self._container
+
+	def to_json(self) -> str:
+		"""
+		Create a JSON string out of this object.
+
+		Returns:
+			str: JSON of this object
+		"""
+		return dumps(self._container, cls=BaseModelEncoder)
+
 
 
 
@@ -185,8 +206,9 @@ class ModelError(Exception):
 	pass
 
 class BaseModelEncoder(JSONEncoder):
-	def default(self, obj: BaseModel) -> Dict[str, Any]:
+	def default(self, obj: BaseModel) -> Union[Dict[str, Any], List[str]]:
 		if isinstance(obj, BaseModel):
 			return obj.encode()
-		else:
-			raise ModelError(f"Unknown instance type found! --> {obj}")
+		if isinstance(obj, set):
+			return list(obj)
+		raise ModelError(f"Unhandled instance type '{type(obj)}' found for '{obj}'")

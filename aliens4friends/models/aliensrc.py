@@ -16,11 +16,13 @@ class InternalArchive(BaseModel):
 		checksums: Dict[str, str] = None,
 		rootfolder: str = None,
 		src_uri: str = None,
+		paths: List[str] = None
 	):
 		self.name = name
 		self.checksums = checksums
 		self.rootfolder = rootfolder
 		self.src_uri = src_uri
+		self.paths = paths
 
 class SourcePackage(BaseModel):
 	def __init__(
@@ -29,13 +31,15 @@ class SourcePackage(BaseModel):
 		version: str = None,
 		manager: str = None,
 		metadata: Dict[str, Any] = None,
-		files: List[SourceFile] = None
+		files: List[SourceFile] = None,
+		tags: List[str] = None
 	):
 		self.name = name
 		self.version = version
 		self.manager = manager
 		self.metadata = metadata
 		self.files = SourceFile.drilldown(files)
+		self.tags = tags
 
 class AlienSrc(BaseModel):
 	def __init__(

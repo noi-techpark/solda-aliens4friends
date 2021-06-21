@@ -22,8 +22,9 @@ def test_single():
 	matcher.run(os.path.join(path, "alien-packagegroup-base-1.0.aliensrc"))
 
 def test_search():
-	matcher, path = _setup()
+	# matcher, path = _setup()
 	# package = AlienPackage(os.path.join(path, "alien-libmodulemd-v1-1.8.16.aliensrc"))
+	matcher = AlienMatcher()
 	package = Package("linux-yocto", "5.4.69+gitAUTOINC+7f765dcb29_cfcdd63145")
 	package_match = matcher.search(package)
 	print(package_match)

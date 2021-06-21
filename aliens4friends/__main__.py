@@ -32,25 +32,21 @@ from textwrap import dedent
 
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.pool import Pool
-from aliens4friends.alienmatcher import AlienMatcher
-from aliens4friends.scancode import Scancode
-from aliens4friends.deltacodeng import DeltaCodeNG
-from aliens4friends.debian2spdx import Debian2SPDX
-from aliens4friends.makealienspdx import MakeAlienSPDX
-from aliens4friends.harvest import Harvest
-from aliens4friends.getfossydata import GetFossyData
-from aliens4friends.add import Add
-from aliens4friends.uploadaliens2fossy import UploadAliens2Fossy
 
-from aliens4friends.tests import test_debian2spdx
-from aliens4friends.tests import test_alienmatcher
-from aliens4friends.tests import test_version
-from aliens4friends.tests import test_alienpackage
-from aliens4friends.tests import test_scancode
-
+from aliens4friends.commands.match import AlienMatcher
+from aliens4friends.commands.scan import Scancode
+from aliens4friends.commands.delta import DeltaCodeNG
+from aliens4friends.commands.spdxdebian import Debian2SPDX
+from aliens4friends.commands.spdxalien import MakeAlienSPDX
+from aliens4friends.commands.harvest import Harvest
+from aliens4friends.commands.fossy import GetFossyData
+from aliens4friends.commands.add import Add
+from aliens4friends.commands.upload import UploadAliens2Fossy
 
 PROGNAME = "aliens4friends"
 
+# FIXME Move this into commands/ and create a registration class
+# for new commands. All cmds should inherit that, and implement that interface
 SUPPORTED_COMMANDS = [
 	"add",
 	"match",
@@ -64,24 +60,13 @@ SUPPORTED_COMMANDS = [
 	"harvest",
 	"help"
 ]
-LOGGERS = {
-	"add"        : 'aliens4friends.add',
-	"match"      : 'aliens4friends.alienmatcher',
-	"scan"       : 'aliens4friends.scancode',
-	"delta"      : 'aliens4friends.deltacodeng',
-	"spdxdebian" : 'aliens4friends.debian2spdx',
-	"spdxalien"  : 'aliens4friends.makealienspdx',
-	"upload"     : 'aliens4friends.uploadaliens2fossy',
-	"fossy"      : 'aliens4friends.getfossydata',
-	"harvest"    : 'aliens4friends.harvest'
-}
 
 class Aliens4Friends:
 
 	def __init__(self) -> None:
 		logging.basicConfig(
 			level=logging.WARNING,
-			format="%(asctime)s %(levelname)-8s %(name)-30s | %(message)s",
+			format="%(asctime)s %(levelname)-8s %(name)-35s | %(message)s",
 			datefmt='%y-%m-%d %H:%M:%S',
 		)
 		self.parser = argparse.ArgumentParser(
@@ -268,6 +253,13 @@ class Aliens4Friends:
 			cmd,
 			help="Verify and add Alien Packages to the pool"
 		)
+		self.parsers[cmd].add_argument(
+			"-f",
+			"--force",
+			action = "store_true",
+			default = False,
+			help = "Force AlienSrc package overwrite."
+		)
 		self._args_defaults(
 			self.parsers[cmd]
 		)
@@ -343,8 +335,8 @@ class Aliens4Friends:
 	def parser_harvest(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
-			help="Harvest tinfoilhat, alienmatcher, deltacode, fossy and " \
-			     "fossy-summary outputs and create a report for the dashboard"
+			help="Harvest tinfoilhat, alienmatcher, deltacode and fossy " \
+			     "outputs to create a report for the dashboard"
 		)
 		self._args_defaults(
 			self.parsers[cmd],
@@ -366,7 +358,11 @@ class Aliens4Friends:
 
 	def add(self) -> None:
 		file_list = [ f.name for f in self.args.FILES ]
-		Add.execute(file_list, self.pool)
+		Add.execute(
+			file_list,
+			self.pool,
+			self.args.force
+		)
 
 	def match(self) -> None:
 		AlienMatcher.execute(

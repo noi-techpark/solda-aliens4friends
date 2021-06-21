@@ -106,7 +106,7 @@ class AlienMatcher:
 		# we need a static method that can be invoked before using
 		# multiprocessing in execute()
 		pool = Pool(Settings.POOLPATH)
-		api_response_cached = pool.abspath(
+		api_response_cached = pool.relpath(
 			Settings.PATH_TMP,
 			f"deb_all_sources.json"
 		)
@@ -198,10 +198,13 @@ class AlienMatcher:
 		logger.debug(f"[{self.curpkg}] Package version {package.version.str} has a valid Debian versioning format.")
 
 		candidates = []
+		multi_names = False
 		for pkg in DEB_ALL_SOURCES:
 			similarity = self._similar_package_name(package.name, pkg["source"])
 			if similarity > 0:
 				candidates.append([similarity, pkg["source"], pkg["version"]])
+				if pkg["source"] != package.name:
+					multi_names = True
 
 		if len(candidates) == 0:
 			raise AlienMatcherError(
@@ -211,9 +214,11 @@ class AlienMatcher:
 		candidates = sorted(candidates, reverse=True)
 
 		cur_package_name = candidates[0][1]
-		logger.debug(f"[{self.curpkg}] Package with name {package.name} not found. Trying with {cur_package_name}.")
-		if len(candidates) > 0:
-			logger.debug(f"[{self.curpkg}] Warning: We have more than one similarily named package for {package.name}: {candidates}.")
+		if package.name != cur_package_name:
+			logger.debug(f"[{self.curpkg}] Package with name {package.name} not found. Trying with {cur_package_name}.")
+		if multi_names:
+			cand_set = set(c[1] for c in candidates)
+			logger.debug(f"[{self.curpkg}] Warning: We multiple similar packages for '{package.name}': {cand_set}.")
 
 		logger.debug(f"[{self.curpkg}] API call result OK. Find nearest neighbor of {cur_package_name}/{package.version.str}.")
 
@@ -389,7 +394,7 @@ class AlienMatcher:
 				 " no internal archive, nothing to compare!"
 			)
 		self._reset()
-		resultpath = self.pool.abspath(
+		resultpath = self.pool.relpath(
 			Settings.PATH_USR,
 			apkg.name,
 			apkg.version.str,
@@ -491,14 +496,19 @@ class AlienMatcher:
 		DEB_ALL_SOURCES = AlienMatcher.get_deb_all_sources()
 		pool = Pool(Settings.POOLPATH)
 		multiprocessing_pool = MultiProcessingPool()
-		multiprocessing_pool.map( # pytype: disable=wrong-arg-types
+		results = multiprocessing_pool.map( # pytype: disable=wrong-arg-types
 			AlienMatcher._execute,
 			pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
 		)
+		if Settings.PRINTRESULT:
+			for match in results:
+				print(json.dumps(match, indent=2))
+		if not results:
+			logger.info(
+				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+				f"Have you executed 'add' for these packages?"
+			)
 
 	@staticmethod
 	def _execute(path: str) -> None:
-		matcher = AlienMatcher()
-		result = matcher.run(path)
-		if Settings.PRINTRESULT:
-			print(json.dumps(result, indent=2))
+		return AlienMatcher().run(path)

@@ -6,7 +6,7 @@ import json
 import tempfile
 import logging
 from aliens4friends.commons.pool import Pool
-from aliens4friends.commons.utils import bash, copy
+from aliens4friends.commons.utils import bash, copy, log_minimal_error
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.fossywrapper import FossyWrapper
@@ -172,9 +172,9 @@ class UploadAliens2Fossy:
 	@staticmethod
 	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
 		fossy = FossyWrapper()
-		# FIXME: add some control to log a message if no path is found
-		# (pool.absglob doesn't return a list, and you can iterate it only once)
+		found = False
 		for path in pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc"):
+			found = True
 			package = f"{path.parts[-3]}-{path.parts[-2]}"
 			try:
 				apkg = AlienPackage(path)
@@ -188,18 +188,17 @@ class UploadAliens2Fossy:
 				apkg_name = a["base_name"]
 				apkg_version = f'{a["version"]}-{a["revision"]}'
 			except Exception as ex:
-				logger.error(f"[{package}] Unable to load aliensrc from {path},"
-				f" got {ex.__class__.__name__}: {ex}")
+				log_minimal_error(logger, ex, f"[{package}] Unable to load aliensrc from {path} ")
 				continue
 			try:
-				alien_spdx_filename = pool.abspath(
+				alien_spdx_filename = pool.relpath(
 					"userland",
 					apkg_name,
 					apkg_version,
 					f'{apkg.internal_archive_name}.alien.spdx'
 				) if apkg.internal_archive_name else ""
 
-				alien_fossy_json_filename = pool.abspath(
+				alien_fossy_json_filename = pool.relpath(
 					"userland",
 					apkg_name,
 					apkg_version,
@@ -214,4 +213,10 @@ class UploadAliens2Fossy:
 					json.dump(fossy_json, f)
 
 			except Exception as ex:
-				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+				log_minimal_error(logger, ex, f"[{package}] ")
+
+		if not found:
+			logger.info(
+				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+				f"Have you executed 'add' or 'spdxalien' for these packages?"
+			)

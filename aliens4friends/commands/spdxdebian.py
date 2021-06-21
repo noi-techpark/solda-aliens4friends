@@ -39,7 +39,7 @@ from spdx.writers.tagvalue import write_document
 
 from flanker.addresslib import address as email_address
 
-from aliens4friends.commons.utils import bash, md5
+from aliens4friends.commons.utils import bash, md5, log_minimal_error
 from aliens4friends.commons.archive import Archive
 
 from aliens4friends.commons.pool import Pool
@@ -474,7 +474,7 @@ class Debian2SPDX:
 			return
 		try:
 			m = j["debian"]["match"]
-			debian_spdx_filename = pool.abspath(
+			debian_spdx_filename = pool.relpath(
 				"debian",
 				m["name"],
 				m["version"],
@@ -487,9 +487,9 @@ class Debian2SPDX:
 				# support for debian format 1.0 native
 				m["debsrc_orig"] = m["debsrc_debian"]
 				m["debsrc_debian"] = None
-			debsrc_orig = pool.abspath(m["debsrc_orig"])
+			debsrc_orig = pool.relpath(m["debsrc_orig"])
 			debsrc_debian = (
-				pool.abspath(m["debsrc_debian"])
+				pool.relpath(m["debsrc_debian"])
 				if m.get("debsrc_debian")
 				else None # native format, only 1 archive
 			)
@@ -530,7 +530,7 @@ class Debian2SPDX:
 			d2s.generate_SPDX()
 			logger.info(f"[{package}] writing spdx to {debian_spdx_filename}")
 			d2s.write_SPDX(debian_spdx_filename)
-			debian_copyright_filename = pool.abspath(
+			debian_copyright_filename = pool.relpath(
 				"debian",
 				m["name"],
 				m["version"],
@@ -546,13 +546,13 @@ class Debian2SPDX:
 			if not j["debian"].get("match"):
 				logger.warning(f"[{package}] no debian match to use here")
 			else:
-				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+				log_minimal_error(logger, ex, f"[{package}] ")
 		except TypeError as ex:
 			if not j["debian"]["match"]["debsrc_orig"]:
 				logger.warning(f"[{package}] no debian orig archive to scan here")
 			else:
-				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+				log_minimal_error(logger, ex, f"[{package}] ")
 		except Debian2SPDXException as ex:
 			logger.warning(f"[{package}] {ex}")
 		except Exception as ex:
-			logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+			log_minimal_error(logger, ex, f"[{package}] ")

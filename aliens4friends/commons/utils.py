@@ -2,10 +2,13 @@
 # SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
 
 import subprocess
+from datetime import datetime
 import sys
 import os
 import requests
 import hashlib
+import logging
+import traceback
 from typing import List, Tuple, Type, Dict, Union, NoReturn
 
 def bash(
@@ -92,3 +95,17 @@ def mkdir(*sub_folders: str) -> str:
 
 def md5(string: str) -> str:
 	return hashlib.md5(string.encode('utf-8')).hexdigest()
+
+def sha1sum_str(string):
+    return hashlib.sha1(string.encode('utf-8')).hexdigest()
+
+def get_prefix_formatted(date_time: datetime = datetime.now()) -> str:
+	return date_time.strftime("%Y%m%d-%H%M%S_")
+
+def debug_with_stacktrace(logger: logging.Logger):
+	if logger.getEffectiveLevel() == logging.DEBUG:
+		logger.debug(traceback.format_exc())
+
+def log_minimal_error(logger: logging.Logger, ex: Exception, prefix: str = ""):
+	logger.error(f"{prefix}{ex.__class__.__name__}: {ex}")
+	debug_with_stacktrace(logger)

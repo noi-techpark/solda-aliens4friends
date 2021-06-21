@@ -14,12 +14,14 @@ from spdx.package import Package as SPDXPackage
 from spdx.creationinfo import Tool
 from spdx.document import License as SPDXLicense
 
+from aliens4friends.models.fossy import FossyModel
+
 from aliens4friends.commons.pool import Pool
-from aliens4friends.commons.utils import bash
+from aliens4friends.commons.utils import bash, get_prefix_formatted, log_minimal_error
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.fossywrapper import FossyWrapper
-from aliens4friends.commons.spdxutils import parse_spdx_tv, write_spdx_tv
+from aliens4friends.commons.spdxutils import parse_spdx_tv
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +122,7 @@ class GetFossyData:
 			if value:
 				setattr(self.doc.package, attr, value)
 		self.doc.namespace = (
-			f"http://spdx.org/spdxdocs/" f"{self.pkg.name}-{self.pkg.version}-{uuid4()}"
+			f"http://spdx.org/spdxdocs/{self.pkg.name}-{self.pkg.version}-{uuid4()}"
 		)
 		self.doc.name = f"{self.pkg.name}-{self.pkg.version}"
 		self.doc.creation_info.comment = (
@@ -130,7 +132,7 @@ class GetFossyData:
 		if self.alien_spdx_doc and self.alien_spdx_doc.creation_info.comment:
 			self.doc.creation_info.comment += f"\n{self.alien_spdx_doc.creation_info.comment}\n"
 		self.doc.creation_info.comment += SPDX_DISCLAIMER
-		stdout, stderr = bash("scancode --version")
+		stdout, stderr = bash(f"{Settings.SCANCODE_COMMAND} --version")
 		scancode_version = stdout.replace("ScanCode version ", "").replace("\n", "")
 		self.doc.package.license_comment = re.sub(
 			r"reportImport \([^\)]+\)",
@@ -210,7 +212,7 @@ class GetFossyData:
 		# (pool.absglob doesn't return a list, and you can iterate it only once)
 		for path in pool.absglob(f"userland/{glob_name}/{glob_version}/*.aliensrc"):
 			package = f"{path.parts[-3]}-{path.parts[-2]}"
-			out_spdx_filename = pool.abspath(
+			out_spdx_filename = pool.relpath(
 				"userland",
 				path.parts[-3],
 				path.parts[-2],
@@ -223,8 +225,7 @@ class GetFossyData:
 				apkg = AlienPackage(path)
 				apkg_fullname = f'{apkg.name}-{apkg.version.str}'
 			except Exception as ex:
-				logger.error(f"[{package}] Unable to load aliensrc from {path},"
-				f" got {ex.__class__.__name__}: {ex}")
+				log_minimal_error(logger, ex, f"[{package}] Unable to load aliensrc from {path} ")
 				continue
 			if not apkg.package_files:
 				logger.info(f"[{package}] this is a metapackage with no files, skipping")
@@ -245,7 +246,7 @@ class GetFossyData:
 						f"[{package}] Something's wrong, more than one alien spdx"
 						f" file found in pool: {alien_spdx}"
 					)
-				alien_fossy_json_filename = pool.abspath(
+				alien_fossy_json_filename = pool.relpath(
 					"userland",
 					apkg.name,
 					apkg.version.str,
@@ -254,10 +255,12 @@ class GetFossyData:
 				logger.info(f"[{package}] getting spdx and json data from Fossology")
 				gfd = GetFossyData(fossy, apkg, alien_spdx_filename)
 				doc = gfd.get_spdx()
-				write_spdx_tv(doc, out_spdx_filename)
+				pool.write_spdx_with_history(doc, get_prefix_formatted(), out_spdx_filename)
 				fossy_json = gfd.get_metadata_from_fossology()
-				with open(alien_fossy_json_filename, "w") as f:
-					json.dump(fossy_json, f)
+				fossy_data = FossyModel.decode(fossy_json)
+				pool.write_json_with_history(
+					fossy_data, get_prefix_formatted(), alien_fossy_json_filename
+				)
 
 			except Exception as ex:
-				logger.error(f"[{package}] {ex.__class__.__name__}: {ex}")
+				log_minimal_error(logger, ex, f"[{package}] ")

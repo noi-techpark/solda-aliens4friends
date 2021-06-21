@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from .base import BaseModel
-from typing import Union, Dict
+from typing import Union, Dict, Any, List
 
 class License(BaseModel):
 	def __init__(self, spdxid: str) -> None:
@@ -50,9 +50,11 @@ class SourceFile(BaseModel):
 		name: str = None,
 		sha1: str = None,
 		src_uri: str = None,
-		files_in_archive: Union[int, bool] = False
+		files_in_archive: Union[int, bool] = False,
+		paths: List[str] = None
 	):
 		self.name = name
 		self.sha1 = sha1
 		self.src_uri = src_uri
 		self.files_in_archive = files_in_archive
+		self.paths = paths
