@@ -66,3 +66,8 @@ class Settings:
 		FOSSY_SERVER = DOTENV["FOSSY_SERVER"]
 	except KeyError:
 		FOSSY_SERVER = DOTENV["FOSSY_SERVER"] = 'http://localhost/repo'
+
+	try:
+		SPDX_DISCLAIMER = DOTENV["SPDX_DISCLAIMER"]
+	except KeyError:
+		SPDX_DISCLAIMER = ""

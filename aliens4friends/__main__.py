@@ -240,6 +240,7 @@ class Aliens4Friends:
 				  - A4F_PRINTRESULT : Print results also to stdout
 				  - SPDX_TOOLS_CMD  : command to invoke java spdx tools (default =
 				                      'java -jar /usr/local/lib/spdx-tools-2.2.5-jar-with-dependencies.jar')
+				  - SPDX_DISCLAIMER : legal disclaimer to add into generated SPDX files (optional)
 				  - FOSSY_USER,
 				    FOSSY_PASSWORD,
 				    FOSSY_GROUP_ID,

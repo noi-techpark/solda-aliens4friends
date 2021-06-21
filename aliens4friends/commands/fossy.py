@@ -25,16 +25,7 @@ from aliens4friends.commons.spdxutils import parse_spdx_tv
 
 logger = logging.getLogger(__name__)
 
-# FIXME do not hardcode it!
-SPDX_DISCLAIMER = """
-This SPDX file is provided for convenience only in connection with open source
-software projects published by OpenHarmonyOS Working Group (OHOS). The
-information provided herein has the sole purpose to describe the bill of
-materials of a component of one or more of such projects and does not constitute
-legal advice nor is it intended to be used for rendering legal advice. Reuse of
-this file is permitted for any possible scope and purpose, under the condition
-that the name of OHOS as maker of the document must be removed.
-"""
+SPDX_DISCLAIMER = Settings.SPDX_DISCLAIMER
 
 GPL_RENAME = {
 	"GPL-1.0" : "GPL-1.0-only",
