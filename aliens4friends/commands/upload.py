@@ -29,7 +29,8 @@ class UploadAliens2Fossy:
 		self,
 		alien_package: AlienPackage,
 		alien_spdx_filename: str,
-		fossy: FossyWrapper
+		fossy: FossyWrapper,
+		folder: str
 	):
 		if not alien_package.package_files:
 			raise UploadAliens2FossyException(
@@ -66,7 +67,7 @@ class UploadAliens2Fossy:
 		tar2upload = os.path.join(tmpdir, f"{self.uploadname}.tar.xz")
 		bash(f"tar cJf {tar2upload} .", cwd=files_dir)
 		logger.info(f"[{self.uploadname}] Uploading package")
-		folder = self.fossy.get_or_create_folder('aliensrc') # FIXME do not hardcode it
+		folder = self.fossy.get_or_create_folder(folder) # FIXME do not hardcode it
 		self.upload = self.fossy.upload(
 			tar2upload,
 			folder,
@@ -170,7 +171,7 @@ class UploadAliens2Fossy:
 		}
 
 	@staticmethod
-	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
+	def execute(pool: Pool, folder: str, glob_name: str = "*", glob_version: str = "*"):
 		fossy = FossyWrapper()
 		found = False
 		for path in pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc"):
@@ -204,7 +205,7 @@ class UploadAliens2Fossy:
 					apkg_version,
 					f'{apkg_fullname}.fossy.json'
 				)
-				a2f = UploadAliens2Fossy(apkg, alien_spdx_filename, fossy)
+				a2f = UploadAliens2Fossy(apkg, alien_spdx_filename, fossy, folder)
 				a2f.get_or_do_upload()
 				a2f.run_fossy_scanners()
 				a2f.import_spdx()

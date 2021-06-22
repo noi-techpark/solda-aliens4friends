@@ -240,6 +240,9 @@ class Aliens4Friends:
 				  - A4F_PRINTRESULT : Print results also to stdout
 				  - SPDX_TOOLS_CMD  : command to invoke java spdx tools (default =
 				                      'java -jar /usr/local/lib/spdx-tools-2.2.5-jar-with-dependencies.jar')
+				  - SPDX_DISCLAIMER : legal disclaimer to add into generated SPDX files (optional)
+				  - PACKAGE_ID_EXT  : extension to append to package IDs in harvest.json file
+				  					  (optional, arbitrary)
 				  - FOSSY_USER,
 				    FOSSY_PASSWORD,
 				    FOSSY_GROUP_ID,
@@ -322,6 +325,12 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
+		self.parsers[cmd].add_argument(
+			"--folder",
+			type = str,
+			required = True,
+			help = "Fossology folder where to upload Alien Packages"
+		)
 
 	def parser_fossy(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -398,6 +407,7 @@ class Aliens4Friends:
 	def upload(self) -> None:
 		UploadAliens2Fossy.execute(
 			self.pool,
+			self.args.folder,
 			self.args.glob_name,
 			self.args.glob_version
 		)

@@ -64,7 +64,7 @@ class Harvest:
 		result_file : str,
 		add_details : bool = False,
 		add_missing : bool = False,
-		package_id_ext : str = "solda21src"
+		package_id_ext : str = Settings.PACKAGE_ID_EXT
 	):
 		super().__init__()
 		self.pool = pool
