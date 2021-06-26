@@ -147,7 +147,13 @@ class AlienPackage(Package):
 		self.internal_archives = []
 
 		for src_file in self.package_files:
-			src_file_fullpath = os.path.join(src_file.path, src_file.name) if src_file.path else src_file.name
+
+			# try/catch to prevent AttributeErrors
+			try:
+				src_file_fullpath = os.path.join(src_file.path, src_file.name)
+			except AttributeError:
+				src_file_fullpath =  src_file.name
+
 			try:
 				if src_file.sha1 != checksums[src_file_fullpath]:
 					raise PackageError(

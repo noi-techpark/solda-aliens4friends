@@ -122,7 +122,8 @@ class AlienMatcher:
 				raise AlienMatcherError(
 					f"Cannot get API response, got error {response.status_code}"
 					f" from {AlienMatcher.API_URL_ALLSRC}")
-			with open(api_response_cached, "w") as f:
+			# open absolute path for os compatibility
+			with open(Settings.POOLPATH + "/" + api_response_cached, "w") as f:
 				f.write(response.text)
 			response = response.text
 		return json.loads(response)
