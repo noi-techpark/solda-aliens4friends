@@ -34,6 +34,7 @@ from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.pool import Pool
 
 from aliens4friends.commands.match import AlienMatcher
+from aliens4friends.commands.snap_match import AlienSnapMatcher
 from aliens4friends.commands.scan import Scancode
 from aliens4friends.commands.delta import DeltaCodeNG
 from aliens4friends.commands.spdxdebian import Debian2SPDX
@@ -58,6 +59,7 @@ SUPPORTED_COMMANDS = [
 	"fossy",
 	"config",
 	"harvest",
+	"snapmatch",
 	"help"
 ]
 
@@ -282,6 +284,15 @@ class Aliens4Friends:
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
 
+	def parser_snapmatch(self, cmd: str) -> None:
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Find a matching source package on snapshot.debian.org"
+		)
+		self._args_defaults(self.parsers[cmd])
+		self._args_print_to_stdout(self.parsers[cmd])
+		self._args_glob(self.parsers[cmd])
+
 	def parser_scan(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
@@ -371,6 +382,12 @@ class Aliens4Friends:
 
 	def match(self) -> None:
 		AlienMatcher.execute(
+			self.args.glob_name,
+			self.args.glob_version
+		)
+
+	def snapmatch(self) -> None:
+		AlienSnapMatcher.execute(
 			self.args.glob_name,
 			self.args.glob_version
 		)
