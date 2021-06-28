@@ -26,6 +26,7 @@ setuptools.setup(
     python_requires='>=3.6',
     install_requires=[
         'wheel',
+        'numpy',
         'python-debian==0.1.39',
         'spdx-tools==0.6.1',
         'fossology==0.2.0',

@@ -23,6 +23,8 @@ class Version:
 	FLAG_PKG_VERSION_ERROR = 1<<5
 
 	MAX_DISTANCE = 10000000
+	OK_DISTANCE = 0
+	KO_DISTANCE = 10000
 
 	def __init__(self, version_str: str, remove_epoc: bool = True) -> None:
 		super().__init__()
@@ -113,11 +115,11 @@ class Version:
 		if not isinstance(distance, int):
 			return distance
 
-		if distance == 0:
+		if distance == Version.OK_DISTANCE:
 			return "GREEN"
 		#if distance < 1000:
 		#	return "GREEN"
-		if distance < 10000:
+		if distance <  Version.KO_DISTANCE:
 			return "YELLOW"
 		if distance < Version.MAX_DISTANCE:
 			return "RED"
