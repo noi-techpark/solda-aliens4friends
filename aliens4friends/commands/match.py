@@ -25,6 +25,7 @@ from spdx.writers.tagvalue import write_document
 
 from aliens4friends.commons.archive import Archive, ArchiveError
 from aliens4friends.commons.utils import sha1sum, md5, copy
+from aliens4friends.commons.calc import Calc
 from aliens4friends.commons.package import AlienPackage, Package, PackageError, DebianPackage
 from aliens4friends.commons.version import Version
 from aliens4friends.commons.pool import Pool
@@ -128,65 +129,6 @@ class AlienMatcher:
 			response = response.text
 		return json.loads(response)
 
-	@staticmethod
-	def _clean_name(name: str) -> str:
-		return name.rstrip("0123456789.~+").replace("-v", "").replace("-", "")
-
-	# XXX Add an edit-distance, since not all similar matches are equally good (Levensthein)
-	def _similar_package_name(self, given: str, new: str) -> int:
-
-		if given == new:
-			return 100
-
-		# Rename known packages to their Debian counterpart
-		if given in self.KNOWN_PACKAGE_ALIASES:
-			given = self.KNOWN_PACKAGE_ALIASES[given]
-
-		if given == new:
-			return 95
-
-		g = AlienMatcher._clean_name(given)
-		n = AlienMatcher._clean_name(new)
-
-		if n == g:
-			return 90
-
-		# Prefixed with the abbreviation isc- (Internet Software Consortium)
-		# Possibly postfixed with -client or -server
-		if n.startswith(f"isc{g}"):
-			return 80
-
-		# Some libraries may lack a lib prefix
-		if (
-			(g.startswith("lib") or n.startswith("lib"))
-			and g.replace("lib", "") == n.replace("lib", "")
-		):
-			return 70
-
-		# Major Python version mismatch: python3-iniparse vs. python-iniparse
-		# Some python packages do not have a python[23]- prefix
-		if (
-			n.startswith("python3")
-			or g.startswith("python3")
-		):
-			nn = n.replace("python3", "python")
-			gg = g.replace("python3", "python")
-			if nn == gg:
-				return 70
-			if nn.replace("python", "") == gg.replace("python", ""):
-				return 60
-
-		# Fonts may start with "fonts-" in Debian
-		if g.replace("fonts", "") == n.replace("fonts", ""):
-			return 60
-
-		# Library/API version at the end of the package name
-		if n.startswith(g):
-			return 50
-
-		# --> Not matching at all
-		return 0
-
 	def search(self, package: Package) -> Package:
 		logger.debug(f"[{self.curpkg}] Search for similar packages with {self.API_URL_ALLSRC}.")
 		if not isinstance(package, Package):
@@ -201,7 +143,10 @@ class AlienMatcher:
 		candidates = []
 		multi_names = False
 		for pkg in DEB_ALL_SOURCES:
-			similarity = self._similar_package_name(package.name, pkg["source"])
+
+			# you can omit/remove KNOWN_PACKAGE_ALIASES if score calc does not need a dedicated list for match.py
+			similarity = Calc.fuzzyScore(package.name, pkg["source"], KNOWN_PACKAGE_ALIASES)
+
 			if similarity > 0:
 				candidates.append([similarity, pkg["source"], pkg["version"]])
 				if pkg["source"] != package.name:

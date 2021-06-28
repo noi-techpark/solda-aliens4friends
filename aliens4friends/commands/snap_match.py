@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import logging
+import copy
 
 import numpy
 
@@ -40,11 +41,8 @@ class AlienSnapMatcher:
 
 	def __init__(self) -> None:
 		super().__init__()
-
 		self.errors = []
-
 		AlienSnapMatcher.loadSources()
-
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 	def _reset(self) -> None:
@@ -73,63 +71,125 @@ class AlienSnapMatcher:
 			response = response.text
 		return json.loads(response)
 
-	def search(self, package: Package) -> Package:
-		packages = self._searchPackage(package)
-		versions = self._searchVersion(package)
-		return package
-
+	# name & version-match for debian packages.
 	def match(self, apkg: AlienPackage) -> AlienMatcherModel:
-		logger.debug(f"Searching for {apkg.name} v {apkg.version.str} @ snapshot.debian.org/mr/package")
+		res = self._searchPackage(apkg, True)
 
-		score = 0
+		logger.info(f"[{self.curpkg}] Matching: Package version { apkg.name } has a resulting score of { res['score'] }")
 
-		for pkg in SNAP_ALL_SOURCES["result"]:
-			similarity = Calc.levenshtein(apkg.name, pkg["package"])
-
-			# exact package match
-			if similarity == 0:
-				logger.debug(f"Exact match { apkg.name } vs { pkg['package'] }")
-				self._searchVersion(apkg)
-
-		logger.info(f"[{self.curpkg}] COMPLETE: Package version {apkg.name} has a resulting score of {score}")
+		# if we find at least something, fetch and download sources
+		if res['score'] > 0:
+			uri = AlienSnapMatcher.API_URL_ALLSRC + res['package_slug'] +"/"+ res['version_slug'] +"/srcfiles"
+			sources = self.get_package_sourcefiles(uri)
+			self.download_sources(sources)
 
 		return score
 
+	def download_sourcefiles(self, sources):
+		logger.info(f"[{self.curpkg}] Download package sources")
+
+	def get_package_sourcefiles(self, uri):
+		logger.info(f"[{self.curpkg}] Acquire package sources from " + uri)
+		hashes = self.get_data(uri)
+		print(hashes["result"])
+		return hashes["result"]
+
 	def run(self, package_path: str) -> Optional[AlienMatcherModel]:
 		try:
+
 			package = AlienPackage(package_path)
 			self.curpkg = f"{package.name}-{package.version.str}"
 			package.expand()
 
 			resultScore = self.match(package)
 
-
 		except (AlienSnapMatcherError, PackageError) as ex:
 			if str(ex) == "No internal archive":
-				#logger.warning(f"[{self.curpkg}] IGNORED: {ex}")
-				logger.warning(f"{ex}")
+				logger.warning(f"[{self.curpkg}] IGNORED: {ex}")
 			elif str(ex) == "Can't find a similar package on Debian repos":
-				#logger.warning(f"[{self.curpkg}] NO MATCH: {ex}")
-				logger.warning(f"{ex}")
+				logger.warning(f"[{self.curpkg}] NO MATCH: {ex}")
 			else:
-				#logger.error(f"[{self.curpkg}] ERROR: {ex}")
-				logger.warning(f"{ex}")
+				logger.error(f"[{self.curpkg}] ERROR: {ex}")
 			return None
 
-	def _searchPackage(self, apkg : AlienPackage) -> str:
-		return "todo"
+	# search for package string, if found check version and return an overall matching score
+	def _searchPackage(self, apkg : AlienPackage, altSearch = True) -> int:
+		logger.debug(f"Searching for {apkg.name} v {apkg.version.str} @ snapshot.debian.org/mr/package")
 
-	def _searchVersion(self, apkg : AlienPackage) -> str:
-		logger.debug(f"  Searching for { apkg.name } { apkg.version.str }")
+		# TODO: Model (?)
+		res = {
+			"name" : apkg.name,
+			"package_slug" : "",
+			"version_slug" : "",
+			"score" : 0,
+		}
 
+		alt_res = res
+
+		name_needle = apkg.name
+
+		major = apkg.version.package_version.major
+
+		# if major version > 1, try to find exact package name with appended version number, preventing false-positive package detection provoking version mismatches
+		if major > 1 and altSearch == True:
+			altpkg = copy.deepcopy(apkg)
+			altpkg.name = name_needle + str(major)
+			alt_res = self._searchPackage(altpkg, False)
+
+		for pkg in SNAP_ALL_SOURCES["result"]:
+			similarity = Calc.levenshtein(name_needle, pkg["package"])
+			fuzzy_score = Calc.fuzzyScore(name_needle, pkg["package"])
+
+			# exact package match
+			if similarity == 0:
+				versionMatch = self._searchVersion(apkg)
+				logger.debug(f"Exact match { name_needle } vs { pkg['package'] }")
+				res['score'] = 100 + versionMatch["score"]
+				res['package_slug'] = name_needle
+				res['version_slug'] = versionMatch["slug"]
+				break
+
+			# guessing packages
+			elif fuzzy_score > 0:
+				versionMatch = self._searchVersion(apkg)
+				logger.debug(f"Fuzzy match { name_needle } vs { pkg['package'] }")
+				res['score'] = fuzzy_score + versionMatch["score"]
+				res['package_slug'] = name_needle
+				res['version_slug'] = versionMatch["slug"]
+				break
+
+		if alt_res['score'] > res['score']:
+			logger.debug(f"Alternative match { altpkg.name } has better score ({ alt_res['score'] }) than { apkg.name } ({ res['score'] }) ")
+			res = alt_res
+			res['name'] = apkg.name
+
+		return res
+
+	# search for package version and return a matching score. score can be negative in order that score-sum can invalidate any positive package score
+	def _searchVersion(self, apkg : AlienPackage) -> Any:
+
+		logger.debug(f"  Searching for package version { apkg.name } { apkg.version.str }")
+
+		res = {
+			"slug" : "",
+			"score" : 0,
+		}
+
+		res['score']
+
+		slug = ""
+		score = 0
+
+		# TODO: complete invalidation = ok || should the package still be valid?
 		if apkg.version.has_flag(Version.FLAG_DEB_VERSION_ERROR):
-			raise AlienMatcherError(
-				f"  No parseable debian version: {package.version.str}."
-			)
-
-		logger.debug(f"  [{self.curpkg}] Package version {apkg.version.str} has a valid Debian versioning format.")
+			res['score'] = -100
 
 		data = AlienSnapMatcher.get_data(AlienSnapMatcher.API_URL_ALLSRC + apkg.name + '/')
+
+		bestVersion = {
+			"version" : "",
+			"distance" : Version.MAX_DISTANCE,
+		}
 
 		if data["result"]:
 			for item in data["result"]:
@@ -142,21 +202,35 @@ class AlienSnapMatcher:
 				distance = itemVersion.distance(apkg.version)
 
 				if similarity == 0:
-					logger.debug(f"  Exact version match { apkg.version.str } vs { item['version'] } is { similarity }")
-					return True
+					logger.debug(f"  Exact version match (ident) { apkg.version.str } vs { item['version'] } is { similarity }")
+					res['score'] = 100
+					res['slug'] = item['version']
 
 				if distance == 0:
-					logger.debug(f"  0 distance version match { apkg.version.str } vs { item['version'] } is { similarity }")
-					return True
+					logger.debug(f"  Exact version match (distance) { apkg.version.str } vs { item['version'] } is { distance }")
+					res['score'] = 100
+					res['slug'] = item['version']
 
-				# TODO: fuzzy detection
+				if distance < Version.MAX_DISTANCE and bestVersion["distance"] > distance:
+					bestVersion["version"] = itemVersion
+					bestVersion["distance"] = distance
 
-				# if major version changes, sometimes the name is appended with version-number: gnupg => gnupg2 / gnupg-2
-				# sometimes the major-version is missing: intel-microcode
+				# TODO: sometimes the major-version is missing: intel-microcode
 		else:
+			# should not be the case, cause if we find a package by name there should be at least 1 available version
+			res['score'] = -100
 			logger.debug(f"  Can not find any version for {apkg.version.str}")
 
-		return False
+		if bestVersion["distance"] < Version.MAX_DISTANCE:
+			logger.debug(f"  Fuzzy version match { apkg.version.str } vs { bestVersion['version'].str }: { bestVersion['distance'] }")
+			res['slug'] = bestVersion['version'].str
+
+			if bestVersion["distance"] < Version.KO_DISTANCE:
+				res['score'] = 50
+			else:
+				res['score'] = 10
+
+		return res
 
 	def loadSources() -> None:
 		if 'SNAP_ALL_SOURCES' not in globals():
