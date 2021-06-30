@@ -75,13 +75,12 @@ class GetFossyData:
 		self.pkg = SPDXPackage()
 		self.pkg.comment = ""
 		self.fossy = fossy
-		self.upload = self.fossy.get_upload(
-			alien_package.name, alien_package.version.str
-		)
+		variant = f"-{alien_package.variant}" if alien_package.variant else ""
+		uploadname = f"{alien_package.name}@{alien_package.version.str}{variant}"
+		self.upload = self.fossy.get_upload(uploadname)
 		if not self.upload:
 			raise GetFossyDataException(
-				f"upload {alien_package.name}@{alien_package.version.str}"
-				 " does not exist"
+				f"upload {uploadname} does not exist"
 			)
 		if alien_spdx_filename:
 			self.alien_spdx_doc, _ = parse_spdx_tv(alien_spdx_filename)

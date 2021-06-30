@@ -28,9 +28,10 @@ class UploadAliens2Fossy:
 	def __init__(
 		self,
 		alien_package: AlienPackage,
+		pool: Pool,
 		alien_spdx_filename: str,
 		fossy: FossyWrapper,
-		folder: str
+		fossy_folder: str
 	):
 		if not alien_package.package_files:
 			raise UploadAliens2FossyException(
@@ -45,13 +46,17 @@ class UploadAliens2Fossy:
 		self.fossy = fossy
 		self.alien_package = alien_package
 		m = alien_package.metadata
-		self.uploadname = (f"{m['base_name']}@{m['version']}-{m['revision']}")
+		variant = f"-{m['variant']}" if m['variant'] else ""
+		self.uploadname = (f"{m['base_name']}@{m['version']}-{m['revision']}{variant}")
 		self.alien_spdx_filename = alien_spdx_filename
+		self.pool = pool
+		self.fossy_folder = fossy_folder
 
 	def get_or_do_upload(self):
 		upload = self.fossy.get_upload(
-			self.alien_package.name,
-			self.alien_package.version.str
+			self.uploadname
+			# self.alien_package.name,
+			# self.alien_package.version.str
 		)
 		if upload:
 			logger.info(f"[{self.uploadname}] Package already uploaded")
@@ -67,7 +72,7 @@ class UploadAliens2Fossy:
 		tar2upload = os.path.join(tmpdir, f"{self.uploadname}.tar.xz")
 		bash(f"tar cJf {tar2upload} .", cwd=files_dir)
 		logger.info(f"[{self.uploadname}] Uploading package")
-		folder = self.fossy.get_or_create_folder(folder) # FIXME do not hardcode it
+		folder = self.fossy.get_or_create_folder(self.fossy_folder)
 		self.upload = self.fossy.upload(
 			tar2upload,
 			folder,
@@ -111,7 +116,7 @@ class UploadAliens2Fossy:
 			)
 			return
 		logger.info(f"[{self.uploadname}] Uploading alien SPDX")
-		fix_spdxtv(self.alien_spdx_filename)
+		fix_spdxtv(self.pool.abspath(self.alien_spdx_filename))
 		uploadname = self.upload.uploadname
 		archive_name = self.alien_package.internal_archive_name
 		# handle fossology's inconsistent behaviour when unpacking archives:
@@ -133,7 +138,7 @@ class UploadAliens2Fossy:
 		)
 		self.fossy_internal_archive_path = self.fossy_internal_archive_path.replace('/', '\\/')
 
-		if os.path.getsize(self.alien_spdx_filename) > 13000000:
+		if os.path.getsize(self.pool.abspath(self.alien_spdx_filename)) > 13000000:
 			logger.info(
 				f"[{self.upload.uploadname}] alien spdx is too big to be"
 				" uploaded, splitting it in two files"
@@ -148,15 +153,15 @@ class UploadAliens2Fossy:
 			doc2split.package.verif_code = doc2split.package.calc_verif_code()
 			alien_spdx_fullpath = os.path.join(tmpdir, part1)
 			write_spdx_tv(doc2split, alien_spdx_fullpath)
-			self._convert_and_upload_spdx(alien_spdx_fullpath)
+			self._convert_and_upload_spdx(self.pool.abspath(alien_spdx_fullpath))
 			part2 = f"part2_{os.path.basename(self.alien_spdx_filename)}"
 			doc2split.package.files = allfiles[splitpoint:]
 			doc2split.package.verif_code = doc2split.package.calc_verif_code()
 			alien_spdx_fullpath = os.path.join(tmpdir, part2)
 			write_spdx_tv(doc2split, alien_spdx_fullpath)
-			self._convert_and_upload_spdx(alien_spdx_fullpath)
+			self._convert_and_upload_spdx(self.pool.abspath(alien_spdx_fullpath))
 		else:
-			self._convert_and_upload_spdx(self.alien_spdx_filename)
+			self._convert_and_upload_spdx(self.pool.abspath(self.alien_spdx_filename))
 		# FIXME: add schedule reuser here (optional?)
 
 	def get_metadata_from_fossology(self):
@@ -199,19 +204,18 @@ class UploadAliens2Fossy:
 					f'{apkg.internal_archive_name}.alien.spdx'
 				) if apkg.internal_archive_name else ""
 
-				alien_fossy_json_filename = pool.relpath(
+				a2f = UploadAliens2Fossy(apkg, pool, alien_spdx_filename, fossy, folder)
+				a2f.get_or_do_upload()
+				a2f.run_fossy_scanners()
+				a2f.import_spdx()
+
+				pool.write_json(
+					a2f.get_metadata_from_fossology(),
 					"userland",
 					apkg_name,
 					apkg_version,
 					f'{apkg_fullname}.fossy.json'
 				)
-				a2f = UploadAliens2Fossy(apkg, alien_spdx_filename, fossy, folder)
-				a2f.get_or_do_upload()
-				a2f.run_fossy_scanners()
-				a2f.import_spdx()
-				fossy_json = a2f.get_metadata_from_fossology()
-				with open(alien_fossy_json_filename, "w") as f:
-					json.dump(fossy_json, f)
 
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"[{package}] ")

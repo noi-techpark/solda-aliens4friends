@@ -230,11 +230,10 @@ class FossyWrapper:
 		logger.info("monitoring reportImport job status...")
 		self._wait_for_jobs_completion(upload)
 
-	def get_upload(self, name: str, version: str) -> Upload:
+	def get_upload(self, uploadname: str) -> Upload:
 		"""Get Fossology Upload object from pakage name and version,
 		assuming that uploadname follows the scheme <name>@<version>, and
 		assuming that uploadnames are unique in queried Fossology instance"""
-		uploadname = f'{name}@{version}'
 		return self.check_already_uploaded(uploadname)
 
 	def get_license_findings_conclusions(self, upload: Upload):

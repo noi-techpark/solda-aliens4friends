@@ -44,6 +44,7 @@ def fix_spdxtv(spdxtv_path: str) -> None:
 	# TODO: check when these bugs are fixed upstream in ScanCode
 	with open(spdxtv_path) as f:
 		spdxtv = f.read()
+
 	spdxtv_basename = os.path.basename(spdxtv_path)
 	if "DocumentNamespace:" not in spdxtv:
 		spdxtv = spdxtv.replace(
