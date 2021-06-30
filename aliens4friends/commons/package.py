@@ -121,6 +121,7 @@ class AlienPackage(Package):
 			aliensrc.source_package.version,
 			full_archive_path
 		)
+		self.variant = aliensrc.source_package.metadata['variant']
 		self.manager = aliensrc.source_package.manager
 		self.metadata = aliensrc.source_package.metadata
 		self.package_files = aliensrc.source_package.files

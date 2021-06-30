@@ -27,7 +27,7 @@ class InternalArchive(BaseModel):
 class SourcePackage(BaseModel):
 	def __init__(
 		self,
-		name: list = None,
+		name: List[str] = None,
 		version: str = None,
 		manager: str = None,
 		metadata: Dict[str, Any] = None,
