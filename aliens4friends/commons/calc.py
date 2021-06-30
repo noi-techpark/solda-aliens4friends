@@ -1,35 +1,22 @@
 import numpy
+import json
+import os
 
 class Calc:
 
-	KNOWN_PACKAGE_ALIASES = {
-		"gtk+3": "gtk+3.0",
-		"gmmlib": "intel-gmmlib",
-		"libpcre": "doesnotexistindebian",
-		"libpcre2": "pcre2",
-		"libusb1": "libusb-1.0",
-		"libva-intel": "libva",
-		"libxfont2": "libxfont",
-		"linux-firmware": "firmware-nonfree",
-		"linux-intel": "linux",
-		"linux-seco-fslc": "linux",
-		"linux-stm32mp": "linux",
-		"linux-yocto" : "linux",
-		"ltp": "doesnotexistindebian",
-		"systemd-boot": "systemd",
-		"tcl": "tcl8.6",
-		"xserver-xorg": "doesnotexistindebian",
-		"xz": "xz-utils",
-		"which": "doesnotexistindebian",
-		"wpa-supplicant" : "wpa",
-		"zlib-intel": "zlib",
-	}
+	# share of package valuation
+	# the smaller, the more likely the version distance determines the best match
+	# identical package names != best match (example: gnutls => gnutls28)
+	PACKAGE_WEIGHT = 0.75
 
 	@staticmethod
 	def levenshtein(first, second):
+
+		if first == second:
+			return 0
+
 		dist = numpy.zeros((len(first) + 1, len(second) + 1))
 
-		# start values
 		for f in range(len(first) + 1):
 			dist[f][0] = f
 
@@ -65,7 +52,19 @@ class Calc:
 		return name.rstrip("0123456789.~+").replace("-v", "").replace("-", "")
 
 	@staticmethod
-	def fuzzyScore(given: str, new: str, aliases = {}) -> int:
+	def overallScore(packageScore, versionScore) -> int:
+		packageScore = packageScore * Calc.PACKAGE_WEIGHT
+		versionScore = versionScore * (1 - Calc.PACKAGE_WEIGHT)
+		return max(0, packageScore + versionScore)
+
+	@staticmethod
+	def fuzzy_package_score(given: str, new: str, aliases = {}, clean_given = True) -> int:
+
+		if len(aliases) == 0:
+			dir_path = os.path.dirname(os.path.realpath(__file__))
+			with open(dir_path + '/aliases.json', 'r') as aliasfile:
+				data=aliasfile.read()
+			aliases = json.loads(data)
 
 		if given == new:
 			return 100
@@ -76,6 +75,10 @@ class Calc:
 
 		if given == new:
 			return 95
+
+		# (glib-2.0 => glib2.0)
+		if given.replace("-", "") == new:
+			return 92
 
 		g = Calc._clean_name(given)
 		n = Calc._clean_name(new)
