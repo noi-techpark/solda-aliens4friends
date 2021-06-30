@@ -75,3 +75,36 @@ class AlienMatcherModel(BaseModel):
 		self.debian = DebianMatchContainer.decode(debian)
 		self.errors = errors if errors else []
 
+class DebianSnapMatch(BaseModel):
+	def __init__(
+		self,
+		name: str = None,
+		version: str = None,
+		score: int = 0,
+		distance: int = 0,
+		package_score: int = 0,
+		version_score: int = 0,
+		srcfiles: List[SourceFile] = None,
+		binfiles: List[SourceFile] = None
+	):
+		self.name = name
+		self.version = version
+		self.score = score
+		self.distance = distance
+		self.package_score = package_score
+		self.version_score = version_score
+		self.srcfiles = SourceFile.drilldown(srcfiles)
+		self.binfiles = SourceFile.drilldown(binfiles)
+
+class AlienSnapMatcherModel(BaseModel):
+	def __init__(
+		self,
+		tool: Tool = None,
+		aliensrc: AlienSrc = None,
+		match: DebianSnapMatch = None,
+		errors: List[str] = None
+	):
+		self.tool = Tool.decode(tool)
+		self.aliensrc = AlienSrc.decode(aliensrc)
+		self.match = DebianSnapMatch.decode(match)
+		self.errors = errors if errors else []

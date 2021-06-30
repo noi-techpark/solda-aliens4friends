@@ -141,7 +141,7 @@ class AlienMatcher:
 		for pkg in DEB_ALL_SOURCES:
 
 			# you can omit/remove KNOWN_PACKAGE_ALIASES if score calc does not need a dedicated list for match.py
-			similarity = Calc.fuzzyScore(package.name, pkg["source"], KNOWN_PACKAGE_ALIASES)
+			similarity = Calc.fuzzy_package_score(package.name, pkg["source"], KNOWN_PACKAGE_ALIASES)
 
 			if similarity > 0:
 				candidates.append([similarity, pkg["source"], pkg["version"]])
