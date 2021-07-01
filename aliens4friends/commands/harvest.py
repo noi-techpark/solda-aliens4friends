@@ -312,7 +312,7 @@ class Harvest:
 
 		files = []
 		for supp in Harvest.SUPPORTED_FILES:
-			for fn in pool.absglob(f"userland/{glob_name}/{glob_version}/*{supp}"):
+			for fn in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*{supp}"):
 				files.append(str(fn))
 
 		tfh = Harvest(

@@ -114,6 +114,8 @@ class Aliens4Friends:
 			pass
 		logger = logging.getLogger(PROGNAME)
 		logger.setLevel(Settings.LOGLEVEL)
+		logging.getLogger("urllib3").setLevel(logging.INFO)
+		logging.getLogger("chardet").setLevel(logging.INFO)
 
 		self.pool = Pool(Settings.POOLPATH)
 		basepath_deb = self.pool.mkdir(Settings.PATH_DEB)

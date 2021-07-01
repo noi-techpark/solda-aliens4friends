@@ -189,7 +189,7 @@ class MakeAlienSPDX:
 		multiprocessing_pool = MultiProcessingPool()
 		multiprocessing_pool.map(
 			MakeAlienSPDX._execute,
-			pool.absglob(f"userland/{glob_name}/{glob_version}/*.alienmatcher.json")
+			pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.alienmatcher.json")
 		)
 
 	@staticmethod
@@ -209,7 +209,7 @@ class MakeAlienSPDX:
 				return
 			a = j["aliensrc"]
 			alien_spdx_filename = pool.relpath(
-				"userland",
+				Settings.PATH_USR,
 				a["name"],
 				a["version"],
 				f'{a["internal_archive_name"]}.alien.spdx'
@@ -218,13 +218,13 @@ class MakeAlienSPDX:
 				logger.debug(f"[{package}] {pool.clnpath(alien_spdx_filename)} already found in cache, skipping")
 				return
 			alien_package_filename = pool.relpath(
-				"userland",
+				Settings.PATH_USR,
 				a["name"],
 				a["version"],
 				a["filename"]
 			)
 			scancode_spdx_filename = pool.relpath(
-				"userland",
+				Settings.PATH_USR,
 				a["name"],
 				a["version"],
 				f'{a["name"]}-{a["version"]}.scancode.spdx'
@@ -240,13 +240,13 @@ class MakeAlienSPDX:
 			if j.get("debian") and j["debian"].get("match"):
 				m = j["debian"]["match"]
 				deltacodeng_results_filename = pool.relpath(
-					"userland",
+					Settings.PATH_USR,
 					a["name"],
 					a["version"],
 					f'{a["name"]}-{a["version"]}.deltacode.json'
 				)
 				debian_spdx_filename = pool.relpath(
-					"debian",
+					Settings.PATH_DEB,
 					m["name"],
 					m["version"],
 					f'{m["name"]}-{m["version"]}.debian.spdx'

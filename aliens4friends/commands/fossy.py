@@ -198,51 +198,47 @@ class GetFossyData:
 	@staticmethod
 	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
 		fossy = FossyWrapper()
-		# FIXME: add some control to log a message if no path is found
-		# (pool.absglob doesn't return a list, and you can iterate it only once)
-		for path in pool.absglob(f"userland/{glob_name}/{glob_version}/*.aliensrc"):
-			package = f"{path.parts[-3]}-{path.parts[-2]}"
-			out_spdx_filename = pool.relpath(
-				"userland",
+		found = False
+		for path in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.aliensrc"):
+			found = True
+
+			cur_pckg = path.stem
+			cur_path = os.path.join(
+				Settings.PATH_USR,
 				path.parts[-3],
-				path.parts[-2],
-				f'{package}.final.spdx'
+				path.parts[-2]
 			)
+
+			out_spdx_filename = pool.relpath(cur_path, f'{cur_pckg}.final.spdx')
 			if os.path.isfile(out_spdx_filename) and Settings.POOLCACHED:
-				logger.info(f"[{package}] fossy spdx already generated, skipping")
+				logger.info(f"[{cur_pckg}] fossy spdx already generated, skipping")
 				continue
+
 			try:
 				apkg = AlienPackage(path)
-				apkg_fullname = f'{apkg.name}-{apkg.version.str}'
 			except Exception as ex:
-				log_minimal_error(logger, ex, f"[{package}] Unable to load aliensrc from {path} ")
+				log_minimal_error(logger, ex, f"[{cur_pckg}] Unable to load aliensrc from {path} ")
 				continue
 			if not apkg.package_files:
-				logger.info(f"[{package}] this is a metapackage with no files, skipping")
+				logger.info(f"[{cur_pckg}] this is a metapackage with no files, skipping")
 				continue
+
 			try:
 				alien_spdx = [
-					p for p in pool.absglob(
-						f"userland/{apkg.name}/{apkg.version.str}/*.alien.spdx"
-					)
+					p for p in pool.absglob(f"{cur_path}/*.alien.spdx")
 				]
 				if len(alien_spdx) == 0:
 					alien_spdx_filename = None
 				elif len(alien_spdx) == 1:
 					alien_spdx_filename = alien_spdx[0]
-					logger.info(f"[{package}] using {alien_spdx_filename}")
+					logger.info(f"[{cur_pckg}] using {pool.clnpath(alien_spdx_filename)}")
 				else:
 					raise GetFossyDataException(
-						f"[{package}] Something's wrong, more than one alien spdx"
-						f" file found in pool: {alien_spdx}"
+						f"[{cur_pckg}] Something's wrong, more than one alien spdx"
+						f" file found in pool: {pool.clnpath(alien_spdx)}"
 					)
-				alien_fossy_json_filename = pool.relpath(
-					"userland",
-					apkg.name,
-					apkg.version.str,
-					f'{apkg_fullname}.fossy.json'
-				)
-				logger.info(f"[{package}] getting spdx and json data from Fossology")
+				alien_fossy_json_filename = pool.relpath(cur_path, f'{cur_pckg}.fossy.json')
+				logger.info(f"[{cur_pckg}] getting spdx and json data from Fossology")
 				gfd = GetFossyData(fossy, apkg, alien_spdx_filename)
 				doc = gfd.get_spdx()
 				pool.write_spdx_with_history(doc, get_prefix_formatted(), out_spdx_filename)
@@ -253,4 +249,10 @@ class GetFossyData:
 				)
 
 			except Exception as ex:
-				log_minimal_error(logger, ex, f"[{package}] ")
+				log_minimal_error(logger, ex, f"[{cur_pckg}] ")
+
+		if not found:
+			logger.info(
+				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+				f"Have you executed 'add' for these packages?"
+			)

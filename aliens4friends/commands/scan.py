@@ -128,7 +128,7 @@ class Scancode:
 				m = j["aliensrc"]
 				a = Archive(
 					pool.relpath(
-						"userland",
+						Settings.PATH_USR,
 						m["name"],
 						m["version"],
 						m["filename"]

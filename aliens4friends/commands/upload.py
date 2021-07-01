@@ -179,28 +179,30 @@ class UploadAliens2Fossy:
 	def execute(pool: Pool, folder: str, glob_name: str = "*", glob_version: str = "*"):
 		fossy = FossyWrapper()
 		found = False
-		for path in pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc"):
+		for path in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.aliensrc"):
 			found = True
-			package = f"{path.parts[-3]}-{path.parts[-2]}"
+
+			cur_pckg = path.stem
+			cur_path = os.path.join(
+				Settings.PATH_USR,
+				path.parts[-3],
+				path.parts[-2]
+			)
+
 			try:
 				apkg = AlienPackage(path)
 				logger.info(
-					f"[{package}] expanding alien package,"
+					f"[{cur_pckg}] expanding alien package,"
 					" it may require a lot of time"
 				)
 				apkg.expand()
-				a = apkg.metadata
-				apkg_fullname = f'{a["base_name"]}-{a["version"]}-{a["revision"]}'
-				apkg_name = a["base_name"]
-				apkg_version = f'{a["version"]}-{a["revision"]}'
 			except Exception as ex:
-				log_minimal_error(logger, ex, f"[{package}] Unable to load aliensrc from {path} ")
+				log_minimal_error(logger, ex, f"[{cur_pckg}] Unable to load aliensrc from {path} ")
 				continue
+
 			try:
 				alien_spdx_filename = pool.relpath(
-					"userland",
-					apkg_name,
-					apkg_version,
+					cur_path,
 					f'{apkg.internal_archive_name}.alien.spdx'
 				) if apkg.internal_archive_name else ""
 
@@ -211,14 +213,12 @@ class UploadAliens2Fossy:
 
 				pool.write_json(
 					a2f.get_metadata_from_fossology(),
-					"userland",
-					apkg_name,
-					apkg_version,
-					f'{apkg_fullname}.fossy.json'
+					cur_path,
+					f'{cur_pckg}.fossy.json'
 				)
 
 			except Exception as ex:
-				log_minimal_error(logger, ex, f"[{package}] ")
+				log_minimal_error(logger, ex, f"[{cur_pckg}] ")
 
 		if not found:
 			logger.info(

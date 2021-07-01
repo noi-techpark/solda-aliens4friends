@@ -254,7 +254,7 @@ class DeltaCodeNG:
 		multiprocessing_pool = MultiProcessingPool()
 		results = multiprocessing_pool.map(  #pytype: disable=wrong-arg-types
 			DeltaCodeNG._execute,
-			pool.absglob(f"userland/{glob_name}/{glob_version}/*.alienmatcher.json")
+			pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.alienmatcher.json")
 		)
 		if not results:
 			logger.info(
@@ -279,7 +279,7 @@ class DeltaCodeNG:
 			m = j["debian"]["match"]
 			a = j["aliensrc"]
 			result_path = pool.relpath(
-				"userland",
+				Settings.PATH_USR,
 				a["name"],
 				a["version"],
 				f'{a["name"]}-{a["version"]}.deltacode.json'
@@ -293,13 +293,13 @@ class DeltaCodeNG:
 			)
 			deltacode = DeltaCodeNG(
 				pool.relpath(
-					"debian",
+					Settings.PATH_DEB,
 					m["name"],
 					m["version"],
 					f'{m["name"]}-{m["version"]}.scancode.json'
 				),
 				pool.relpath(
-					"userland",
+					Settings.PATH_USR,
 					a["name"],
 					a["version"],
 					f'{a["name"]}-{a["version"]}.scancode.json'

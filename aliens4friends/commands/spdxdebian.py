@@ -459,7 +459,7 @@ class Debian2SPDX:
 		multiprocessing_pool = MultiProcessingPool()
 		multiprocessing_pool.map(
 			Debian2SPDX._execute,
-			pool.absglob(f"userland/{glob_name}/{glob_version}/*.alienmatcher.json")
+			pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.alienmatcher.json")
 		)
 
 	@staticmethod
@@ -475,7 +475,7 @@ class Debian2SPDX:
 		try:
 			m = j["debian"]["match"]
 			debian_spdx_filename = pool.relpath(
-				"debian",
+				Settings.PATH_DEB,
 				m["name"],
 				m["version"],
 				f'{m["name"]}-{m["version"]}.debian.spdx'
@@ -531,7 +531,7 @@ class Debian2SPDX:
 			logger.info(f"[{package}] writing spdx to {debian_spdx_filename}")
 			d2s.write_SPDX(debian_spdx_filename)
 			debian_copyright_filename = pool.relpath(
-				"debian",
+				Settings.PATH_DEB,
 				m["name"],
 				m["version"],
 				f'{m["name"]}-{m["version"]}_debian_copyright'
