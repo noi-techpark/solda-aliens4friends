@@ -108,7 +108,7 @@ class FossyWrapper:
 		return parent
 
 	def check_already_uploaded(self, uploadname: str) -> Upload:
-		logger.info(f"checking if '{uploadname}' has already been uploaded")
+		logger.info(f"[{uploadname}] Checking if it has already been uploaded")
 		# FIXME upstream: page_size missing in fossology-python 0.2.0, wait that
 		# fossology-python 1.x is made backwards compatibile with API 1.0.16 -
 		# Fossology 3.9.0 (latest release), and upgrade it
@@ -118,7 +118,7 @@ class FossyWrapper:
 				return upload
 
 	def upload(self, filename: str, folder: Folder, description: str = '') -> Upload:
-		logger.info(f"uploading {filename} to Fossology")
+		logger.info(f"[{filename}] Uploading the file to Fossology")
 		try:
 			upload = self.fossology.upload_file(
 				folder,
@@ -238,8 +238,8 @@ class FossyWrapper:
 
 	def get_license_findings_conclusions(self, upload: Upload):
 		logger.info(
-			"getting license findings and conclusions for upload "
-			f"{upload.uploadname} (id={upload.id})"
+			f"[{upload.uploadname}] Getting license findings and conclusions "
+			f"for upload with id={upload.id}"
 		)
 		agents = ["monk", "nomos", "ojo", "reportImport"]
 		for a in self.get_not_scheduled_agents(upload):

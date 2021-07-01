@@ -33,16 +33,7 @@ class UploadAliens2Fossy:
 		fossy: FossyWrapper,
 		fossy_folder: str
 	):
-		if not alien_package.package_files:
-			raise UploadAliens2FossyException(
-				f"AlienPackage {alien_package.archive_fullpath} does not contain"
-				"any files (is it a meta-package?), not uploading it"
-			)
-		if not alien_package.internal_archive_name:
-			logger.warning(
-				f"AlienPackage {alien_package.archive_fullpath} does not contain"
-				" any internal archive"
-			)
+
 		self.fossy = fossy
 		self.alien_package = alien_package
 		m = alien_package.metadata
@@ -52,12 +43,19 @@ class UploadAliens2Fossy:
 		self.pool = pool
 		self.fossy_folder = fossy_folder
 
+		if not alien_package.package_files:
+			raise UploadAliens2FossyException(
+				f"[{self.uploadname}] AlienPackage does not contain "
+				"any files (is it a meta-package?), not uploading it"
+			)
+		if not alien_package.internal_archive_name:
+			logger.warning(
+				f"[{self.uploadname}] AlienPackage does not contain"
+				" any internal archive"
+			)
+
 	def get_or_do_upload(self):
-		upload = self.fossy.get_upload(
-			self.uploadname
-			# self.alien_package.name,
-			# self.alien_package.version.str
-		)
+		upload = self.fossy.get_upload(self.uploadname)
 		if upload:
 			logger.info(f"[{self.uploadname}] Package already uploaded")
 			self.upload = upload
