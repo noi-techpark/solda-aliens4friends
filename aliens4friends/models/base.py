@@ -132,9 +132,15 @@ class DictModel(BaseModel):
 
 	def __init__(
 		self,
-		container: dict
+		container: dict = None
 	):
-		self._container: Dict[str, Any] = self.decode(container)
+		self._container: Dict[str, Any] = self.decode(container) if container else {}
+
+	def add(self, key: str, value: Any) -> None:
+		self._container[key] = value
+
+	def get(self, key: str) -> Any:
+		return self._container[key]
 
 	@classmethod
 	def from_file(

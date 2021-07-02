@@ -201,7 +201,7 @@ class FossyWrapper:
 	def report_import(self, upload: Upload, spdxrdf_path: str) -> None:
 		"""import SPDX RDF report file into Fossology, via webUI"""
 		# TODO: upstream: add missing REST API for reportImport in Fossology
-		logger.info(f"uploading '{spdxrdf_path}' to Fossology")
+		logger.info(f"Uploading '{spdxrdf_path}' to Fossology")
 		# package has been uploaded to fossology but there may no
 		# corresponding entry in the upload_clearing table
 		# (that we need to in order to make reportImport actually work).
@@ -283,13 +283,13 @@ class FossyWrapper:
 		return res.json()
 
 	def get_spdxtv(self, upload: Upload):
-		logger.info(f"[{upload.uploadname}] generating spdx report")
+		logger.info(f"[{upload.uploadname}] Generating spdx report")
 		rep_id = self.fossology.generate_report(
 			upload=upload,
 			report_format=ReportFormat.SPDX2TV
 		)
 		self._wait_for_jobs_completion(upload)
-		logger.info(f"[{upload.uploadname}] downloading spdx report")
+		logger.info(f"[{upload.uploadname}] Downloading spdx report")
 		report_text, report_name = self.fossology.download_report(rep_id)
 		doc, _ = parse_spdx_tv_str(report_text)
 		return doc

@@ -80,7 +80,7 @@ class GetFossyData:
 		self.upload = self.fossy.get_upload(uploadname)
 		if not self.upload:
 			raise GetFossyDataException(
-				f"upload {uploadname} does not exist"
+				f"Upload {uploadname} does not exist"
 			)
 		if alien_spdx_filename:
 			self.alien_spdx_doc, _ = parse_spdx_tv(alien_spdx_filename)
@@ -136,7 +136,7 @@ class GetFossyData:
 				f"{self.upload.uploadname}/", f"./"
 			)
 		self.doc.package.verif_code = self.doc.package.calc_verif_code()
-		logger.info(f"[{self.upload.uploadname}] saving spdx report")
+		logger.info(f"[{self.upload.uploadname}] Saving spdx report")
 		self._fix_fossy_spdx(self.doc)
 		return self.doc
 
@@ -186,7 +186,7 @@ class GetFossyData:
 
 	def get_metadata_from_fossology(self):
 		"""get summary and license findings and conclusions from fossology"""
-		logger.info(f"[{self.upload.uploadname}] getting metadata from fossology")
+		logger.info(f"[{self.upload.uploadname}] Getting metadata from fossology")
 		summary = self.fossy.get_summary(self.upload)
 		licenses = self.fossy.get_license_findings_conclusions(self.upload)
 		return {
@@ -211,7 +211,7 @@ class GetFossyData:
 
 			out_spdx_filename = pool.relpath(cur_path, f'{cur_pckg}.final.spdx')
 			if os.path.isfile(out_spdx_filename) and Settings.POOLCACHED:
-				logger.info(f"[{cur_pckg}] fossy spdx already generated, skipping")
+				logger.info(f"[{cur_pckg}] Fossy spdx already generated, skipping")
 				continue
 
 			try:
@@ -220,7 +220,7 @@ class GetFossyData:
 				log_minimal_error(logger, ex, f"[{cur_pckg}] Unable to load aliensrc from {path} ")
 				continue
 			if not apkg.package_files:
-				logger.info(f"[{cur_pckg}] this is a metapackage with no files, skipping")
+				logger.info(f"[{cur_pckg}] This is a metapackage with no files, skipping")
 				continue
 
 			try:
@@ -238,11 +238,19 @@ class GetFossyData:
 						f" file found in pool: {pool.clnpath(alien_spdx)}"
 					)
 				alien_fossy_json_filename = pool.relpath(cur_path, f'{cur_pckg}.fossy.json')
-				logger.info(f"[{cur_pckg}] getting spdx and json data from Fossology")
+				logger.info(f"[{cur_pckg}] Getting spdx and json data from Fossology")
 				gfd = GetFossyData(fossy, apkg, alien_spdx_filename)
 				doc = gfd.get_spdx()
 				pool.write_spdx_with_history(doc, get_prefix_formatted(), out_spdx_filename)
 				fossy_json = gfd.get_metadata_from_fossology()
+
+				fossy_json['metadata'] = {
+					"name": apkg.name,
+					"version": apkg.metadata['version'],
+					"revision": apkg.metadata['revision'],
+					"variant": apkg.variant
+				}
+
 				fossy_data = FossyModel.decode(fossy_json)
 				pool.write_json_with_history(
 					fossy_data, get_prefix_formatted(), alien_fossy_json_filename

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from .base import BaseModel
-from typing import List
+from typing import List, Dict
 
 class FossySummary(BaseModel):
 	def __init__(
@@ -48,9 +48,11 @@ class FossyModel(BaseModel):
 	def __init__(
 		self,
 		origin: str = None,
+		metadata: Dict[str, str] = None,
 		summary: FossySummary = None,
 		licenses: List[FossyLicenseFinding] = None
 	):
 		self.origin = origin
+		self.metadata = metadata
 		self.summary = FossySummary.decode(summary)
 		self.licenses = FossyLicenseFinding.drilldown(licenses)

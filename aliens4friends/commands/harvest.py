@@ -28,12 +28,14 @@ from aliens4friends.models.harvest import (
 	BinaryPackage,
 	LicenseFinding,
 	Tool,
+	Variant,
 	aggregate_tags
 )
 from aliens4friends.models.fossy import FossyModel
 from aliens4friends.models.alienmatcher import AlienMatcherModel
 from aliens4friends.models.deltacode import DeltaCodeModel
 from aliens4friends.models.tinfoilhat import TinfoilHatModel, PackageWithTags, PackageMetaData
+from aliens4friends.models.aliensrc import AlienSrc, SourceFile
 
 logger = logging.getLogger(__name__)
 
@@ -96,13 +98,13 @@ class Harvest:
 			if input_file_type not in package_inputs:
 				missing.append(input_file_type)
 		if missing:
-			logger.warning(f'Package {package.id} misses the {missing} input files.')
+			logger.warning(f'[{package.id}] Package misses the {missing} input files.')
 			if self.add_missing:
 				package.harvest_info = {
 					"missing_input": missing
 				}
 		else:
-			logger.debug(f'Package {package.id} does not miss any input files.')
+			logger.debug(f'[{package.id}] Package does not miss any input files.')
 
 
 	def readfile(self):
@@ -113,12 +115,12 @@ class Harvest:
 		source_package = None
 		for path in self.input_files:
 			try:
-				logger.debug(f"Parsing {path}... ")
+				logger.debug(f"Parsing {self.pool.clnpath(path)}... ")
 				try:
 					package_id, ext = Harvest._filename_split(path)
 				except HarvestException as ex:
 					if str(ex) == "Unsupported file extension":
-						logger.debug(f"File {path} is not supported. Skipping...")
+						logger.debug(f"File {self.pool.clnpath(path)} is not supported. Skipping...")
 						continue
 				package_id += f"+{self.package_id_ext}"
 				if not cur_package_id or package_id != cur_package_id:
@@ -158,11 +160,23 @@ class Harvest:
 	def _parse_aliensrc_main(self, path, source_package: SourcePackage) -> None:
 		apkg = AlienPackage(path)
 		apkg.calc_provenance()
-		source_package.source_files = apkg.package_files
-		stats_files = source_package.statistics.files
+
+		source_package.variants[apkg.variant] = Variant(
+			apkg.package_files
+		)
+
+		try:
+			stats_files = source_package.variants.get(apkg.variant).statistics.files
+		except AttributeError:
+			# Nothing to do; still no variant or statistics, just skip it...
+			pass
+
+
 		stats_files.known_provenance = apkg.known_provenance
 		stats_files.unknown_provenance = apkg.unknown_provenance
 		stats_files.total = apkg.total
+
+
 
 
 	def _parse_alienmatcher_main(self, path, source_package: SourcePackage) -> None:
@@ -243,7 +257,9 @@ class Harvest:
 		ml = cur.summary.mainLicense
 		main_licenses = list(set(ml.split(","))) if ml else []
 
-		stats = source_package.statistics
+		variant = cur.metadata['variant']
+
+		stats = source_package.variants[variant].statistics
 		stats_files = stats.files
 		stats_files.audit_total = audit_total
 		stats_files.audit_to_do = not_cleared
@@ -305,7 +321,7 @@ class Harvest:
 	@staticmethod
 	def execute(pool: Pool, add_details, add_missing, glob_name: str = "*", glob_version: str = "*") -> None:
 
-		result_path = pool.relpath("stats")
+		result_path = pool.relpath(Settings.PATH_STT)
 		pool.mkdir(result_path)
 		result_file = 'report.harvest.json'
 		output = os.path.join(result_path, result_file)
@@ -325,6 +341,6 @@ class Harvest:
 		tfh.readfile()
 
 		tfh.write_results()
-		logger.info(f'Results written to {pool.abspath(output)}.')
+		logger.info(f'Results written to {pool.clnpath(output)}.')
 		if Settings.PRINTRESULT:
 			print(json.dumps(tfh.result, indent=2))

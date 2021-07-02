@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from .base import BaseModel, BaseModelEncoder, ModelError
+from .base import BaseModel, BaseModelEncoder, ModelError, DictModel
 from .common import License, Tool, SourceFile
 from typing import Any, Dict, List
 
@@ -113,6 +113,34 @@ def aggregate_tags(tags: List[str]) -> Dict[str, Any]:
 	return res
 
 
+class Variant(BaseModel):
+
+	def __init__(
+		self,
+		source_files: List[SourceFile] = None,
+		statistics: Statistics = None,
+		binary_packages: List[BinaryPackage] = None,
+		tags: List[str] = None
+	):
+		self.source_files = SourceFile.drilldown(source_files)
+		self.statistics = Statistics.decode(statistics)
+
+		# #FIXME This is a hack! We have a list in a list; remove outer list
+		# if (
+		# 	binary_packages
+		# 	and isinstance(binary_packages, list)
+		# 	and len(binary_packages) > 0
+		# 	and isinstance(binary_packages[0], list)
+		# ):
+		# 	binary_packages = binary_packages[0]
+
+		self.binary_packages = BinaryPackage.drilldown(binary_packages)
+		self.tags = aggregate_tags(tags)
+
+class VariantContainer(DictModel):
+	subclass = Variant
+
+
 class SourcePackage(BaseModel):
 	def __init__(
 		self,
@@ -121,31 +149,14 @@ class SourcePackage(BaseModel):
 		version: str = None,
 		revision: str = None,
 		debian_matching: DebianMatchBasic = None,
-		source_files: List[SourceFile] = None,
-		statistics: Statistics = None,
-		binary_packages: List[BinaryPackage] = None,
-		tags: List[str] = None
+		variants: Dict[str, Variant] = None
 	):
 		self.id = id
 		self.name = name
 		self.version = version
 		self.revision = revision
-		self.tags = aggregate_tags(tags)
 		self.debian_matching = DebianMatchBasic.decode(debian_matching)
-		self.statistics = Statistics.decode(statistics)
-		self.source_files = SourceFile.drilldown(source_files)
-
-		#FIXME This is a hack! We have a list in a list; remove outer list
-		if (
-			binary_packages
-			and isinstance(binary_packages, list)
-			and len(binary_packages) > 0
-			and isinstance(binary_packages[0], list)
-		):
-			binary_packages = binary_packages[0]
-
-		self.binary_packages = BinaryPackage.drilldown(binary_packages)
-
+		self.variants = VariantContainer.decode(variants)
 
 class HarvestModel(BaseModel):
 

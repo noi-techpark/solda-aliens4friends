@@ -126,6 +126,7 @@ class AlienPackage(Package):
 		self.metadata = aliensrc.source_package.metadata
 		self.package_files = aliensrc.source_package.files
 		self.expanded = False
+		self.aliensrc = aliensrc
 
 	def expand(self) -> None:
 		# We need this step only once for each instance...
