@@ -114,7 +114,6 @@ def aggregate_tags(tags: List[str]) -> Dict[str, Any]:
 
 
 class Variant(BaseModel):
-
 	def __init__(
 		self,
 		source_files: List[SourceFile] = None,
@@ -124,16 +123,6 @@ class Variant(BaseModel):
 	):
 		self.source_files = SourceFile.drilldown(source_files)
 		self.statistics = Statistics.decode(statistics)
-
-		# #FIXME This is a hack! We have a list in a list; remove outer list
-		# if (
-		# 	binary_packages
-		# 	and isinstance(binary_packages, list)
-		# 	and len(binary_packages) > 0
-		# 	and isinstance(binary_packages[0], list)
-		# ):
-		# 	binary_packages = binary_packages[0]
-
 		self.binary_packages = BinaryPackage.drilldown(binary_packages)
 		self.tags = aggregate_tags(tags)
 
