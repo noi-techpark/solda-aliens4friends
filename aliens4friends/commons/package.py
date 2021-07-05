@@ -100,6 +100,7 @@ class AlienPackage(Package):
 	expanded: bool
 
 	ALIEN_MATCHER_JSON = "aliensrc.json"
+	SUPPORTED_ALIENSRC_VERSIONS = [ 1, 2 ]
 
 	def __init__(self, full_archive_path: Union[Path, str]) -> None:
 		self.archive = Archive(full_archive_path)
@@ -111,7 +112,7 @@ class AlienPackage(Package):
 		except ArchiveError as ex:
 			raise PackageError(f"Broken Alien Package: Error is {str(ex)}")
 
-		if aliensrc.version != 1:
+		if aliensrc.version not in self.SUPPORTED_ALIENSRC_VERSIONS:
 			raise PackageError(
 				f"{self.ALIEN_MATCHER_JSON} with version {aliensrc.version} not supported"
 			)
