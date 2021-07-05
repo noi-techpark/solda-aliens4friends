@@ -51,7 +51,7 @@ class Add:
 				overwrite=OVERWRITE.ALWAYS if force else OVERWRITE.RAISE
 			)
 		except PoolErrorFileExists as ex:
-			logger.error(ex)
+			logger.warning(ex)
 
 
 	def tinfoilhat(self, path: str) -> None:
