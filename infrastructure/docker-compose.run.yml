@@ -1,0 +1,17 @@
+version: "3.4"
+
+services:
+  fossology:
+    image: ${DOCKER_FOSSOLOGY_IMAGE}:${DOCKER_TAG}
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - /data:/data
+    ports:
+      - 8999:80
+  toolchain:
+    image: ${DOCKER_TOOLCHAIN_IMAGE}:${DOCKER_TAG}
+    restart: unless-stopped
+    volumes:
+      - /data:/data
