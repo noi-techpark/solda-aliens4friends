@@ -99,7 +99,8 @@ def md5(string: str) -> str:
 def sha1sum_str(string):
     return hashlib.sha1(string.encode('utf-8')).hexdigest()
 
-def get_prefix_formatted(date_time: datetime = datetime.now()) -> str:
+def get_prefix_formatted(date_time: datetime = None) -> str:
+	date_time = date_time or datetime.now()
 	return date_time.strftime("%Y%m%d-%H%M%S_")
 
 def debug_with_stacktrace(logger: logging.Logger):
