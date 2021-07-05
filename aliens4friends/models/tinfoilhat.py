@@ -77,13 +77,14 @@ class DependsProvidesContainer(DictModel):
 		ids = set(list(old) + list(new))
 		for id in ids:
 			if id in new and id in old:
-				logger.debug(f"{id} found in new and old, checking sameness")
-				diff = DeepDiff(old[id], new[id], ignore_order=True)
+				logger.debug(f"{id} found in new and old, checking consistency")
+				diff = DeepDiff(old[id].depends, new[id].depends, ignore_order=True)
 				if diff:
 					raise ModelError(
-						"can't merge, depends_provides mismatch for machine"
+						"can't merge, depends mismatch for machine"
 						f" '{id}', diff is: {diff}"
 					)
+				new[id].provides = list(set(old[id].provides + new[id].provides))
 				res[id] = new[id]
 			elif id in new:
 				logger.debug(f"depends_provides for machine '{id}' found in new")
@@ -225,6 +226,21 @@ class RecipeMetaData(BaseModel):
 		self.license = license
 		self.depends_provides = DependsProvidesContainer.decode(depends_provides)
 
+	@staticmethod
+	def merge(old: 'RecipeMetaData', new: 'RecipeMetaData') -> 'RecipeMetaData':
+		updatable = [ "homepage", "summary", "description" ]
+		res = RecipeMetaData()
+		for attr_name in res.encode():
+			if attr_name in updatable:
+				setattr(res, attr_name, getattr(new, attr_name))
+			else:
+				setattr(res, attr_name, getattr(old, attr_name))
+		res.depends_provides = DependsProvidesContainer.merge(
+			old.depends_provides,
+			new.depends_provides
+		)
+		return res
+
 class CveProduct(BaseModel):
 	def __init__(
 		self,
@@ -246,6 +262,24 @@ class RecipeCveMetaData(BaseModel):
 		self.cve_version_suffix = cve_version_suffix
 		self.cve_check_whitelist = cve_check_whitelist
 		self.cve_product = CveProduct.drilldown(cve_product)
+
+	@staticmethod
+	def merge(old: 'RecipeCveMetaData', new: 'RecipeCveMetaData') -> 'RecipeCveMetaData':
+		res = RecipeCveMetaData()
+		must_be_equal = [ 'cve_version', 'cve_version_suffix' ]
+		for attr_name in old.encode():
+			old_attr = getattr(old, attr_name)
+			new_attr = getattr(new, attr_name)
+			if old_attr == new_attr:
+				setattr(res, attr_name, old_attr)
+			elif attr_name in must_be_equal:
+				raise ModelError(
+					f"can't merge cve metadata for {old.cve_product[0].product}"
+					f": '{attr_name}' mismatch"
+				)
+			else:
+				setattr(res, attr_name, new_attr)
+		return res
 
 
 class Recipe(BaseModel):
@@ -299,16 +333,12 @@ class Container(BaseModel):
 						             # to merge
 						"root.packages", # same here
 						"root.recipe.chk_sum",
+						"root.recipe.metadata.description",
+						"root.recipe.metadata.homepage",
+						"root.recipe.metadata.summary",
 						"root.recipe.metadata.depends_provides", # same here
-						"root.recipe.metadata.build_workdir", # specific to
-									# local build, needed just for aliensrc
-									# package creation in a previous stage;
-									# we expect it may be different if
-									# tinfoilhat files to merge have been
-									# generated in different local builds, but
-									# it doesn't matter here
-						"root.recipe.metadata.compiled_source_dir", # same here
-						"root.recipe.source_files"
+						"root.recipe.source_files",
+						"root.recipe.cve_metadata"
 					]
 				)
 				if diff:
@@ -322,12 +352,14 @@ class Container(BaseModel):
 					old[id].packages,
 					new[id].packages
 				)
-				res[id].recipe.metadata.depends_provides = (
-					DependsProvidesContainer.merge(
-						old[id].recipe.metadata.depends_provides,
-						new[id].recipe.metadata.depends_provides
-				))
-
+				res[id].recipe.metadata = RecipeMetaData.merge(
+					old[id].recipe.metadata,
+					new[id].recipe.metadata
+				)
+				res[id].recipe.cve_metadata = RecipeCveMetaData.merge(
+					old[id].recipe.cve_metadata,
+					new[id].recipe.cve_metadata
+				)
 				### FIXME This is a tinfoilhat merge hack!
 				# Merging source_files
 				old_files = { f'{s.src_uri}-{s.git_sha1 or s.sha1_cksum}': s for s in old[id].recipe.source_files }
@@ -376,3 +408,9 @@ class TinfoilHatModel(DictModel):
 		res = TinfoilHatModel({})
 		res._container = Container.merge(old._container, new._container)
 		return res
+
+	# FIXME: All merge methods here are based on one assumption:
+    # that the "new" tinfoilhat file is really newer than the "old"
+    # one, and that it containes more updated info than the "old" one.
+    # We should add some field ('project manifest commit date'?)
+    # tinfoilhat.json in order to check this
