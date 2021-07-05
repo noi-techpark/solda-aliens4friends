@@ -31,6 +31,7 @@ class SourcePackage(BaseModel):
 		version: str = None,
 		manager: str = None,
 		metadata: Dict[str, Any] = None,
+		cve_metadata: Dict[str, Any] = None,
 		files: List[SourceFile] = None,
 		tags: List[str] = None
 	):
