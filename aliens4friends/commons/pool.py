@@ -289,4 +289,4 @@ class Pool:
 		else:
 			logger.debug(f"{debug_prefix}Extracting archive {archive_relpath} to {dest_in_pool}")
 			archive.extract(dest_abspath)
-
+		return dest_in_pool
