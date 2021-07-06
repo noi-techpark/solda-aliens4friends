@@ -81,7 +81,7 @@ class Scancode:
 				)
 		except ScancodeError as ex:
 			# ignore scancode scan errors on single files, FIXME upstream?
-			if "Some files failed to scan properly" not in str(ex):
+			if "Some files failed to scan properly" not in ex.args[1]:
 				raise ex
 
 
