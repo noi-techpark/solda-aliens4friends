@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
 
 import os
+import re
 import logging
 import json
 from typing import Optional
@@ -42,12 +43,12 @@ class Scancode:
 			archive_in_archive=archive_in_archive,
 			debug_prefix=f"[{self.curpkg}] "
 		)
-		self.run_scancode(archive_unpacked_relpath, package_name, package_version_str)
+		self.run_scancode(archive_unpacked_relpath, scancode_result)
 
 		return scancode_result
 
 
-	def run_scancode(self, path_in_pool: str, package_name: str, package_version: str) -> str:
+	def run_scancode(self, archive_unpacked_relpath: str, scancode_result: str) -> str:
 
 		# FIXME should only run once per host machine (during config maybe)
 		out, _ = bash('grep "cpu cores" /proc/cpuinfo | uniq | cut -d" " -f3')
@@ -56,17 +57,11 @@ class Scancode:
 		memory = int(out)
 		max_in_mem = int(memory/810) # rule of the thumb to optimize this setting
 
-		scancode_result = os.path.join(
-			path_in_pool,
-			f"{package_name}-{package_version}.scancode.json"
-		)
-		scancode_spdx = os.path.join(
-			path_in_pool,
-			f"{package_name}-{package_version}.scancode.spdx"
-		)
-		archive_unpacked_abspath = self.pool.abspath(path_in_pool)
+		scancode_result = self.pool.abspath(scancode_result)
+		scancode_spdx = re.sub(r'\.json$', '.spdx', scancode_result)
+		archive_unpacked_abspath = self.pool.abspath(archive_unpacked_relpath)
 
-		logger.info(f"[{self.curpkg}] Run SCANCODE on {path_in_pool}... This may take a while!")
+		logger.info(f"[{self.curpkg}] Run SCANCODE on {archive_unpacked_relpath}... This may take a while!")
 		try:
 			if Settings.SCANCODE_WRAPPER:
 				bash_live(
