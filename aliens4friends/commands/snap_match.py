@@ -171,7 +171,7 @@ class AlienSnapMatcher:
 				# best scoring package wins
 				if res.score == 0 or fuzzy_overall > res.score:
 					versionMatch = self._searchVersion(apkg, pkg['package'])
-					logger.info(f"[{apkg.name}] best score { fuzzy_overall }")
+					logger.info(f"[{apkg.name}] = { pkg['package'] } / Best score { fuzzy_overall }")
 					res.package_score = fuzzy_score
 					res.version_score = versionMatch["score"]
 					res.score = Calc.overallScore(fuzzy_score, versionMatch["score"])

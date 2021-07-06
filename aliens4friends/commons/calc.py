@@ -57,6 +57,11 @@ class Calc:
 		versionScore = versionScore * (1 - Calc.PACKAGE_WEIGHT)
 		return max(0, packageScore + versionScore)
 
+	# TODO: score version distance between 0-100
+	@staticmethod
+	def fuzzy_version_score(distance) -> int:
+		return 0
+
 	@staticmethod
 	def fuzzy_package_score(given: str, new: str, aliases = {}, clean_given = True) -> int:
 
