@@ -50,7 +50,7 @@ class Pool:
 	def clnpath(self, path: Union[Path, str]) -> str:
 		if isinstance(path, Path):
 			path = os.path.join(path)
-		if path.startswith(self.basepath):
+		if path.startswith(f"{self.basepath}/"):
 			return path[len(self.basepath) + 1:]
 
 		if path.startswith(os.path.sep):
