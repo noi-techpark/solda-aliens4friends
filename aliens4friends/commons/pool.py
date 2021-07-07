@@ -71,6 +71,11 @@ class Pool:
 
 	def abspath(self, *sub_folders: str) -> str:
 		if sub_folders:
+			if sub_folders[0].startswith(os.path.sep):
+				path = os.path.join(*sub_folders)
+				if not path.startswith(f"{self.basepath}/"):
+					raise PoolError(f'Path {path} is outside the pool!')
+				return path
 			return os.path.join(
 				self.basepath,
 				self.relpath(*sub_folders)
