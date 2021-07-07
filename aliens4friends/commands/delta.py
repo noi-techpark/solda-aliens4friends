@@ -18,6 +18,8 @@ from aliens4friends.commons.utils import log_minimal_error, debug_with_stacktrac
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.settings import Settings
 
+from aliens4friends.models.alienmatcher import AlienMatcherModel
+
 logger = logging.getLogger(__name__)
 
 SCANCODE_VERSION = '3.2.3'
@@ -270,39 +272,43 @@ class DeltaCodeNG:
 
 		try:
 			j = pool.get_json(relpath)
+			am = AlienMatcherModel.decode(j)
 		except Exception as ex:
 			logger.error(f"[{package}] Unable to load json from {relpath}.")
 			debug_with_stacktrace(logger)
 			return
 
 		try:
-			m = j["debian"]["match"]
-			a = j["aliensrc"]
-			result_path = pool.relpath(
+			m = am.debian.match
+			if not m.name:
+				logger.warning(f"[{package}] no debian match to compare here")
+				return
+			a = am.aliensrc
+			result_path = pool.abspath(
 				Settings.PATH_USR,
-				a["name"],
-				a["version"],
-				f'{a["name"]}-{a["version"]}.deltacode.json'
+				a.name,
+				a.version,
+				f'{a.name}-{a.version}.deltacode.json'
 			)
 			if pool.cached(result_path, debug_prefix=f"[{package}] "):
 				return result_path
 			logger.info(
 				f"[{package}] calculating delta between debian package"
-				f" {m['name']}-{m['version']} and alien package"
-				f" {a['name']}-{a['version']}"
+				f" {m.name}-{m.version} and alien package"
+				f" {a.name}-{a.version}"
 			)
 			deltacode = DeltaCodeNG(
-				pool.relpath(
+				pool.abspath(
 					Settings.PATH_DEB,
-					m["name"],
-					m["version"],
-					f'{m["name"]}-{m["version"]}.scancode.json'
+					m.name,
+					m.version,
+					f'{m.name}-{m.version}.scancode.json'
 				),
-				pool.relpath(
+				pool.abspath(
 					Settings.PATH_USR,
-					a["name"],
-					a["version"],
-					f'{a["name"]}-{a["version"]}.scancode.json'
+					a.name,
+					a.version,
+					f'{a.name}-{a.version}.scancode.json'
 				),
 				result_path
 			)
@@ -314,10 +320,5 @@ class DeltaCodeNG:
 			if Settings.PRINTRESULT:
 				print(json.dumps(result, indent=2))
 			return result_path
-		except KeyError as ex:
-			if not j["debian"].get("match"):
-				logger.warning(f"[{package}] no debian match to compare here")
-			else:
-				log_minimal_error(logger, ex, f"[{package}] ")
 		except Exception as ex:
 			log_minimal_error(logger, ex, f"[{package}] ")
