@@ -182,7 +182,12 @@ class DeltaCodeNG:
 				moved.append(new_path)
 			if self.new.get(path):
 				if (self.old[path]['sha1'] == self.new[path]['sha1']):
-					self.res['body']['same_files'].append(path)
+					self.res.body.same_files.append(path)
+					if path in moved:
+						moved.remove(path)
+						for moved_file in self.res.body.moved_files:
+							if moved_file.new_path == path:
+								self.res.body.moved_files.remove(moved_file)
 				else:
 					findings_diff = DeepDiff(
 						self.old[path]['findings'],
