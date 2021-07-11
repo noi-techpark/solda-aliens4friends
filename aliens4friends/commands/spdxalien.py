@@ -8,7 +8,7 @@ from uuid import uuid4
 from multiprocessing import Pool as MultiProcessingPool
 
 from spdx.file import File as SPDXFile
-from spdx.utils import NoAssert
+from spdx.utils import NoAssert, SPDXNone
 from spdx.creationinfo import Tool
 from spdx.checksum import Algorithm as SPDXAlgorithm
 from spdx.document import Document as SPDXDocument
@@ -112,14 +112,22 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 				if alien_spdx_file in deb_spdx_files:
 					deb2alien_file = deb_spdx_files[alien_spdx_file]
 					deb2alien_file.chk_sum = SPDXAlgorithm("SHA1", alien_file_sha1)
-					if alien_spdx_file in results.changed_files_with_updated_copyright_year_only:
-						if scancode_spdx_files.get(alien_spdx_file):
-							deb2alien_file.copyright = scancode_spdx_files[alien_spdx_file].copyright
-						else:
-							raise MakeAlienSPDXException(
-								 "Something's wrong, can't find"
-								f" {alien_spdx_file} in scancode spdx file"
-							)
+					scancode_spdx_file = scancode_spdx_files.get(alien_spdx_file)
+					if scancode_spdx_file:
+						if alien_spdx_file in results.changed_files_with_updated_copyright_year_only:
+							deb2alien_file.copyright = scancode_spdx_file.copyright
+						deb2alien_file.licenses_in_file = scancode_spdx_file.licenses_in_file
+						if type(scancode_spdx_file.licenses_in_file[0]) in [ NoAssert, SPDXNone, type(None) ]:
+							deb2alien_file.conc_lics = NoAssert()
+							# if there are no copyright/license statements in
+							# file, do not apply decisions from debian/copyright
+							# in order to be consistent with Fossology's "style"
+					else:
+						raise MakeAlienSPDXException(
+							 "Something's wrong, can't find"
+							f" {alien_spdx_file} in scancode spdx file"
+						)
+
 					alien_spdx_files.append(deb2alien_file)
 				else:
 					raise MakeAlienSPDXException(
