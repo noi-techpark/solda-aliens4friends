@@ -181,7 +181,7 @@ class UploadAliens2Fossy:
 			found = True
 
 			cur_pckg = path.stem
-			cur_path = os.path.join(
+			cur_path = pool.abspath(
 				Settings.PATH_USR,
 				path.parts[-3],
 				path.parts[-2]
@@ -199,7 +199,7 @@ class UploadAliens2Fossy:
 				continue
 
 			try:
-				alien_spdx_filename = pool.relpath(
+				alien_spdx_filename = pool.abspath(
 					cur_path,
 					f'{apkg.internal_archive_name}.alien.spdx'
 				) if apkg.internal_archive_name else ""
