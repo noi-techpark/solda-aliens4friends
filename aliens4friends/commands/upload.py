@@ -39,8 +39,8 @@ class UploadAliens2Fossy:
 		m = alien_package.metadata
 		variant = f"-{m['variant']}" if m['variant'] else ""
 		self.uploadname = (f"{m['base_name']}@{m['version']}-{m['revision']}{variant}")
-		self.alien_spdx_filename = alien_spdx_filename
 		self.pool = pool
+		self.alien_spdx_filename = pool.abspath(alien_spdx_filename)
 		self.fossy_folder = fossy_folder
 
 		if not alien_package.package_files:
@@ -114,7 +114,7 @@ class UploadAliens2Fossy:
 			)
 			return
 		logger.info(f"[{self.uploadname}] Uploading alien SPDX")
-		fix_spdxtv(self.pool.abspath(self.alien_spdx_filename))
+		fix_spdxtv(self.alien_spdx_filename)
 		uploadname = self.upload.uploadname
 		archive_name = self.alien_package.internal_archive_name
 		# handle fossology's inconsistent behaviour when unpacking archives:
@@ -136,7 +136,7 @@ class UploadAliens2Fossy:
 		)
 		self.fossy_internal_archive_path = self.fossy_internal_archive_path.replace('/', '\\/')
 
-		if os.path.getsize(self.pool.abspath(self.alien_spdx_filename)) > 13000000:
+		if os.path.getsize(self.alien_spdx_filename) > 13000000:
 			logger.info(
 				f"[{self.upload.uploadname}] alien spdx is too big to be"
 				" uploaded, splitting it in two files"
@@ -151,15 +151,15 @@ class UploadAliens2Fossy:
 			doc2split.package.verif_code = doc2split.package.calc_verif_code()
 			alien_spdx_fullpath = os.path.join(tmpdir, part1)
 			write_spdx_tv(doc2split, alien_spdx_fullpath)
-			self._convert_and_upload_spdx(self.pool.abspath(alien_spdx_fullpath))
+			self._convert_and_upload_spdx(alien_spdx_fullpath)
 			part2 = f"part2_{os.path.basename(self.alien_spdx_filename)}"
 			doc2split.package.files = allfiles[splitpoint:]
 			doc2split.package.verif_code = doc2split.package.calc_verif_code()
 			alien_spdx_fullpath = os.path.join(tmpdir, part2)
 			write_spdx_tv(doc2split, alien_spdx_fullpath)
-			self._convert_and_upload_spdx(self.pool.abspath(alien_spdx_fullpath))
+			self._convert_and_upload_spdx(alien_spdx_fullpath)
 		else:
-			self._convert_and_upload_spdx(self.pool.abspath(self.alien_spdx_filename))
+			self._convert_and_upload_spdx(self.alien_spdx_filename)
 		# FIXME: add schedule reuser here (optional?)
 
 	def get_metadata_from_fossology(self):
@@ -181,7 +181,7 @@ class UploadAliens2Fossy:
 			found = True
 
 			cur_pckg = path.stem
-			cur_path = pool.abspath(
+			cur_path = pool.relpath(
 				Settings.PATH_USR,
 				path.parts[-3],
 				path.parts[-2]
