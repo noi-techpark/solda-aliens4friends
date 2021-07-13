@@ -106,11 +106,11 @@ class AlienSnapMatcher:
 		try:
 			main_match = pool.get_json(main_match_path)
 			main_match = main_match['debian']['match']
-			results.append(main_match['name']);
-			results.append(main_match['version']);
+			results.append(main_match['name'])
+			results.append(main_match['version'])
 		except Exception as ex:
-			results.append('-');
-			results.append('-');
+			results.append('-')
+			results.append('-')
 			logger.error(f"Unable to load current alienmatch from {main_match_path}.")
 
 		snap_match = self._searchPackage(apkg, True)
@@ -142,20 +142,26 @@ class AlienSnapMatcher:
 				errors=self.errors
 			)
 
-			results.append(amm.match.name);
-			results.append(amm.match.version);
+			results.append(amm.match.name)
+			results.append(amm.match.version)
 
 			pool.write_json(amm, resultpath)
 
 		else:
-			results.append('-');
-			results.append('-');
+			results.append('-')
+			results.append('-')
 			raise AlienSnapMatcherError(
 				f"Can't find a similar package on Debian repos"
 			)
 
-		results.append(Calc.levenshtein(results[2], results[4]));
-		results.append(Calc.levenshtein(results[3], results[5]));
+		results.append(Calc.levenshtein(results[2], results[4]))
+		results.append(Calc.levenshtein(results[3], results[5]))
+
+		v1 = Version(results[3])
+		v2 = Version(results[5])
+		distance = v1.distance(v2)
+		results.append(distance)
+		results.append(snap_match.score)
 
 		return results
 
@@ -197,7 +203,7 @@ class AlienSnapMatcher:
 
 		with open(compare_csv, 'w+') as csvfile:
 			csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "name snapmatch", "version snapmatch", "package match diff", "version match diff"])
+			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "name snapmatch", "version snapmatch", "package matches diff", "version matches diff", "version matches distance", "snapscore"])
 
 	def run(self, package_path: str) -> Optional[AlienSnapMatcherModel]:
 		try:
