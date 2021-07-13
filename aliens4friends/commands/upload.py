@@ -189,6 +189,12 @@ class UploadAliens2Fossy:
 
 			try:
 				apkg = AlienPackage(path)
+				if not apkg.package_files:
+					logger.info(
+						f"[{cur_pckg}] package does not contain any files"
+						" (is it a meta-package?), skipping"
+					)
+					continue
 				logger.info(
 					f"[{cur_pckg}] expanding alien package,"
 					" it may require a lot of time"
