@@ -111,7 +111,7 @@ class AlienSnapMatcher:
 		except Exception as ex:
 			results.append('-')
 			results.append('-')
-			logger.error(f"Unable to load current alienmatch from {main_match_path}.")
+			logger.warning(f"Unable to load current alienmatch from {main_match_path}.")
 
 		snap_match = self._searchPackage(apkg, True)
 
@@ -150,9 +150,6 @@ class AlienSnapMatcher:
 		else:
 			results.append('-')
 			results.append('-')
-			raise AlienSnapMatcherError(
-				f"Can't find a similar package on Debian repos"
-			)
 
 		results.append(Calc.levenshtein(results[2], results[4]))
 		results.append(Calc.levenshtein(results[3], results[5]))
