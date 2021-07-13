@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: 2021 Alberto Pianon <pianon@array.eu>
 
 import os
+import re
 import logging
 from uuid import uuid4
 from typing import Tuple
@@ -64,7 +65,11 @@ def fix_spdxtv(spdxtv_path: str) -> None:
 		"FileChecksum: SHA1: \n",
 		"FileChecksum: SHA1: da39a3ee5e6b4b0d3255bfef95601890afd80709\n",
 	)
-	spdxtv = spdxtv.replace('\r', '\n')
+	spdxtv = re.sub(
+		r"[^\x09\x0A\x0D\x20-\uD7FF\uE000-\uFFFD\u10000-\u10FFFF]",
+		"",
+		spdxtv
+	) # remove characters that are invalid in XML (ready for RDF conversion)
 	with open(spdxtv_path, 'w') as f:
 		f.write(spdxtv)
 
