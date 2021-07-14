@@ -108,8 +108,17 @@ class AlienSnapMatcher:
 			main_match = main_match['debian']['match']
 			results.append(main_match['name'])
 			results.append(main_match['version'])
+
+			results.append('found')
+			# matcher distance
+			v1 = Version(main_match['version'])
+			distance = apkg.version.distance(v1)
+			results.append(distance)
+
 		except Exception as ex:
 			results.append('-')
+			results.append('-')
+			results.append('missing')
 			results.append('-')
 			logger.warning(f"Unable to load current alienmatch from {main_match_path}.")
 
@@ -145,19 +154,21 @@ class AlienSnapMatcher:
 			results.append(amm.match.name)
 			results.append(amm.match.version)
 
+			results.append('found')
+
 			pool.write_json(amm, resultpath)
+
+			# snapmatcher distance
+			v1 = Version(amm.match.version)
+			distance = apkg.version.distance(v1)
+			results.append(distance)
 
 		else:
 			results.append('-')
 			results.append('-')
+			results.append('missing')
+			results.append('-')
 
-		results.append(Calc.levenshtein(results[2], results[4]))
-		results.append(Calc.levenshtein(results[3], results[5]))
-
-		v1 = Version(results[3])
-		v2 = Version(results[5])
-		distance = v1.distance(v2)
-		results.append(distance)
 		results.append(snap_match.score)
 
 		return results
@@ -200,7 +211,7 @@ class AlienSnapMatcher:
 
 		with open(compare_csv, 'w+') as csvfile:
 			csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "name snapmatch", "version snapmatch", "package matches diff", "version matches diff", "version matches distance", "snapscore"])
+			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "match status", "version match distance", "name snapmatch", "version snapmatch", "snapmatch status", "version snapmatch distance", "snapscore"])
 
 	def run(self, package_path: str) -> Optional[AlienSnapMatcherModel]:
 		try:
