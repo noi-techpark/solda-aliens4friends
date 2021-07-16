@@ -84,8 +84,13 @@ class FossyWrapper:
 	def _wait_for_jobs_completion(self, upload: Upload) -> None:
 		all_completed = False
 		jobs = []
-		# FIXME: add time limit?
+		count = 0
 		while not all_completed:
+			count += 1
+			if count > 6*60*4:
+				raise FossyWrapperException(
+					f"timeout (4h) for job completion for upload {upload.id}"
+				)
 			sleep(10)
 			try:
 				jobs = self.fossology.list_jobs(upload=upload, page_size=2000)
@@ -94,6 +99,10 @@ class FossyWrapper:
 			if jobs:
 				all_completed = True
 				for job in jobs:
+					d = datetime.strptime(f"{job.queueDate}00", "%Y-%m-%d %H:%M:%S.%f%z")
+					delta = d - datetime.now(d.tzinfo)
+					if delta.days < -2: # ignore old jobs
+						continue
 					# FIXME: handle also killed jobs
 					if job.status == "Processing" or job.status == "Started":
 						all_completed = False
