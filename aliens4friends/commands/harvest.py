@@ -133,8 +133,11 @@ class Harvest:
 				if not cur_package_id_group or package_id_group != cur_package_id_group:
 					min_todo = sys.maxsize
 					for stats in cur_package_stats:
-						if stats.files.audit_to_do < min_todo:
-							min_todo = stats.files.audit_to_do
+						if stats.files.audit_total > 0:
+							min_todo = min(min_todo, stats.files.audit_to_do)
+
+					if min_todo == sys.maxsize:
+						min_todo = 0
 
 					# Even if we have more than one package with equal audit_to_do counts,
 					# we must consider only one.
