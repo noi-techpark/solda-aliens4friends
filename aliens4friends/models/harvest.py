@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from .base import BaseModel, BaseModelEncoder, ModelError, DictModel
+from .base import BaseModel, BaseModelEncoder, ModelError
 from .common import License, Tool, SourceFile
 from typing import Any, Dict, List
 
@@ -113,23 +113,6 @@ def aggregate_tags(tags: List[str]) -> Dict[str, Any]:
 	return res
 
 
-class Variant(BaseModel):
-	def __init__(
-		self,
-		source_files: List[SourceFile] = None,
-		statistics: Statistics = None,
-		binary_packages: List[BinaryPackage] = None,
-		tags: List[str] = None
-	):
-		self.source_files = SourceFile.drilldown(source_files)
-		self.statistics = Statistics.decode(statistics)
-		self.binary_packages = BinaryPackage.drilldown(binary_packages)
-		self.tags = aggregate_tags(tags)
-
-class VariantContainer(DictModel):
-	subclass = Variant
-
-
 class SourcePackage(BaseModel):
 	def __init__(
 		self,
@@ -137,15 +120,23 @@ class SourcePackage(BaseModel):
 		name: str = None,
 		version: str = None,
 		revision: str = None,
+		variant: str = None,
 		debian_matching: DebianMatchBasic = None,
-		variants: Dict[str, Variant] = None
+		source_files: List[SourceFile] = None,
+		statistics: Statistics = None,
+		binary_packages: List[BinaryPackage] = None,
+		tags: List[str] = None
 	):
 		self.id = id
 		self.name = name
 		self.version = version
 		self.revision = revision
+		self.variant = variant
 		self.debian_matching = DebianMatchBasic.decode(debian_matching)
-		self.variants = VariantContainer.decode(variants)
+		self.statistics = Statistics.decode(statistics)
+		self.source_files = SourceFile.drilldown(source_files)
+		self.binary_packages = BinaryPackage.drilldown(binary_packages)
+		self.tags = aggregate_tags(tags)
 
 class HarvestModel(BaseModel):
 

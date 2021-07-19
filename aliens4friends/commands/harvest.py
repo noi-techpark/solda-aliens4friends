@@ -28,14 +28,12 @@ from aliens4friends.models.harvest import (
 	BinaryPackage,
 	LicenseFinding,
 	Tool,
-	Variant,
 	aggregate_tags
 )
 from aliens4friends.models.fossy import FossyModel
 from aliens4friends.models.alienmatcher import AlienMatcherModel
 from aliens4friends.models.deltacode import DeltaCodeModel
 from aliens4friends.models.tinfoilhat import TinfoilHatModel, PackageWithTags, PackageMetaData
-from aliens4friends.models.aliensrc import AlienSrc, SourceFile
 
 logger = logging.getLogger(__name__)
 
@@ -80,13 +78,12 @@ class Harvest:
 	@staticmethod
 	def _filename_split(path):
 		p = str(path).split("/")
-		package_id = f'{p[-3]}-{p[-2]}'
 		path = os.path.basename(path)
-		rest, mainext = os.path.splitext(path)
+		package_id, mainext = os.path.splitext(path)
 		if mainext == ".aliensrc":
 			ext = mainext
 		else:
-			fname, subext = os.path.splitext(rest)
+			package_id, subext = os.path.splitext(package_id)
 			ext = f"{subext}{mainext}"
 		if ext not in Harvest.SUPPORTED_FILES:
 			raise HarvestException("Unsupported file extension")
@@ -160,24 +157,11 @@ class Harvest:
 	def _parse_aliensrc_main(self, path, source_package: SourcePackage) -> None:
 		apkg = AlienPackage(path)
 		apkg.calc_provenance()
-
-		source_package.variants[apkg.variant] = Variant(
-			apkg.package_files
-		)
-
-		try:
-			stats_files = source_package.variants.get(apkg.variant).statistics.files
-		except AttributeError:
-			# Nothing to do; still no variant or statistics, just skip it...
-			pass
-
-
+		source_package.source_files = apkg.package_files
+		stats_files = source_package.statistics.files
 		stats_files.known_provenance = apkg.known_provenance
 		stats_files.unknown_provenance = apkg.unknown_provenance
 		stats_files.total = apkg.total
-
-
-
 
 	def _parse_alienmatcher_main(self, path, source_package: SourcePackage) -> None:
 		amm = AlienMatcherModel.from_file(path)
@@ -257,9 +241,7 @@ class Harvest:
 		ml = cur.summary.mainLicense
 		main_licenses = list(set(ml.split(","))) if ml else []
 
-		variant = cur.metadata['variant']
-
-		stats = source_package.variants[variant].statistics
+		stats = source_package.statistics
 		stats_files = stats.files
 		stats_files.audit_total = audit_total
 		stats_files.audit_to_do = not_cleared
@@ -278,7 +260,7 @@ class Harvest:
 			result.append(self._parse_tinfoilhat_package(name, package))
 		return result
 
-	def _parse_tinfoilhat_metadata(self, package_metadata: PackageMetaData) -> Dict[str, str]:
+	def _parse_tinfoilhat_metadata(self, package_metadata: PackageMetaData) -> PackageMetaData:
 		SKIP_LIST = [
 			"license",
 			"compiled_source_dir",
@@ -313,6 +295,7 @@ class Harvest:
 			source_package.name = container.recipe.metadata.name
 			source_package.version = container.recipe.metadata.version
 			source_package.revision = container.recipe.metadata.revision
+			source_package.variant = container.recipe.metadata.variant
 			source_package.tags = aggregate_tags(container.tags)
 			source_package.binary_packages = self._parse_tinfoilhat_packages(container.packages)
 			if self.add_details:
