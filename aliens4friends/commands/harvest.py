@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import sys
 from typing import List, Dict, Any
 
 from datetime import datetime
@@ -87,7 +88,12 @@ class Harvest:
 			ext = f"{subext}{mainext}"
 		if ext not in Harvest.SUPPORTED_FILES:
 			raise HarvestException("Unsupported file extension")
-		return package_id, ext
+
+		name = p[-3]
+		version = p[-2]
+		variant = package_id[len(name)+len(version)+2:]
+
+		return name, version, variant, ext
 
 	def _warn_missing_input(self, package: SourcePackage, package_inputs):
 		missing = []
@@ -108,18 +114,39 @@ class Harvest:
 		self.result = HarvestModel(Tool(__name__, Settings.VERSION))
 		cur_package_id = None
 		cur_package_inputs = []
+		cur_package_id_group = None
+		cur_package_stats = []
 		old_package = None
 		source_package = None
 		for path in self.input_files:
 			try:
 				logger.debug(f"Parsing {self.pool.clnpath(path)}... ")
 				try:
-					package_id, ext = Harvest._filename_split(path)
+					name, version, variant, ext = Harvest._filename_split(path)
 				except HarvestException as ex:
 					if str(ex) == "Unsupported file extension":
 						logger.debug(f"File {self.pool.clnpath(path)} is not supported. Skipping...")
 						continue
-				package_id += f"+{self.package_id_ext}"
+				variant = f"-{variant}" if variant else ""
+				package_id = f"{name}-{version}{variant}+{self.package_id_ext}"
+				package_id_group = f"{name}-{version}"
+				if not cur_package_id_group or package_id_group != cur_package_id_group:
+					min_todo = sys.maxsize
+					for stats in cur_package_stats:
+						if stats.files.audit_to_do < min_todo:
+							min_todo = stats.files.audit_to_do
+
+					# Even if we have more than one package with equal audit_to_do counts,
+					# we must consider only one.
+					already_set = False
+					for stats in cur_package_stats:
+						if stats.files.audit_to_do == min_todo and not already_set:
+							already_set = True
+							stats.aggregate = True
+						else:
+							stats.aggregate = False
+					cur_package_id_group = package_id_group
+					cur_package_stats = []
 				if not cur_package_id or package_id != cur_package_id:
 					if cur_package_id:
 						self._warn_missing_input(old_package, cur_package_inputs)
@@ -128,6 +155,7 @@ class Harvest:
 					self.result.source_packages.append(source_package)
 					old_package = source_package
 					cur_package_inputs = []
+					cur_package_stats.append(source_package.statistics)
 				cur_package_inputs.append(ext)
 				if ext == ".fossy.json":
 					self._parse_fossy_main(path, source_package)
