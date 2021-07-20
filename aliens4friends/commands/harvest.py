@@ -143,7 +143,11 @@ class Harvest:
 					# we must consider only one.
 					already_set = False
 					for stats in cur_package_stats:
-						if stats.files.audit_to_do == min_todo and not already_set:
+						if (
+							stats.files.audit_total > 0
+							and stats.files.audit_to_do == min_todo
+							and not already_set
+						):
 							already_set = True
 							stats.aggregate = True
 						else:
