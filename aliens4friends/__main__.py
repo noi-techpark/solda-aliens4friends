@@ -355,12 +355,6 @@ class Aliens4Friends:
 		)
 		self._args_print_to_stdout(self.parsers[cmd])
 		self.parsers[cmd].add_argument(
-			"--add-details",
-			action = "store_true",
-			default = False,
-			help = "Add more information to the report while harvesting."
-		)
-		self.parsers[cmd].add_argument(
 			"--add-missing",
 			action = "store_true",
 			default = False,
@@ -424,7 +418,6 @@ class Aliens4Friends:
 	def harvest(self) -> None:
 		Harvest.execute(
 			self.pool,
-			self.args.add_details,
 			self.args.add_missing
 		)
 

@@ -63,7 +63,6 @@ class Harvest:
 		pool: Pool,
 		input_files,
 		result_file : str,
-		add_details : bool = False,
 		add_missing : bool = False,
 		package_id_ext : str = Settings.PACKAGE_ID_EXT
 	):
@@ -73,7 +72,6 @@ class Harvest:
 		self.result_file = result_file
 		self.result = None
 		self.package_id_ext = package_id_ext
-		self.add_details = add_details
 		self.add_missing = add_missing
 
 	@staticmethod
@@ -349,8 +347,7 @@ class Harvest:
 			cur.package.metadata.revision,
 			cur.tags
 		)
-		if self.add_details:
-			result.metadata = cur.package.metadata
+		result.metadata = cur.package.metadata
 		return result
 
 	def _parse_tinfoilhat_main(self, path, source_package: SourcePackage) -> None:
@@ -364,11 +361,10 @@ class Harvest:
 			source_package.variant = container.recipe.metadata.variant
 			source_package.tags = aggregate_tags(container.tags)
 			source_package.binary_packages = self._parse_tinfoilhat_packages(container.packages)
-			if self.add_details:
-				source_package.metadata = container.recipe.metadata
+			source_package.metadata = container.recipe.metadata
 
 	@staticmethod
-	def execute(pool: Pool, add_details, add_missing, glob_name: str = "*", glob_version: str = "*") -> None:
+	def execute(pool: Pool, add_missing, glob_name: str = "*", glob_version: str = "*") -> None:
 
 		result_path = pool.relpath(Settings.PATH_STT)
 		pool.mkdir(result_path)
@@ -384,7 +380,6 @@ class Harvest:
 			pool,
 			files,
 			output,
-			add_details,
 			add_missing
 		)
 		tfh.readfile()
