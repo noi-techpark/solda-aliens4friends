@@ -69,7 +69,7 @@ class Harvest:
 	):
 		super().__init__()
 		self.pool = pool
-		self.input_files = sorted(input_files, reverse = True)
+		self.input_files = sorted(input_files)
 		self.result_file = result_file
 		self.result = None
 		self.package_id_ext = package_id_ext
@@ -109,12 +109,8 @@ class Harvest:
 		else:
 			logger.debug(f'[{package.id}] Package does not miss any input files.')
 
-
-	def readfile(self):
-		self.result = HarvestModel(Tool(__name__, Settings.VERSION))
-		last_group_id = ""
-		package_groups = {}
-
+	def _create_groups(self):
+		self.package_groups = {}
 		for path in self.input_files:
 			try:
 				logger.debug(f"Parsing {self.pool.clnpath(path)}... ")
@@ -127,79 +123,75 @@ class Harvest:
 
 				group_id = f"{name}-{version}"
 
-				if group_id not in package_groups:
-					package_groups[group_id] = {
+				if group_id not in self.package_groups:
+					self.package_groups[group_id] = {
 						"variants": {},
 						"scancode": None,
+						"deltacode": None,
 						"alienmatcher": None
 					}
 
-				if group_id == last_group_id or not last_group_id:
-					if ext == ".alienmatcher.json":
-						amm = AlienMatcherModel.from_file(path)
-						package_groups[group_id]['alienmatcher'] = DebianMatchBasic(
-							amm.debian.match.name,
-							amm.debian.match.version
-						)
-					elif ext == ".scancode.json":
-						with open(path) as f:
-							cur = json.load(f)
-						package_groups[group_id]['scancode'] = {
-							'upstream_source_total' : sum([1 for f in cur['files'] if f['type'] == 'file'])
+				if ext == ".alienmatcher.json":
+					amm = AlienMatcherModel.from_file(path)
+					self.package_groups[group_id]['alienmatcher'] = DebianMatchBasic(
+						amm.debian.match.name,
+						amm.debian.match.version
+					)
+				elif ext == ".scancode.json":
+					with open(path) as f:
+						sc = json.load(f)
+					self.package_groups[group_id]['scancode'] = {
+						'upstream_source_total' : sum([1 for f in sc['files'] if f['type'] == 'file'])
+					}
+				elif ext == ".deltacode.json":
+					dc = DeltaCodeModel.from_file(path)
+					self.package_groups[group_id]['deltacode'] = dc.header.stats
+				else:
+					if variant not in self.package_groups[group_id]['variants']:
+						self.package_groups[group_id]['variants'][variant] = []
+					self.package_groups[group_id]['variants'][variant].append(
+						{
+							"ext": ext,
+							"path": path
 						}
-					else:
-						if variant not in package_groups[group_id]['variants']:
-							package_groups[group_id]['variants'][variant] = []
-						package_groups[group_id]['variants'][variant].append(
-							{
-								"ext": ext,
-								"path": path
-							}
-						)
-					last_group_id = group_id
+					)
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"[{self.pool.clnpath(path)}] Grouping: ")
 
-		for group_id in package_groups:
-			group = package_groups[group_id]
+	def _parse_groups(self):
+		for group_id, group in self.package_groups.items():
 			cur_package_stats = []
 
 			logger.debug(f"[{group_id}] Group has {len(group['variants'])} variants")
 
-			if group['variants']:
-				for variant_id in group['variants']:
-					variant = group['variants'][variant_id]
+			for variant_id, variant in group['variants'].items():
 
-					logger.debug(f"[{group_id}][{variant_id}] Variant has {len(variant)} file infos")
+				logger.debug(f"[{group_id}][{variant_id}] Variant has {len(variant)} file infos")
 
-					package_id = f"{group_id}-{variant_id}+{self.package_id_ext}"
-					cur_package_inputs = []
-					source_package = self._create_source_package(package_id, group, cur_package_inputs)
-					self.result.source_packages.append(source_package)
-
-					for fileinfo in variant:
-						logger.debug(f"[{group_id}][{variant_id}] Processing {self.pool.clnpath(fileinfo['path'])}...")
-						cur_package_inputs.append(fileinfo['ext'])
-						if fileinfo['ext'] == ".fossy.json":
-							self._parse_fossy_main(fileinfo['path'], source_package)
-						elif fileinfo['ext'] == ".tinfoilhat.json":
-							self._parse_tinfoilhat_main(fileinfo['path'], source_package)
-						elif fileinfo['ext'] == ".deltacode.json":
-							self._parse_deltacode_main(fileinfo['path'], source_package)
-						elif fileinfo['ext'] == ".aliensrc":
-							self._parse_aliensrc_main(fileinfo['path'], source_package)
-
-					cur_package_stats.append(source_package.statistics)
-					self._warn_missing_input(source_package, cur_package_inputs)
-			else:
-				package_id = f"{group_id}+{self.package_id_ext}"
+				package_id = f"{group_id}-{variant_id}+{self.package_id_ext}"
 				cur_package_inputs = []
 				source_package = self._create_source_package(package_id, group, cur_package_inputs)
 				self.result.source_packages.append(source_package)
+				for fileinfo in variant:
+					logger.debug(f"[{group_id}][{variant_id}] Processing {self.pool.clnpath(fileinfo['path'])}...")
+					cur_package_inputs.append(fileinfo['ext'])
+					if fileinfo['ext'] == ".fossy.json":
+						self._parse_fossy_main(fileinfo['path'], source_package)
+					elif fileinfo['ext'] == ".tinfoilhat.json":
+						self._parse_tinfoilhat_main(fileinfo['path'], source_package)
+					elif fileinfo['ext'] == ".aliensrc":
+						self._parse_aliensrc_main(fileinfo['path'], source_package)
+
 				cur_package_stats.append(source_package.statistics)
 				self._warn_missing_input(source_package, cur_package_inputs)
+				self._set_aggregation_flag(cur_package_stats)
 
-			self._set_aggregation_flag(cur_package_stats)
+	def readfile(self):
+		self.result = HarvestModel(Tool(__name__, Settings.VERSION))
+		self._create_groups()
+		self._parse_groups()
+
+
 
 	@staticmethod
 	def _create_source_package(
@@ -214,13 +206,22 @@ class Harvest:
 			cur_package_inputs.append(".scancode.json")
 		except TypeError:
 			upstream_source_total = 0
-
 		source_package.statistics.files.upstream_source_total = upstream_source_total
+
 		if group['alienmatcher']:
 			source_package.debian_matching = group['alienmatcher']
 			cur_package_inputs.append(".alienmatcher.json")
 		else:
 			source_package.debian_matching = None
+
+		if group['deltacode']:
+			cur_package_inputs.append(".deltacode.json")
+			source_package.debian_matching.ip_matching_files = (
+				group['deltacode'].same_files
+				+ group['deltacode'].changed_files_with_no_license_and_copyright
+				+ group['deltacode'].changed_files_with_same_copyright_and_license
+				+ group['deltacode'].changed_files_with_updated_copyright_year_only
+			)
 
 		return source_package
 
