@@ -347,7 +347,7 @@ class Harvest:
 			name,
 			cur.package.metadata.version,
 			cur.package.metadata.revision,
-			aggregate_tags(cur.tags)
+			cur.tags
 		)
 		if self.add_details:
 			result.metadata = cur.package.metadata
