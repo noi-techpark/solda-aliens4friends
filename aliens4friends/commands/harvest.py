@@ -266,27 +266,6 @@ class Harvest:
 		stats_files.unknown_provenance = apkg.unknown_provenance
 		stats_files.total = apkg.total
 
-	def _parse_alienmatcher_main(self, path, source_package: SourcePackage) -> None:
-		amm = AlienMatcherModel.from_file(path)
-		source_package.debian_matching = DebianMatchBasic(
-			amm.debian.match.name,
-			amm.debian.match.version
-		)
-
-	def _parse_scancode_main(self, path, source_package: SourcePackage) -> None:
-		with open(path) as f:
-			cur = json.load(f)
-		files = [f for f in cur['files'] if f['type'] == 'file']
-		source_package.statistics.files.upstream_source_total = len(files)
-
-	def _parse_deltacode_main(self, path, source_package: SourcePackage) -> None:
-		cur = DeltaCodeModel.from_file(path)
-		source_package.debian_matching.ip_matching_files = (
-			cur.header.stats.same_files
-			+ cur.header.stats.changed_files_with_no_license_and_copyright
-			+ cur.header.stats.changed_files_with_same_copyright_and_license
-			+ cur.header.stats.changed_files_with_updated_copyright_year_only
-		)
 
 	@staticmethod
 	def _increment(dict: dict, key: str, val: Any) -> None:
