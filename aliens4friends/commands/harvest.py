@@ -342,31 +342,15 @@ class Harvest:
 			result.append(self._parse_tinfoilhat_package(name, package))
 		return result
 
-	def _parse_tinfoilhat_metadata(self, package_metadata: PackageMetaData) -> PackageMetaData:
-		SKIP_LIST = [
-			"license",
-			"compiled_source_dir",
-			"revision",
-			"version",
-			"name"
-		]
-		result = PackageMetaData()
-		for k, v in package_metadata.__dict__.items():
-			if k in SKIP_LIST:
-				continue
-			setattr(result, k, v)
-		return result
-
 	def _parse_tinfoilhat_package(self, name: str, cur: PackageWithTags) -> BinaryPackage:
 		result = BinaryPackage(
 			name,
 			cur.package.metadata.version,
 			cur.package.metadata.revision,
-			cur.tags
+			aggregate_tags(cur.tags)
 		)
 		if self.add_details:
-			result.metadata = self._parse_tinfoilhat_metadata(cur.package.metadata)
-			result.tags = cur.tags
+			result.metadata = cur.package.metadata
 		return result
 
 	def _parse_tinfoilhat_main(self, path, source_package: SourcePackage) -> None:
@@ -381,7 +365,7 @@ class Harvest:
 			source_package.tags = aggregate_tags(container.tags)
 			source_package.binary_packages = self._parse_tinfoilhat_packages(container.packages)
 			if self.add_details:
-				source_package.metadata = self._parse_tinfoilhat_metadata(container.recipe.metadata)
+				source_package.metadata = container.recipe.metadata
 
 	@staticmethod
 	def execute(pool: Pool, add_details, add_missing, glob_name: str = "*", glob_version: str = "*") -> None:
