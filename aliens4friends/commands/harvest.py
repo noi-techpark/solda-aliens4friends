@@ -69,7 +69,7 @@ class Harvest:
 	):
 		super().__init__()
 		self.pool = pool
-		self.input_files = sorted(input_files)
+		self.input_files = sorted(input_files, reverse = True)
 		self.result_file = result_file
 		self.result = None
 		self.package_id_ext = package_id_ext
@@ -112,12 +112,9 @@ class Harvest:
 
 	def readfile(self):
 		self.result = HarvestModel(Tool(__name__, Settings.VERSION))
-		cur_package_id = None
-		cur_package_inputs = []
-		cur_package_id_group = None
-		cur_package_stats = []
-		old_package = None
-		source_package = None
+		last_group_id = ""
+		package_groups = {}
+
 		for path in self.input_files:
 			try:
 				logger.debug(f"Parsing {self.pool.clnpath(path)}... ")
@@ -127,60 +124,130 @@ class Harvest:
 					if str(ex) == "Unsupported file extension":
 						logger.debug(f"File {self.pool.clnpath(path)} is not supported. Skipping...")
 						continue
-				variant = f"-{variant}" if variant else ""
-				package_id = f"{name}-{version}{variant}+{self.package_id_ext}"
-				package_id_group = f"{name}-{version}"
-				if not cur_package_id_group or package_id_group != cur_package_id_group:
-					min_todo = sys.maxsize
-					for stats in cur_package_stats:
-						if stats.files.audit_total > 0:
-							min_todo = min(min_todo, stats.files.audit_to_do)
 
-					if min_todo == sys.maxsize:
-						min_todo = 0
+				group_id = f"{name}-{version}"
 
-					# Even if we have more than one package with equal audit_to_do counts,
-					# we must consider only one.
-					already_set = False
-					for stats in cur_package_stats:
-						if (
-							stats.files.audit_total > 0
-							and stats.files.audit_to_do == min_todo
-							and not already_set
-						):
-							already_set = True
-							stats.aggregate = True
-						else:
-							stats.aggregate = False
-					cur_package_id_group = package_id_group
-					cur_package_stats = []
-				if not cur_package_id or package_id != cur_package_id:
-					if cur_package_id:
-						self._warn_missing_input(old_package, cur_package_inputs)
-					cur_package_id = package_id
-					source_package = SourcePackage(package_id)
-					self.result.source_packages.append(source_package)
-					old_package = source_package
-					cur_package_inputs = []
-					cur_package_stats.append(source_package.statistics)
-				cur_package_inputs.append(ext)
-				if ext == ".fossy.json":
-					self._parse_fossy_main(path, source_package)
-				elif ext == ".tinfoilhat.json":
-					self._parse_tinfoilhat_main(path, source_package)
-				elif ext == ".alienmatcher.json":
-					self._parse_alienmatcher_main(path, source_package)
-				elif ext == ".deltacode.json":
-					self._parse_deltacode_main(path, source_package)
-				elif ext == ".scancode.json":
-					self._parse_scancode_main(path, source_package)
-				elif ext == ".aliensrc":
-					self._parse_aliensrc_main(path, source_package)
+				if group_id not in package_groups:
+					package_groups[group_id] = {
+						"variants": {},
+						"scancode": None,
+						"alienmatcher": None
+					}
+
+				if group_id == last_group_id or not last_group_id:
+					if ext == ".alienmatcher.json":
+						amm = AlienMatcherModel.from_file(path)
+						package_groups[group_id]['alienmatcher'] = DebianMatchBasic(
+							amm.debian.match.name,
+							amm.debian.match.version
+						)
+					elif ext == ".scancode.json":
+						with open(path) as f:
+							cur = json.load(f)
+						package_groups[group_id]['scancode'] = {
+							'upstream_source_total' : sum([1 for f in cur['files'] if f['type'] == 'file'])
+						}
+					else:
+						if variant not in package_groups[group_id]['variants']:
+							package_groups[group_id]['variants'][variant] = []
+						package_groups[group_id]['variants'][variant].append(
+							{
+								"ext": ext,
+								"path": path
+							}
+						)
+					last_group_id = group_id
 			except Exception as ex:
-				log_minimal_error(logger, ex, f"{self.pool.clnpath(path)} ")
+				log_minimal_error(logger, ex, f"[{self.pool.clnpath(path)}] Grouping: ")
 
-		if source_package:
-			self._warn_missing_input(source_package, cur_package_inputs)
+		for group_id in package_groups:
+			group = package_groups[group_id]
+			cur_package_stats = []
+
+			logger.debug(f"[{group_id}] Group has {len(group['variants'])} variants")
+
+			if group['variants']:
+				for variant_id in group['variants']:
+					variant = group['variants'][variant_id]
+
+					logger.debug(f"[{group_id}][{variant_id}] Variant has {len(variant)} file infos")
+
+					package_id = f"{group_id}-{variant_id}+{self.package_id_ext}"
+					cur_package_inputs = []
+					source_package = self._create_source_package(package_id, group, cur_package_inputs)
+					self.result.source_packages.append(source_package)
+
+					for fileinfo in variant:
+						logger.debug(f"[{group_id}][{variant_id}] Processing {self.pool.clnpath(fileinfo['path'])}...")
+						cur_package_inputs.append(fileinfo['ext'])
+						if fileinfo['ext'] == ".fossy.json":
+							self._parse_fossy_main(fileinfo['path'], source_package)
+						elif fileinfo['ext'] == ".tinfoilhat.json":
+							self._parse_tinfoilhat_main(fileinfo['path'], source_package)
+						elif fileinfo['ext'] == ".deltacode.json":
+							self._parse_deltacode_main(fileinfo['path'], source_package)
+						elif fileinfo['ext'] == ".aliensrc":
+							self._parse_aliensrc_main(fileinfo['path'], source_package)
+
+					cur_package_stats.append(source_package.statistics)
+					self._warn_missing_input(source_package, cur_package_inputs)
+			else:
+				package_id = f"{group_id}+{self.package_id_ext}"
+				cur_package_inputs = []
+				source_package = self._create_source_package(package_id, group, cur_package_inputs)
+				self.result.source_packages.append(source_package)
+				cur_package_stats.append(source_package.statistics)
+				self._warn_missing_input(source_package, cur_package_inputs)
+
+			self._set_aggregation_flag(cur_package_stats)
+
+	@staticmethod
+	def _create_source_package(
+		package_id: str,
+		group: Dict[str, str],
+		cur_package_inputs: List[str]
+	) -> SourcePackage:
+		source_package = SourcePackage(package_id)
+
+		try:
+			upstream_source_total = group['scancode']['upstream_source_total']
+			cur_package_inputs.append(".scancode.json")
+		except TypeError:
+			upstream_source_total = 0
+
+		source_package.statistics.files.upstream_source_total = upstream_source_total
+		if group['alienmatcher']:
+			source_package.debian_matching = group['alienmatcher']
+			cur_package_inputs.append(".alienmatcher.json")
+		else:
+			source_package.debian_matching = None
+
+		return source_package
+
+
+	@staticmethod
+	def _set_aggregation_flag(cur_package_stats: List[Statistics]):
+		min_todo = sys.maxsize
+		for stats in cur_package_stats:
+			if stats.files.audit_total > 0:
+				min_todo = min(min_todo, stats.files.audit_to_do)
+
+		if min_todo == sys.maxsize:
+			min_todo = 0
+
+		# Even if we have more than one package with equal audit_to_do counts,
+		# we must consider only one.
+		already_set = False
+		for stats in cur_package_stats:
+			if (
+				stats.files.audit_total > 0
+				and stats.files.audit_to_do == min_todo
+				and not already_set
+			):
+				already_set = True
+				stats.aggregate = True
+			else:
+				stats.aggregate = False
 
 	def write_results(self):
 		self.pool.write_json_with_history(
