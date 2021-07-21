@@ -100,6 +100,7 @@ class AlienPackage(Package):
 	expanded: bool
 
 	ALIEN_MATCHER_JSON = "aliensrc.json"
+	SUPPORTED_ALIENSRC_VERSIONS = [ 1, 2 ]
 
 	def __init__(self, full_archive_path: Union[Path, str]) -> None:
 		self.archive = Archive(full_archive_path)
@@ -111,7 +112,7 @@ class AlienPackage(Package):
 		except ArchiveError as ex:
 			raise PackageError(f"Broken Alien Package: Error is {str(ex)}")
 
-		if aliensrc.version != 1:
+		if aliensrc.version not in self.SUPPORTED_ALIENSRC_VERSIONS:
 			raise PackageError(
 				f"{self.ALIEN_MATCHER_JSON} with version {aliensrc.version} not supported"
 			)
@@ -121,10 +122,12 @@ class AlienPackage(Package):
 			aliensrc.source_package.version,
 			full_archive_path
 		)
+		self.variant = aliensrc.source_package.metadata['variant']
 		self.manager = aliensrc.source_package.manager
 		self.metadata = aliensrc.source_package.metadata
 		self.package_files = aliensrc.source_package.files
 		self.expanded = False
+		self.aliensrc = aliensrc
 
 	def expand(self) -> None:
 		# We need this step only once for each instance...
@@ -134,32 +137,34 @@ class AlienPackage(Package):
 		self.expanded = True
 		checksums = self.archive.checksums("files/")
 
-		if len(checksums) != len(self.package_files):
-			raise PackageError(
-				"We do not have the same number of archive-files and checksums"
-				f" inside {self.ALIEN_MATCHER_JSON} of package {self.name}-{self.version.str}"
-			)
-
 		self.internal_archive_name = None
 		self.internal_archive_checksums = None
 		self.internal_archive_rootfolder = None
 		self.internal_archive_src_uri = None
 		self.internal_archives = []
 
+		count_files = 0
 		for src_file in self.package_files:
-			src_file_fullpath = os.path.join(src_file.path, src_file.name) if src_file.path else src_file.name
-			try:
-				if src_file.sha1 != checksums[src_file_fullpath]:
+
+			if src_file.paths:
+				paths = [ os.path.join(path, src_file.name) for path in src_file.paths ]
+			else:
+				paths = [ src_file.name ]
+
+			for path in paths:
+				try:
+					if src_file.sha1_cksum != checksums[path]:
+						raise PackageError(
+							f"{src_file.sha1_cksum} is not {checksums[path]} for {path}."
+						)
+					count_files += 1
+				except KeyError:
 					raise PackageError(
-						f"{src_file.sha1} is not {checksums[src_file_fullpath]} for {src_file_fullpath}."
-					)
-			except KeyError:
-				raise PackageError(
-						f"{src_file.sha1} does not exist in checksums for {src_file_fullpath}."
-					)
+							f"{src_file.sha1_cksum} does not exist in checksums for {path}."
+						)
 
 			if '.tar.' in src_file.name or src_file.name.endswith('.tgz'):
-				files_path = os.path.join("files", src_file_fullpath)
+				files_path = os.path.join("files", path)
 				self.internal_archives.append(
 					InternalArchive(
 						name = src_file.name,
@@ -171,6 +176,12 @@ class AlienPackage(Package):
 				logger.debug(
 					f"[{self.name}-{self.version.str}]"
 					f" adding internal archive {src_file.name}")
+
+		if len(checksums) != count_files:
+			raise PackageError(
+				"We do not have the same count of files and checksums"
+				f" inside {self.ALIEN_MATCHER_JSON} of package {self.name}-{self.version.str}"
+			)
 
 		primary = None
 		if len(self.internal_archives) == 1:
@@ -209,7 +220,7 @@ class AlienPackage(Package):
 			logger.warning(
 				f"[{self.name}-{self.version.str}]: "
 				"Too many internal archives for alien repository comparison,"
-				" and no primary archive to use for comparison"
+				" and no primary archive detected"
 			)
 
 	def has_internal_primary_archive(self) -> bool:

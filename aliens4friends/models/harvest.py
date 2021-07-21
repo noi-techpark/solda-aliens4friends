@@ -120,6 +120,7 @@ class SourcePackage(BaseModel):
 		name: str = None,
 		version: str = None,
 		revision: str = None,
+		variant: str = None,
 		debian_matching: DebianMatchBasic = None,
 		source_files: List[SourceFile] = None,
 		statistics: Statistics = None,
@@ -130,22 +131,12 @@ class SourcePackage(BaseModel):
 		self.name = name
 		self.version = version
 		self.revision = revision
-		self.tags = aggregate_tags(tags)
+		self.variant = variant
 		self.debian_matching = DebianMatchBasic.decode(debian_matching)
 		self.statistics = Statistics.decode(statistics)
 		self.source_files = SourceFile.drilldown(source_files)
-
-		#FIXME This is a hack! We have a list in a list; remove outer list
-		if (
-			binary_packages
-			and isinstance(binary_packages, list)
-			and len(binary_packages) > 0
-			and isinstance(binary_packages[0], list)
-		):
-			binary_packages = binary_packages[0]
-
 		self.binary_packages = BinaryPackage.drilldown(binary_packages)
-
+		self.tags = aggregate_tags(tags)
 
 class HarvestModel(BaseModel):
 

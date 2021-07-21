@@ -1026,10 +1026,15 @@ get some warnings when executing it, but it should work anyway.
 If you do not want to install it, you can also use our scancode
 docker wrapper. Set the `.env` config: `A4F_SCANCODE=wrapper`
 
-1) Change directory: `cd <this-repos-root-dir>/scancode`
-2) Build the image: `docker build -t scancode .`
-3) Test it: `docker run -it scancode --help`
-4) Link it into your `$PATH`
+1) Change directory: `cd <this-repos-root-dir>/infrastructure/docker`
+2) Build the image: `docker build -t scancode -f scancode.dockerfile .`
+3) Test it:
+   - `docker run -it scancode --version` --> Output must be: `ScanCode version 3.2.3`
+   - `../utils/scancode-wrapper --version` --> Output must be: `ScanCode version 3.2.3`
+4) Link the `scancode-wrapper`
+   - either the script's directory into your `$PATH`
+   - or the script itself into `/usr/local/bin` with \
+     `cd /usr/local/bin/; ln -s <this-repos-root-dir>/infrastructure/utils/scancode-wrapper` as root
 
 Full example which uses the current directory as working directory of Scancode:
 
@@ -1039,10 +1044,10 @@ docker run -it -v $PWD:/userland scancode -n4 -cli --json /userland/scanresult.j
 
 - `/userland` is the internal working path.
 - The output will have the owner/group id, that was defined during the build.
-- See `scancode/Dockerfile` for details.
+- See `infrastructure/docker/scancode.dockerfile` for details.
 
 The easiest way is to use the `scancode-wrapper` shell script. See comments
-inside that script for details.
+inside that script for details at `infrastructure/utils`.
 
 ### Installation of the spdx-tools
 
