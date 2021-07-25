@@ -189,15 +189,18 @@ class AlienSnapMatcher:
 			distance = apkg.version.distance(v1)
 			results.append(distance)
 
+			results.append(snap_match.score)
+			results.append(snap_match.package_score_ident)
+			results.append(snap_match.version_score_ident)
+
 		else:
 			results.append('-')
 			results.append('-')
 			results.append('missing')
 			results.append('-')
-
-		results.append(snap_match.score)
-		results.append(snap_match.package_score_ident)
-		results.append(snap_match.version_score_ident)
+			results.append(snap_match.score)
+			results.append('-')
+			results.append('-')
 
 		return results
 
@@ -309,9 +312,6 @@ class AlienSnapMatcher:
 					res.name = versionMatch["package"]
 					res.version = versionMatch["slug"]
 					res.distance = similarity
-
-		logger.debug(res.package_score_ident)
-		logger.debug(res.version_score_ident)
 
 		return res
 
