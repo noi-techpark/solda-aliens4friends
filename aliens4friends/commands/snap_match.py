@@ -5,6 +5,7 @@ import sys
 import logging
 import copy
 import csv
+import time
 
 import numpy
 
@@ -42,6 +43,8 @@ class AlienSnapMatcher:
 	API_URL_FILES = "https://snapshot.debian.org/file/"
 	API_URL_FILEINFO = "https://snapshot.debian.org/mr/file/"
 
+	REQUEST_THROTTLE = 5
+
 	def __init__(self) -> None:
 		super().__init__()
 		self.errors = []
@@ -71,6 +74,7 @@ class AlienSnapMatcher:
 		except FileNotFoundError:
 			logger.debug(f"API call result not found in cache. Making an API call...")
 			try:
+				time.sleep(AlienSnapMatcher.REQUEST_THROTTLE)
 				response = requests.get(uri)
 				if response.status_code != 200:
 					raise AlienSnapMatcherError(
