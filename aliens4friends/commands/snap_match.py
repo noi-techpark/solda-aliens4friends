@@ -87,6 +87,28 @@ class AlienSnapMatcher:
 
 	# name & version-match for debian packages.
 	def match(self, apkg: AlienPackage) -> AlienSnapMatcherModel:
+
+		int_arch_count = apkg.internal_archive_count()
+		if int_arch_count > 1:
+			if apkg.internal_archive_name:
+				logger.warning(
+					f"[{self.curpkg}] The Alien Package"
+					f" {apkg.name}-{apkg.version.str} has more than one"
+					 " internal archive, using just primary archive"
+					f" '{apkg.internal_archive_name}' for comparison"
+				)
+			else:
+				raise AlienSnapMatcherError(
+					f"The Alien Package {apkg.name}-{apkg.version.str} has"
+					f" {int_arch_count} internal archives and no primary archive."
+					 " We support comparison of one archive only at the moment!"
+				)
+		elif int_arch_count == 0:
+			raise AlienSnapMatcherError(
+				f"The Alien Package {apkg.name}-{apkg.version.str} has"
+				 " no internal archive, nothing to compare!"
+			)
+
 		pool = Pool(Settings.POOLPATH)
 
 		main_match = False
@@ -170,6 +192,8 @@ class AlienSnapMatcher:
 			results.append('-')
 
 		results.append(snap_match.score)
+		results.append(snap_match.package_score_ident)
+		results.append(snap_match.version_score_ident)
 
 		return results
 
@@ -211,24 +235,36 @@ class AlienSnapMatcher:
 
 		with open(compare_csv, 'w+') as csvfile:
 			csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "match status", "version match distance", "name snapmatch", "version snapmatch", "snapmatch status", "version snapmatch distance", "snapscore"])
+			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "match status", "version match distance", "name snapmatch", "version snapmatch", "snapmatch status", "version snapmatch distance", "snapscore", "package match info", "version match info"])
 
 	def run(self, package_path: str) -> Optional[AlienSnapMatcherModel]:
 		try:
 			package = AlienPackage(package_path)
+
+			# check for exclusions
+			dir_path = os.path.dirname(os.path.realpath(__file__))
+			with open(dir_path + '/../commons/aliases.json', 'r') as aliasfile:
+				data=aliasfile.read()
+			jsona = json.loads(data)
+			exclusions = jsona["exclude"]
+
 			self.curpkg = f"{package.name}-{package.version.str}"
-			package.expand()
 
-			comparedResults = self.match(package)
+			if package.name in exclusions:
+				logger.info(f"[{self.curpkg}] IGNORING: Known non-debian")
+			else:
+				package.expand()
 
-			compare_csv = self.pool.abspath(
-				Settings.PATH_USR,
-				f"match_vs_snapmatch.csv"
-			)
+				comparedResults = self.match(package)
 
-			with open(compare_csv, 'a+') as csvfile:
-				csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-				csvwriter.writerow(comparedResults)
+				compare_csv = self.pool.abspath(
+					Settings.PATH_USR,
+					f"match_vs_snapmatch.csv"
+				)
+
+				with open(compare_csv, 'a+') as csvfile:
+					csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+					csvwriter.writerow(comparedResults)
 
 		except (AlienSnapMatcherError, PackageError) as ex:
 			if str(ex) == "Can't find a similar package on Debian repos":
@@ -248,7 +284,7 @@ class AlienSnapMatcher:
 			similarity = Calc.levenshtein(name_needle, pkg["package"])
 			fuzzy_score = Calc.fuzzy_package_score(name_needle, pkg["package"], {})
 
-			logger.debug(f"[{apkg.name}] vs { pkg['package'] } / { fuzzy_score }")
+			# logger.debug(f"[{apkg.name}] vs { pkg['package'] } / { fuzzy_score }")
 
 			# guessing packages
 			if fuzzy_score > 0:
@@ -257,15 +293,21 @@ class AlienSnapMatcher:
 				fuzzy_overall = Calc.overallScore(fuzzy_score, versionMatch["score"])
 
 				# best scoring package wins
-				if res.score == 0 or fuzzy_overall > res.score:
+				if res.score == 0 or fuzzy_overall >= res.score:
 					versionMatch = self._searchVersion(apkg, pkg['package'])
 					logger.info(f"[{apkg.name}] = { pkg['package'] } / Best score { fuzzy_overall }")
 					res.package_score = fuzzy_score
+					res.package_score_ident = Calc.package_score_ident(int(res.package_score))
 					res.version_score = versionMatch["score"]
+					res.version_score_ident = Calc.version_score_ident(int(res.version_score))
 					res.score = Calc.overallScore(fuzzy_score, versionMatch["score"])
+
 					res.name = versionMatch["package"]
 					res.version = versionMatch["slug"]
 					res.distance = similarity
+
+		logger.debug(res.package_score_ident)
+		logger.debug(res.version_score_ident)
 
 		return res
 
@@ -296,7 +338,8 @@ class AlienSnapMatcher:
 		}
 
 		if data["result"]:
-			for item in data["result"]:
+			# higher priority for newer package versions - first check lower ones
+			for item in reversed(data["result"]):
 				itemVersion = Version(item["version"])
 
 				# ident
@@ -305,7 +348,7 @@ class AlienSnapMatcher:
 				# zero distance
 				distance = itemVersion.distance(apkg.version)
 
-				logger.debug(f"[{needle}]  { apkg.version } vs { itemVersion }")
+				# logger.debug(f"[{needle}]  { apkg.version } vs { itemVersion }")
 
 				# this does not happen, cause the cat bites its own tail
 				if similarity == 0:
@@ -314,20 +357,20 @@ class AlienSnapMatcher:
 					res['slug'] = item['version']
 					return res
 
-				elif distance == 0:
+				elif distance <= 10:
 					logger.debug(f"[{needle}]  Exact version match (distance) { apkg.version.str } vs { item['version'] } is { distance }")
-					res['score'] = 100
+					res['score'] = 99
 					res['slug'] = item['version']
 					return res
 
-				if distance < Version.MAX_DISTANCE and bestVersion["distance"] > distance:
+				if distance < Version.MAX_DISTANCE and bestVersion["distance"] >= distance:
 					bestVersion["version"] = item['version']
 					bestVersion["distance"] = distance
 
 				# TODO: sometimes the major-version is missing: intel-microcode
 		else:
 			# should not be the case, cause if we find a package by name there should be at least 1 available version
-			res['score'] = -100
+			res['score'] = -99
 			logger.debug(f"[{needle}]  Can not find any version for {apkg.version.str}")
 
 		if bestVersion["distance"] < Version.MAX_DISTANCE:
@@ -358,7 +401,12 @@ class AlienSnapMatcher:
 
 		packages = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
 
-		results = multiprocessing_pool.map(AlienSnapMatcher._execute, packages)
+		results = []
+
+		for package in packages:
+			results.append(AlienSnapMatcher._execute(package))
+
+		#results = multiprocessing_pool.map(AlienSnapMatcher._execute, packages)
 
 		if Settings.PRINTRESULT:
 			for match in results:

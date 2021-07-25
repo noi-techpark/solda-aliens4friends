@@ -7,7 +7,30 @@ class Calc:
 	# share of package valuation
 	# the smaller, the more likely the version distance determines the best match
 	# identical package names != best match (example: gnutls => gnutls28)
-	PACKAGE_WEIGHT = 0.75
+	PACKAGE_WEIGHT = 0.5
+	SCORES = {
+		"s100" : "Ident",
+		"s95" : "Alias match",
+		"s92" : "Removed '-' from package name",
+		"s90" : "Removed numbers and '-' from package name",
+		"s80" : "Prefixed with the abbreviation isc-",
+		"s71" : "Some libraries may lack a lib prefix",
+		"s70" : "python without '3'",
+		"s60" : "python without 'python'",
+		"s59" : "Fonts may start with 'fonts-' in Debian",
+		"s50" : "Library/API version at the end of the package name",
+		"s0" : "Not matching at all"
+	}
+
+	VSCORES = {
+		"s100" : "Ident",
+		"s99" : "Version distance <= 10",
+		"s-100" : "Package match invalidation: FLAG_DEB_VERSION_ERROR",
+		"s-99" : "Package match invalidation: 0 versions found",
+		"s50" : "Version distance < KO_DISTANCE (10000)",
+		"s10" : "Version distance < MAX_DISTANCE (10000000)",
+		"s0" : "Not matching at all",
+	}
 
 	@staticmethod
 	def levenshtein(first, second):
@@ -63,13 +86,22 @@ class Calc:
 		return 0
 
 	@staticmethod
+	def version_score_ident(score) -> int:
+		return Calc.VSCORES["s" + str(score)]
+
+	@staticmethod
+	def package_score_ident(score) -> int:
+		return Calc.SCORES["s" + str(score)]
+
+	@staticmethod
 	def fuzzy_package_score(given: str, new: str, aliases = {}, clean_given = True) -> int:
 
 		if len(aliases) == 0:
 			dir_path = os.path.dirname(os.path.realpath(__file__))
 			with open(dir_path + '/aliases.json', 'r') as aliasfile:
 				data=aliasfile.read()
-			aliases = json.loads(data)
+			jsona = json.loads(data)
+			aliases = jsona["aliases"]
 
 		if given == new:
 			return 100
@@ -88,6 +120,7 @@ class Calc:
 		g = Calc._clean_name(given)
 		n = Calc._clean_name(new)
 
+		# cleaned package names
 		if n == g:
 			return 90
 
@@ -101,7 +134,7 @@ class Calc:
 			(g.startswith("lib") or n.startswith("lib"))
 			and g.replace("lib", "") == n.replace("lib", "")
 		):
-			return 70
+			return 71
 
 		# Major Python version mismatch: python3-iniparse vs. python-iniparse
 		# Some python packages do not have a python[23]- prefix
@@ -118,7 +151,7 @@ class Calc:
 
 		# Fonts may start with "fonts-" in Debian
 		if g.replace("fonts", "") == n.replace("fonts", ""):
-			return 60
+			return 59
 
 		# Library/API version at the end of the package name
 		if n.startswith(g):
