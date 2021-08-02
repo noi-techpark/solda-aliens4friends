@@ -7,7 +7,7 @@ FROM fossology/fossology:3.9.0
 # Path where to open the Fossology webapp...
 ARG FOSSOLOGY_REPO_PATH=/repo
 
-COPY ./infrastructure/docker/fossology-entrypoint.sh /fossology/docker-entrypoint.sh
+COPY ./infrastructure/docker/fossology/fossology-entrypoint.sh /fossology/docker-entrypoint.sh
 
 RUN chmod +x /fossology/docker-entrypoint.sh
 
@@ -32,4 +32,9 @@ RUN REPOPATH=$(realpath -sm "${FOSSOLOGY_REPO_PATH}") && \
 	-e "s#/repo/api#$REPOPATH_API#g" \
     /etc/apache2/sites-enabled/fossology.conf
 
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends bc \
+ && rm -rf /var/lib/apt/lists/*
+
 ENTRYPOINT ["/fossology/docker-entrypoint.sh"]
+

@@ -1,0 +1,49 @@
+# Example
+
+version: 1
+  repo:
+    url: $MANIFEST_URL
+    branch: $BRANCH
+  cache_dir: /build/common
+  flavours:
+    linux:
+      machines:
+        - qemux86-64
+        - qemux86
+        - seco-intel-b68
+        - stm32mp1-av96
+        - seco-imx8mm-c61
+        - raspberrypi4-64
+      images:
+        - allscenarios-image-base
+        - allscenarios-image-base-tests
+        - allscenarios-image-extra
+        - allscenarios-image-extra-tests
+      configs:
+        _all:
+          - INHERIT += "cve-check"
+        seco-intel-b68:
+          - CONFIG_SERIAL_OF_PLATFORM = "y"
+        seco-imx8mm-c61:
+          - ACCEPT_FSL_EULA = "1"
+    zephyr:
+      machines:
+        - qemu-x86
+        - qemu-cortex-m3
+        - 96b-nitrogen
+        - 96b-avenger96
+        - nrf52840dk-nrf52840
+        - arduino-nano-33-ble
+      images:
+        - zephyr-philosophers
+      configs:
+        _all:
+          - INHERIT += "cve-check"
+    freertos:
+      machines:
+        - qemuarmv5
+      images:
+        - freertos-demo
+      configs:
+        _all:
+          - INHERIT += "cve-check"

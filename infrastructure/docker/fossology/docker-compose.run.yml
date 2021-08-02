@@ -7,11 +7,6 @@ services:
     env_file:
       - .env
     volumes:
-      - /data:/data
+      - /build/shared_fossy_testing/fossology:/srv/fossology
     ports:
-      - 8999:80
-  toolchain:
-    image: ${DOCKER_TOOLCHAIN_IMAGE}:${DOCKER_TAG}
-    restart: unless-stopped
-    volumes:
-      - /data:/data
+      - "${FOSSOLOGY_SERVER_PORT}:80"

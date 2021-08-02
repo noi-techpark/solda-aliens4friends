@@ -48,9 +48,18 @@ else
   done
 fi
 
+# This should solve issue https://github.com/fossology/fossology/issues/1841
+is_first_run() {
+	RES=$(PGPASSWORD=$db_password psql -h "$db_host" "$db_name" "$db_user" -tc "select count(*) from pg_catalog.pg_tables where tablename = 'license_candidate';")
+	test "$(echo "$RES"|bc)" = 0
+	return $?
+}
+
 # Setup environment
 if [[ $# -eq 0 || ($# -eq 1 && "$1" == "scheduler") ]]; then
-  /usr/local/lib/fossology/fo-postinstall --common --database --licenseref
+  if is_first_run; then
+  	/usr/local/lib/fossology/fo-postinstall --common --database --licenseref
+  fi
 fi
 
 ### Addition (c) 2021 by Alberto Pianon <pianon@array.eu>
@@ -59,6 +68,7 @@ fi
 #*    PATCHING EASYRDF TO IMPORT BIG SPDX FILES    *
 #*    (bugfix backport from v1.1.1 to v.0.9.0)     *
 #***************************************************
+# FIXME We should move this to fossology.dockerfile, since it is a one-time action
 cd /usr/local/share/fossology/vendor/easyrdf/easyrdf/lib/EasyRdf/Parser
 (patch -p1 << EOT
 --- a/RdfXml.php
