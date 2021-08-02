@@ -19,7 +19,7 @@ RUN a2enmod ssl \
     -i.bak \
     -e "s/upload_max_filesize = 700M/upload_max_filesize = 1000M/" \
     -e "s/post_max_size = 701M/post_max_size = 1004M/" \
-    -e "s/memory_limit = 702M/memory_limit = 1010M/" \
+    -e "s/memory_limit = 702M/memory_limit = 3030M/" \
     $phpIni \
   && cp $phpIni /fossology/php.ini
 
@@ -33,4 +33,3 @@ RUN REPOPATH=$(realpath -sm "${FOSSOLOGY_REPO_PATH}") && \
     /etc/apache2/sites-enabled/fossology.conf
 
 ENTRYPOINT ["/fossology/docker-entrypoint.sh"]
-

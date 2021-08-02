@@ -98,6 +98,63 @@ EOT
 ) || true
 cd -
 
+echo ""
+echo ""
+echo "***************************************************"
+echo "*    PATCHING REST API to correctly report        *"
+echo "*    job status                                   *"
+echo "***************************************************"
+
+# the bug is this one:
+# https://github.com/fossology/fossology/issues/1800#issuecomment-712919785
+# It will be solved by a complete refactoring of job rest API in this PR:
+# https://github.com/fossology/fossology/pull/1955
+# In the meantime, we need to patch it while keeping the "old" rest API logic
+
+cd /usr/local/share/fossology/www/ui/api/Controllers/
+(patch -p1 << EOT
+--- a/JobController.php
++++ b/JobController.php
+@@ -228,24 +228,25 @@
+     \$status = "";
+     \$jobqueue = [];
+
++    \$sql = "SELECT jq_pk from jobqueue WHERE jq_job_fk = \$1;";
++    \$statement = __METHOD__ . ".getJqpk";
++    \$rows = \$this->dbHelper->getDbManager()->getRows(\$sql, [\$job->getId()],
++      \$statement);
+     /* Check if the job has no upload like Maintenance job */
+     if (empty(\$job->getUploadId())) {
+-      \$sql = "SELECT jq_pk, jq_end_bits from jobqueue WHERE jq_job_fk = \$1;";
+-      \$statement = __METHOD__ . ".getJqpk";
+-      \$rows = \$this->dbHelper->getDbManager()->getRows(\$sql, [\$job->getId()],
+-        \$statement);
+       if (count(\$rows) > 0) {
+-        \$jobqueue[\$rows[0]['jq_pk']] = \$rows[0]['jq_end_bits'];
+-      }
+-    } else {
+-      \$jobqueue = \$jobDao->getAllJobStatus(\$job->getUploadId(),
+-        \$job->getUserId(), \$job->getGroupId());
++        \$jobqueue[] = \$rows[0]['jq_pk'];
++      }
++    } else {
++      foreach(\$rows as \$row) {
++        \$jobqueue[] = \$row['jq_pk'];
++      }
+     }
+
+     \$job->setEta(\$this->getUploadEtaInSeconds(\$job->getId(),
+       \$job->getUploadId()));
+
+-    \$job->setStatus(\$this->getJobStatus(array_keys(\$jobqueue)));
++    \$job->setStatus(\$this->getJobStatus(\$jobqueue));
+   }
+
+   /**
+EOT
+) || true
+cd -
+
 if [[ $db_host == 'localhost' ]]; then
 	#https://github.com/fossology/fossology/wiki/Configuration-and-Tuning#preparing-postgresql
 	mem=$(free --giga | grep Mem | awk '{print $2}')
