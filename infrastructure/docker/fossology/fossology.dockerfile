@@ -7,7 +7,7 @@ FROM fossology/fossology:3.9.0
 # Path where to open the Fossology webapp...
 ARG FOSSOLOGY_REPO_PATH=/repo
 
-COPY ./infrastructure/docker/fossology-entrypoint.sh /fossology/docker-entrypoint.sh
+COPY ./infrastructure/docker/fossology/fossology-entrypoint.sh /fossology/docker-entrypoint.sh
 
 RUN chmod +x /fossology/docker-entrypoint.sh
 
@@ -19,7 +19,7 @@ RUN a2enmod ssl \
     -i.bak \
     -e "s/upload_max_filesize = 700M/upload_max_filesize = 1000M/" \
     -e "s/post_max_size = 701M/post_max_size = 1004M/" \
-    -e "s/memory_limit = 702M/memory_limit = 1010M/" \
+    -e "s/memory_limit = 702M/memory_limit = 3030M/" \
     $phpIni \
   && cp $phpIni /fossology/php.ini
 
@@ -31,6 +31,10 @@ RUN REPOPATH=$(realpath -sm "${FOSSOLOGY_REPO_PATH}") && \
 	-e "s#Alias /repo /usr/local/share/fossology/www/ui#Alias $REPOPATH /usr/local/share/fossology/www/ui/#" \
 	-e "s#/repo/api#$REPOPATH_API#g" \
     /etc/apache2/sites-enabled/fossology.conf
+
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends bc \
+ && rm -rf /var/lib/apt/lists/*
 
 ENTRYPOINT ["/fossology/docker-entrypoint.sh"]
 

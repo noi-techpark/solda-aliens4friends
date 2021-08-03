@@ -57,21 +57,29 @@ def bash_live(
 		stdout=subprocess.PIPE, stderr=subprocess.PIPE,
 		universal_newlines=True
 	) as proc:
+		stdout = []
+		stderr = []
 		for line in iter(proc.stdout.readline, ''):
 			out = line.strip()
 			if not out:
 				break
+			stdout.append(out)
 			print(f"{prefix} >>> {out}", end='\r\n')
 
 		for line in iter(proc.stderr.readline, ''):
 			out = line.strip()
 			if not out:
 				break
+			stderr.append(out)
 			print(f"{prefix} (ERROR) >>> {out}", end='\r\n')
 
 		rc = proc.wait()
 		if rc != 0:
-			raise exception(f"{prefix} (ERROR) >>> Command {command} failed! Return code = {rc}")
+			raise exception(
+				f"{prefix} (ERROR) >>> Command {command} failed! Return code = {rc}",
+				"\n".join(stdout),
+				"\n".join(stderr)
+			)
 
 def sha1sum(file_path: str) -> str:
 	stdout, stderr = bash(
@@ -99,7 +107,8 @@ def md5(string: str) -> str:
 def sha1sum_str(string):
     return hashlib.sha1(string.encode('utf-8')).hexdigest()
 
-def get_prefix_formatted(date_time: datetime = datetime.now()) -> str:
+def get_prefix_formatted(date_time: datetime = None) -> str:
+	date_time = date_time or datetime.now()
 	return date_time.strftime("%Y%m%d-%H%M%S_")
 
 def debug_with_stacktrace(logger: logging.Logger):

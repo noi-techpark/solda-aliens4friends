@@ -279,6 +279,8 @@ class Aliens4Friends:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Find a matching source package on snapshot.debian.org"
+<<<<<<< HEAD
+=======
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
@@ -288,6 +290,7 @@ class Aliens4Friends:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
 			help="Find a matching source package on snapshot.debian.org"
+>>>>>>> master
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
@@ -391,12 +394,15 @@ class Aliens4Friends:
 
 	def match(self) -> None:
 		AlienSnapMatcher.execute(
+<<<<<<< HEAD
+=======
 			self.args.glob_name,
 			self.args.glob_version
 		)
 
 	def snapmatch(self) -> None:
 		AlienSnapMatcher.execute(
+>>>>>>> master
 			self.args.glob_name,
 			self.args.glob_version
 		)

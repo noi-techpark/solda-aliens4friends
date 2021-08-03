@@ -48,9 +48,18 @@ else
   done
 fi
 
+# This should solve issue https://github.com/fossology/fossology/issues/1841
+is_first_run() {
+	RES=$(PGPASSWORD=$db_password psql -h "$db_host" "$db_name" "$db_user" -tc "select count(*) from pg_catalog.pg_tables where tablename = 'license_candidate';")
+	test "$(echo "$RES"|bc)" = 0
+	return $?
+}
+
 # Setup environment
 if [[ $# -eq 0 || ($# -eq 1 && "$1" == "scheduler") ]]; then
-  /usr/local/lib/fossology/fo-postinstall --common --database --licenseref
+  if is_first_run; then
+  	/usr/local/lib/fossology/fo-postinstall --common --database --licenseref
+  fi
 fi
 
 ### Addition (c) 2021 by Alberto Pianon <pianon@array.eu>
@@ -59,6 +68,7 @@ fi
 #*    PATCHING EASYRDF TO IMPORT BIG SPDX FILES    *
 #*    (bugfix backport from v1.1.1 to v.0.9.0)     *
 #***************************************************
+# FIXME We should move this to fossology.dockerfile, since it is a one-time action
 cd /usr/local/share/fossology/vendor/easyrdf/easyrdf/lib/EasyRdf/Parser
 (patch -p1 << EOT
 --- a/RdfXml.php
@@ -94,6 +104,63 @@ cd /usr/local/share/fossology/vendor/easyrdf/easyrdf/lib/EasyRdf/Parser
          }
 
          xml_parser_free(\$this->xmlParser);
+EOT
+) || true
+cd -
+
+echo ""
+echo ""
+echo "***************************************************"
+echo "*    PATCHING REST API to correctly report        *"
+echo "*    job status                                   *"
+echo "***************************************************"
+
+# the bug is this one:
+# https://github.com/fossology/fossology/issues/1800#issuecomment-712919785
+# It will be solved by a complete refactoring of job rest API in this PR:
+# https://github.com/fossology/fossology/pull/1955
+# In the meantime, we need to patch it while keeping the "old" rest API logic
+
+cd /usr/local/share/fossology/www/ui/api/Controllers/
+(patch -p1 << EOT
+--- a/JobController.php
++++ b/JobController.php
+@@ -228,24 +228,25 @@
+     \$status = "";
+     \$jobqueue = [];
+
++    \$sql = "SELECT jq_pk from jobqueue WHERE jq_job_fk = \$1;";
++    \$statement = __METHOD__ . ".getJqpk";
++    \$rows = \$this->dbHelper->getDbManager()->getRows(\$sql, [\$job->getId()],
++      \$statement);
+     /* Check if the job has no upload like Maintenance job */
+     if (empty(\$job->getUploadId())) {
+-      \$sql = "SELECT jq_pk, jq_end_bits from jobqueue WHERE jq_job_fk = \$1;";
+-      \$statement = __METHOD__ . ".getJqpk";
+-      \$rows = \$this->dbHelper->getDbManager()->getRows(\$sql, [\$job->getId()],
+-        \$statement);
+       if (count(\$rows) > 0) {
+-        \$jobqueue[\$rows[0]['jq_pk']] = \$rows[0]['jq_end_bits'];
+-      }
+-    } else {
+-      \$jobqueue = \$jobDao->getAllJobStatus(\$job->getUploadId(),
+-        \$job->getUserId(), \$job->getGroupId());
++        \$jobqueue[] = \$rows[0]['jq_pk'];
++      }
++    } else {
++      foreach(\$rows as \$row) {
++        \$jobqueue[] = \$row['jq_pk'];
++      }
+     }
+
+     \$job->setEta(\$this->getUploadEtaInSeconds(\$job->getId(),
+       \$job->getUploadId()));
+
+-    \$job->setStatus(\$this->getJobStatus(array_keys(\$jobqueue)));
++    \$job->setStatus(\$this->getJobStatus(\$jobqueue));
+   }
+
+   /**
 EOT
 ) || true
 cd -

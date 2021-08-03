@@ -63,6 +63,16 @@ it is a presumed friend, and we can safely invite it to our party.
 		- [Installation of Tinfoilhat](#installation-of-tinfoilhat)
 		- [Installation of Aliensrc Creator](#installation-of-aliensrc-creator)
 		- [Installation of Fossology (as docker container)](#installation-of-fossology-as-docker-container)
+			- [With docker-compose](#with-docker-compose)
+			- [With Docker](#with-docker)
+- [Gitlab CI of a complete pipeline with Yocto and Aliens4Friends](#gitlab-ci-of-a-complete-pipeline-with-yocto-and-aliens4friends)
+	- [Install docker and docker-compose on a Linux machine](#install-docker-and-docker-compose-on-a-linux-machine)
+	- [Install a Gitlub Runner on a Linux machine](#install-a-gitlub-runner-on-a-linux-machine)
+	- [Configure the Gitlab Runner](#configure-the-gitlab-runner)
+	- [Configure a Gitlab container registry](#configure-a-gitlab-container-registry)
+	- [Known limitations](#known-limitations)
+		- [Only use a single branch to trigger the pipeline](#only-use-a-single-branch-to-trigger-the-pipeline)
+		- [Time consuming operations](#time-consuming-operations)
 
 ## Requirements and Installation
 
@@ -1026,10 +1036,15 @@ get some warnings when executing it, but it should work anyway.
 If you do not want to install it, you can also use our scancode
 docker wrapper. Set the `.env` config: `A4F_SCANCODE=wrapper`
 
-1) Change directory: `cd <this-repos-root-dir>/scancode`
-2) Build the image: `docker build -t scancode .`
-3) Test it: `docker run -it scancode --help`
-4) Link it into your `$PATH`
+1) Change directory: `cd <this-repos-root-dir>/infrastructure/docker`
+2) Build the image: `docker build -t scancode -f scancode.dockerfile .`
+3) Test it:
+   - `docker run -it scancode --version` --> Output must be: `ScanCode version 3.2.3`
+   - `../utils/scancode-wrapper --version` --> Output must be: `ScanCode version 3.2.3`
+4) Link the `scancode-wrapper`
+   - either the script's directory into your `$PATH`
+   - or the script itself into `/usr/local/bin` with \
+     `cd /usr/local/bin/; ln -s <this-repos-root-dir>/infrastructure/utils/scancode-wrapper` as root
 
 Full example which uses the current directory as working directory of Scancode:
 
@@ -1039,10 +1054,10 @@ docker run -it -v $PWD:/userland scancode -n4 -cli --json /userland/scanresult.j
 
 - `/userland` is the internal working path.
 - The output will have the owner/group id, that was defined during the build.
-- See `scancode/Dockerfile` for details.
+- See `infrastructure/docker/scancode.dockerfile` for details.
 
 The easiest way is to use the `scancode-wrapper` shell script. See comments
-inside that script for details.
+inside that script for details at `infrastructure/utils`.
 
 ### Installation of the spdx-tools
 
@@ -1071,6 +1086,12 @@ A Fossology 3.9.0 instance is required to run substantial parts of the workflow.
 Please refer to Fossology documentation to deploy it.  Fossology version must be
 3.9.0, for API compatibility.
 
+#### With docker-compose
+
+Just run `docker-compose up fossology` inside the root folder of this project.
+
+#### With Docker
+
 The following commands will install a Fossology 3.9.0 docker container in your
 demo machine, optimized to import huge SPDX files (required to run the
 Aliens4Friends workflow).
@@ -1095,3 +1116,90 @@ The Fossology WebUI will be accessible at `https://<MACHINE_FQDN_OR_IP>/repo`
 with the default user name and password `fossy`/`fossy` (change it at first
 login).
 
+# Gitlab CI of a complete pipeline with Yocto and Aliens4Friends
+
+To execute a complete Gitlab CI pipeline as described in `.gitlab-ci.yml`, you
+need a strong machine with at least 16GB RAM, 1TB hard-disk, and a multi-core CPU.
+
+## Install docker and docker-compose on a Linux machine
+
+As root:
+```sh
+apt update
+apt install apt-transport-https ca-certificates curl software-properties-common gnupg2
+curl -fsSL https://download.docker.com/linux/debian/gpg | apt-key add -
+add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+apt update
+apt install docker-ce
+```
+
+To test it, do:
+```sh
+systemctl status docker
+docker -v
+```
+
+If you need the docker command as a non-root user (`$USER`), execute these commands:
+```sh
+sudo usermod -aG docker $USER
+docker container run hello-world
+```
+... the last command is a test a non-root user.
+
+## Install a Gitlub Runner on a Linux machine
+
+1) Go to your project's Gitlab page, and follow the following path: \
+   `Settings > CI/CD > Runners > Expand` and install a docker runner on your
+   Linux machine. Instruction can be found in the manual of Gitlab.
+
+2) Give it two labels, namely: `soldademo` and `docker`. These are examples, but
+   make sure, if you change them, that you also adapt the `.gitlab-ci.yml` file,
+   and a name `soldademo-docker`.
+
+## Configure the Gitlab Runner
+
+You need to configure it for two things:
+1) Give access to the host's docker deamon
+2) Mount the `/build` directory in a read-write mode into it
+
+On your Gitlab Runner host open `/etc/gitlab-runner/config.toml` as root, and
+add/change the following lines under `[[runners]]...name = "soldademo-docker"`:
+```toml
+[runners.docker]
+    tls_verify = false
+    image = "debian:10"
+    privileged = true
+    disable_entrypoint_overwrite = false
+    oom_kill_disable = false
+    disable_cache = false
+    volumes = ["/cache", "/build/gitlab-runner:/build:rw", "/var/run/docker.sock:/var/run/docker.sock"]
+```
+
+Where `/build/gitlab-runner` is your hosts build directory, where
+`yocto/bitbake` stores its outputs, caches, downloads etc. In addition,
+`aliens4friends` has its pool there.
+
+`"/var/run/docker.sock:/var/run/docker.sock"` on the other hand is used to
+access the docker daemon on the host. We need also to set `privileged = true`
+to make it work.
+
+## Configure a Gitlab container registry
+
+The `dockerize` stages inside `.gitlab-ci.yml` need a container registry to upload
+its images. We use the Gitlab registry for this example. Just make sure that the
+`CI_REGISTRY_IMAGE` points to the correct repository.
+
+## Known limitations
+
+### Only use a single branch to trigger the pipeline
+
+Parallel runs are not supported at the moment, because we pass artifacts from one stage
+to a subsequent one with a single directory. Also yocto builds in a single path are not
+supported. So set the `only` attribute to a single branch inside `.gitlab-ci.yml`.
+
+### Time consuming operations
+
+These pipelines are not meant to run very often, because at the moment with all
+flavours, images, and machine combinations to complete a full pipeline it will
+take several hours. Hereby, the yoctobuild, Scancode and Fossology upload part
+take the most time.

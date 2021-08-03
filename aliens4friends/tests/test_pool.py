@@ -17,8 +17,7 @@ class TestingPool(unittest.TestCase):
 			f.write("Hello World!")
 
 	def tearDown(self):
-		#shutil.rmtree(TEST_PATH)
-		pass
+		shutil.rmtree(TEST_PATH)
 
 	def _test_add_write(self, content):
 		self.assertTrue(

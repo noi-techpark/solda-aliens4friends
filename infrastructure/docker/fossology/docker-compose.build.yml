@@ -1,0 +1,10 @@
+version: "3.4"
+
+services:
+  fossology:
+    image: ${DOCKER_FOSSOLOGY_IMAGE}:${DOCKER_TAG}
+    build:
+      context: ../../../
+      dockerfile: infrastructure/docker/fossology/fossology.dockerfile
+      args:
+          FOSSOLOGY_REPO_PATH: /

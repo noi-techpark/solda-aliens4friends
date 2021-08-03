@@ -18,6 +18,9 @@ from aliens4friends.commons.utils import log_minimal_error, debug_with_stacktrac
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.settings import Settings
 
+from aliens4friends.models.alienmatcher import AlienMatcherModel
+from aliens4friends.models.deltacode import Tool, Body, Stats, Compared, Header, DeltaCodeModel, MovedFile
+
 logger = logging.getLogger(__name__)
 
 SCANCODE_VERSION = '3.2.3'
@@ -134,31 +137,15 @@ class DeltaCodeNG:
 		self.new = self._import(new_scan_out_file)
 		self.new_sha1_map = { v['sha1']: path for path, v in self.new.items() }
 		# TODO: create a model class for results
-		self.res = {
-			"tool": {
-				"name": __name__,
-				"version": Settings.VERSION
-			},
-			'header': {
-				'compared_json_files': {
-					'old_scan_out_file': old_scan_out_file,
-					'new_scan_out_file': new_scan_out_file,
-				},
-				'stats': {}
-			},
-			'body': {
-				'same_files': [],
-				'moved_files': {},
-				'changed_files_with_no_license_and_copyright': [],
-				'changed_files_with_same_copyright_and_license': [],
-				'changed_files_with_updated_copyright_year_only': {},
-				'changed_files_with_changed_copyright_or_license': {},
-				'deleted_files_with_no_license_and_copyright': [],
-				'deleted_files_with_license_or_copyright': [],
-				'new_files_with_no_license_and_copyright': [],
-				'new_files_with_license_or_copyright': [],
-			}
-		}
+		self.res = DeltaCodeModel(
+			tool = Tool(name = __name__, version = Settings.VERSION),
+			header = Header(
+				compared_json_files = Compared(
+					old_scan_out_file = old_scan_out_file,
+					new_scan_out_file = new_scan_out_file
+				)
+			)
+		)
 		self.result_file = result_file
 
 	def _import(self, scan_out_file: str) -> dict:
@@ -188,14 +175,19 @@ class DeltaCodeNG:
 					and path != self.new_sha1_map[sha1]):
 				old_path = path
 				new_path = self.new_sha1_map[sha1]
-				self.res['body']['moved_files'].update({
-					'old_path': old_path,
-					'new_path': new_path
-				})
+				self.res.body.moved_files.append(MovedFile(
+					old_path = old_path,
+					new_path = new_path
+				))
 				moved.append(new_path)
 			if self.new.get(path):
 				if (self.old[path]['sha1'] == self.new[path]['sha1']):
-					self.res['body']['same_files'].append(path)
+					self.res.body.same_files.append(path)
+					if path in moved:
+						moved.remove(path)
+						for moved_file in self.res.body.moved_files:
+							if moved_file.new_path == path:
+								self.res.body.moved_files.remove(moved_file)
 				else:
 					findings_diff = DeepDiff(
 						self.old[path]['findings'],
@@ -205,48 +197,46 @@ class DeltaCodeNG:
 					)
 					if not findings_diff:
 						if not any_dict_value(self.old[path]['findings']):
-							self.res['body']['changed_files_with_no_license_and_copyright'].append(path)
+							self.res.body.changed_files_with_no_license_and_copyright.append(path)
 						else:
-							self.res['body']['changed_files_with_same_copyright_and_license'].append(path)
+							self.res.body.changed_files_with_same_copyright_and_license.append(path)
 					elif only_copyright_year_has_been_updated(findings_diff):
 						self._fix_finding_diffs_for_json_serialization(findings_diff)
-						self.res['body']['changed_files_with_updated_copyright_year_only'].update({path: findings_diff})
+						self.res.body.changed_files_with_updated_copyright_year_only.update({path: findings_diff})
 					else:
 						self._fix_finding_diffs_for_json_serialization(findings_diff)
-						self.res['body']['changed_files_with_changed_copyright_or_license'].update({path: findings_diff})
+						self.res.body.changed_files_with_changed_copyright_or_license.update({path: findings_diff})
 			else:
 				if not any_dict_value(self.old[path]['findings']):
-					self.res['body']['deleted_files_with_no_license_and_copyright'].append(path)
+					self.res.body.deleted_files_with_no_license_and_copyright.append(path)
 				else:
-					self.res['body']['deleted_files_with_license_or_copyright'].append(path)
+					self.res.body.deleted_files_with_license_or_copyright.append(path)
 		for path in self.new:
 			if not self.old.get(path) and path not in moved:
 				if not any_dict_value(self.new[path]['findings']):
-					self.res['body']['new_files_with_no_license_and_copyright'].append(path)
+					self.res.body.new_files_with_no_license_and_copyright.append(path)
 				else:
-					self.res['body']['new_files_with_license_or_copyright'].append(path)
+					self.res.body.new_files_with_license_or_copyright.append(path)
 		self.add_stats()
 		return self.res
 
 	def add_stats(self) -> None:
-		for k,v in self.res['body'].items():
-			self.res['header']['stats'].update({k: len(v)})
-		self.res['header']['stats'].update({
-			'old_files_count': len(list(self.old.keys())),
-			'new_files_count': len(list(self.new.keys()))
-		})
+		for k,v in self.res.body.__dict__.items():
+			setattr(self.res.header.stats, k, len(v))
+		self.res.header.stats.old_files_count = len(list(self.old.keys()))
+		self.res.header.stats.new_files_count = len(list(self.new.keys()))
 
 	def print_stats(self) -> None:
 		for stat in self.get_stats():
 			print(stat)
 
 	def get_stats(self) -> Generator[str, None, None]:
-		for k,v in self.res['body'].items():
+		for k,v in self.res.body.__dict__.items():
 			yield (f'{k}: {len(v)}')
 
 	def write_results(self) -> None:
 		with open(self.result_file, "w") as f:
-			json.dump(self.res, f, indent=2)
+			f.write(self.res.to_json(indent=2))
 
 	@staticmethod
 	def execute(glob_name: str = "*", glob_version: str = "*") -> None:
@@ -254,7 +244,7 @@ class DeltaCodeNG:
 		multiprocessing_pool = MultiProcessingPool()
 		results = multiprocessing_pool.map(  #pytype: disable=wrong-arg-types
 			DeltaCodeNG._execute,
-			pool.absglob(f"userland/{glob_name}/{glob_version}/*.alienmatcher.json")
+			pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.alienmatcher.json")
 		)
 		if not results:
 			logger.info(
@@ -270,39 +260,43 @@ class DeltaCodeNG:
 
 		try:
 			j = pool.get_json(relpath)
+			am = AlienMatcherModel.decode(j)
 		except Exception as ex:
 			logger.error(f"[{package}] Unable to load json from {relpath}.")
 			debug_with_stacktrace(logger)
 			return
 
 		try:
-			m = j["debian"]["match"]
-			a = j["aliensrc"]
-			result_path = pool.relpath(
-				"userland",
-				a["name"],
-				a["version"],
-				f'{a["name"]}-{a["version"]}.deltacode.json'
+			m = am.debian.match
+			if not m.name:
+				logger.warning(f"[{package}] no debian match to compare here")
+				return
+			a = am.aliensrc
+			result_path = pool.abspath(
+				Settings.PATH_USR,
+				a.name,
+				a.version,
+				f'{a.name}-{a.version}.deltacode.json'
 			)
 			if pool.cached(result_path, debug_prefix=f"[{package}] "):
 				return result_path
 			logger.info(
 				f"[{package}] calculating delta between debian package"
-				f" {m['name']}-{m['version']} and alien package"
-				f" {a['name']}-{a['version']}"
+				f" {m.name}-{m.version} and alien package"
+				f" {a.name}-{a.version}"
 			)
 			deltacode = DeltaCodeNG(
-				pool.relpath(
-					"debian",
-					m["name"],
-					m["version"],
-					f'{m["name"]}-{m["version"]}.scancode.json'
+				pool.abspath(
+					Settings.PATH_DEB,
+					m.name,
+					m.version,
+					f'{m.name}-{m.version}.scancode.json'
 				),
-				pool.relpath(
-					"userland",
-					a["name"],
-					a["version"],
-					f'{a["name"]}-{a["version"]}.scancode.json'
+				pool.abspath(
+					Settings.PATH_USR,
+					a.name,
+					a.version,
+					f'{a.name}-{a.version}.scancode.json'
 				),
 				result_path
 			)
@@ -314,10 +308,5 @@ class DeltaCodeNG:
 			if Settings.PRINTRESULT:
 				print(json.dumps(result, indent=2))
 			return result_path
-		except KeyError as ex:
-			if not j["debian"].get("match"):
-				logger.warning(f"[{package}] no debian match to compare here")
-			else:
-				log_minimal_error(logger, ex, f"[{package}] ")
 		except Exception as ex:
 			log_minimal_error(logger, ex, f"[{package}] ")

@@ -4,32 +4,43 @@
 
 from .base import BaseModel
 from .common import Tool
-from typing import List
+from typing import List, Dict
+
+from deepdiff import DeepDiff
+
+class MovedFile(BaseModel):
+	def __init__(
+		self,
+		old_path: str,
+		new_path: str
+	):
+		self.old_path = old_path
+		self.new_path = new_path
 
 class Body(BaseModel):
 	def __init__(
 		self,
 		same_files: List[str] = None,
-		moved_files: List[str] = None,
+		moved_files: List[MovedFile] = None,
 		changed_files_with_no_license_and_copyright: List[str] = None,
 		changed_files_with_same_copyright_and_license: List[str] = None,
-		changed_files_with_updated_copyright_year_only: List[str] = None,
-		changed_files_with_changed_copyright_or_license: List[str] = None,
+		changed_files_with_updated_copyright_year_only: Dict[str, DeepDiff] = None,
+		changed_files_with_changed_copyright_or_license: Dict[str, DeepDiff] = None,
 		deleted_files_with_no_license_and_copyright: List[str] = None,
 		deleted_files_with_license_or_copyright: List[str] = None,
 		new_files_with_no_license_and_copyright: List[str] = None,
 		new_files_with_license_or_copyright: List[str] = None
 	):
-		self.same_files = same_files
-		self.moved_files = moved_files
-		self.changed_files_with_no_license_and_copyright = changed_files_with_no_license_and_copyright
-		self.changed_files_with_same_copyright_and_license = changed_files_with_same_copyright_and_license
-		self.changed_files_with_updated_copyright_year_only = changed_files_with_updated_copyright_year_only
-		self.changed_files_with_changed_copyright_or_license = changed_files_with_changed_copyright_or_license
-		self.deleted_files_with_no_license_and_copyright = deleted_files_with_no_license_and_copyright
-		self.deleted_files_with_license_or_copyright = deleted_files_with_license_or_copyright
-		self.new_files_with_no_license_and_copyright = new_files_with_no_license_and_copyright
-		self.new_files_with_license_or_copyright = new_files_with_license_or_copyright
+		self.same_files = same_files or []
+		self.moved_files = moved_files or []
+		self.changed_files_with_no_license_and_copyright = changed_files_with_no_license_and_copyright or []
+		self.changed_files_with_same_copyright_and_license = changed_files_with_same_copyright_and_license or []
+		self.changed_files_with_updated_copyright_year_only = changed_files_with_updated_copyright_year_only or {}
+		self.changed_files_with_changed_copyright_or_license = changed_files_with_changed_copyright_or_license or {}
+		self.deleted_files_with_no_license_and_copyright = deleted_files_with_no_license_and_copyright or []
+		self.deleted_files_with_license_or_copyright = deleted_files_with_license_or_copyright or []
+		self.new_files_with_no_license_and_copyright = new_files_with_no_license_and_copyright or []
+		self.new_files_with_license_or_copyright = new_files_with_license_or_copyright or []
 
 
 class Stats(BaseModel):
