@@ -48,13 +48,15 @@ class SourceFile(BaseModel):
 	def __init__(
 		self,
 		name: str = None,
-		sha1: str = None,
+		sha1_cksum: str = None,
+		git_sha1: str = None,
 		src_uri: str = None,
 		files_in_archive: Union[int, bool] = False,
 		paths: List[str] = None
 	):
 		self.name = name
-		self.sha1 = sha1
+		self.sha1_cksum = sha1_cksum
+		self.git_sha1 = git_sha1
 		self.src_uri = src_uri
 		self.files_in_archive = files_in_archive
 		self.paths = paths

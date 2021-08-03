@@ -14,54 +14,32 @@ from aliens4friends.commons.utils import sha1sum_str
 
 logger = logging.getLogger(__name__)
 
-_TTags = TypeVar('_TTags', bound='TTags')
-class Tags(BaseModel):
-	def __init__(
-		self,
-		distro: List[str] = None,
-		machine: List[str] = None,
-		image: List[str] = None,
-		release: List[str] = None
-	) -> None:
-		self.distro = distro
-		self.machine = machine
-		self.image = image
-		self.release = release
-
-	@staticmethod
-	def merge(old_tags: _TTags, new_tags: _TTags) -> _TTags:
-		res = Tags()
-		for attr in old_tags.encode():
-			old_list = getattr(old_tags, attr) or []
-			new_list = getattr(new_tags, attr) or []
-			res_list = list(set(old_list + new_list)) or None
-			setattr(res, attr, res_list)
-		return res
-
 class SourceFile(BaseModel):
 	def __init__(
 		self,
 		rootpath: str = None,
 		relpath: str = None,
 		src_uri: str = None,
-		sha1: str = None,
+		sha1_cksum: str = None,
+		git_sha1: str = None,
 		tags: List[str] = None
 	) -> None:
 		self.rootpath = rootpath
 		self.relpath = relpath
 		self.src_uri = src_uri
-		self.sha1 = sha1
+		self.sha1_cksum = sha1_cksum
+		self.git_sha1 = git_sha1
 		self.tags = tags
 
 class FileWithSize(BaseModel):
 	def __init__(
 		self,
 		path: str = None,
-		sha1: str = None,
+		sha256: str = None,
 		size: int = 0
 	) -> None:
 		self.path = path
-		self.sha1 = sha1
+		self.sha256 = sha256
 		self.size = size
 
 class FileContainer(BaseModel):
@@ -72,6 +50,49 @@ class FileContainer(BaseModel):
 	) -> None:
 		self.file_dir = file_dir
 		self.files = FileWithSize.drilldown(files)
+
+class DependsProvides(BaseModel):
+	def __init__(
+		self,
+		depends: List[str],
+		provides: List[str]
+	):
+		self.depends = depends
+		self.provides = provides
+
+_TDependsProvidesContainer = TypeVar('_TDependsProvidesContainer', bound='DependsProvidesContainer')
+class DependsProvidesContainer(DictModel):
+	"""DictModel for 'depends' and 'provides' of bitbake recipes; the key is the
+	machine name, since the same recipe, built for different machines, may have
+	different build dependencies
+	"""
+	subclass = DependsProvides
+
+	@staticmethod
+	def merge(
+		old: Dict[str, _TDependsProvidesContainer],
+		new: Dict[str, _TDependsProvidesContainer]
+	) -> Dict[str, _TDependsProvidesContainer]:
+		res = {}
+		ids = set(list(old) + list(new))
+		for id in ids:
+			if id in new and id in old:
+				logger.debug(f"{id} found in new and old, checking consistency")
+				diff = DeepDiff(old[id].depends, new[id].depends, ignore_order=True)
+				if diff:
+					raise ModelError(
+						"can't merge, depends mismatch for machine"
+						f" '{id}', diff is: {diff}"
+					)
+				new[id].provides = list(set(old[id].provides + new[id].provides))
+				res[id] = new[id]
+			elif id in new:
+				logger.debug(f"depends_provides for machine '{id}' found in new")
+				res[id] = new[id]
+			elif id in old:
+				logger.debug(f"depends_provides for machine '{id}' found in old")
+				res[id] = old[id]
+		return res
 
 class PackageMetaData(BaseModel):
 	def __init__(
@@ -85,9 +106,10 @@ class PackageMetaData(BaseModel):
 		recipe_version: str = None,
 		recipe_revision: str = None,
 		license: str = None,
+		summary: str = None,
 		description: str = None,
-		depends: str = None,
-		provides: str = None
+		depends: List[str] = None,
+		provides: List[str] = None
 	) -> None:
 		self.name = name
 		self.base_name = base_name
@@ -98,6 +120,7 @@ class PackageMetaData(BaseModel):
 		self.recipe_version = recipe_version
 		self.recipe_revision = recipe_revision
 		self.license = license
+		self.summary = summary
 		self.description = description
 		self.depends = depends
 		self.provides = provides
@@ -107,10 +130,13 @@ class Package(BaseModel):
 	def __init__(
 		self,
 		metadata: PackageMetaData = None,
-		files: FileContainer = None
+		files: FileContainer = None,
+		chk_sum: str = None
 	) -> None:
 		self.metadata = PackageMetaData.decode(metadata)
 		self.files = FileContainer.decode(files)
+		self.chk_sum = chk_sum
+
 
 
 class PackageWithTags(BaseModel):
@@ -172,43 +198,6 @@ class PackageContainer(DictModel):
 				res[id] = old[id]
 		return res
 
-class DependsProvides(BaseModel):
-	def __init__(self, depends: str, provides: str):
-		self.depends = depends
-		self.provides = provides
-
-_TDependsProvidesContainer = TypeVar('_TDependsProvidesContainer', bound='DependsProvidesContainer')
-class DependsProvidesContainer(DictModel):
-	"""DictModel for 'depends' and 'provides' of bitbake recipes; the key is the
-	machine name, since the same recipe, built for different machines, may have
-	different build dependencies
-	"""
-	subclass = DependsProvides
-
-	@staticmethod
-	def merge(
-		old: Dict[str, _TDependsProvidesContainer],
-		new: Dict[str, _TDependsProvidesContainer]
-	) -> Dict[str, _TDependsProvidesContainer]:
-		res = {}
-		ids = set(list(old) + list(new))
-		for id in ids:
-			if id in new and id in old:
-				logger.debug(f"{id} found in new and old, checking sameness")
-				diff = DeepDiff(old[id], new[id], ignore_order=True)
-				if diff:
-					raise ModelError(
-						"can't merge, depends_provides mismatch for machine"
-						f" '{id}', diff is: {diff}"
-					)
-				res[id] = new[id]
-			elif id in new:
-				logger.debug(f"depends_provides for machine '{id}' found in new")
-				res[id] = new[id]
-			elif id in old:
-				logger.debug(f"depends_provides for machine '{id}' found in old")
-				res[id] = old[id]
-		return res
 
 class RecipeMetaData(BaseModel):
 	def __init__(
@@ -217,39 +206,92 @@ class RecipeMetaData(BaseModel):
 		base_name: str = None,
 		version: str = None,
 		revision: str = None,
+		variant: str = None,
 		author: str = None,
 		homepage: str = None,
 		summary: str = None,
 		description: str = None,
 		license: str = None,
-		build_workdir: str = None,
-		compiled_source_dir: str = None,
-		depends_provides: Dict[str, DependsProvides] = None,
-		cve_product: str = None
+		depends_provides: Dict[str, DependsProvides] = None
 	) -> None:
 		self.name = name
 		self.base_name = base_name
 		self.version = version
 		self.revision = revision
+		self.variant = variant
 		self.author = author
 		self.homepage = homepage
 		self.summary = summary
 		self.description = description
 		self.license = license
-		self.build_workdir = build_workdir
-		self.compiled_source_dir = compiled_source_dir
 		self.depends_provides = DependsProvidesContainer.decode(depends_provides)
-		self.cve_product = cve_product
+
+	@staticmethod
+	def merge(old: 'RecipeMetaData', new: 'RecipeMetaData') -> 'RecipeMetaData':
+		updatable = [ "homepage", "summary", "description" ]
+		res = RecipeMetaData()
+		for attr_name in res.encode():
+			if attr_name in updatable:
+				setattr(res, attr_name, getattr(new, attr_name))
+			else:
+				setattr(res, attr_name, getattr(old, attr_name))
+		res.depends_provides = DependsProvidesContainer.merge(
+			old.depends_provides,
+			new.depends_provides
+		)
+		return res
+
+class CveProduct(BaseModel):
+	def __init__(
+		self,
+		vendor: str = None,
+		product: str = None
+	):
+		self.vendor = vendor
+		self.product = product
+
+class RecipeCveMetaData(BaseModel):
+	def __init__(
+		self,
+		cve_version: str = None,
+		cve_version_suffix: str = None,
+		cve_check_whitelist: List[str] = None,
+		cve_product: List[CveProduct] = None
+	):
+		self.cve_version = cve_version
+		self.cve_version_suffix = cve_version_suffix
+		self.cve_check_whitelist = cve_check_whitelist
+		self.cve_product = CveProduct.drilldown(cve_product)
+
+	@staticmethod
+	def merge(old: 'RecipeCveMetaData', new: 'RecipeCveMetaData') -> 'RecipeCveMetaData':
+		res = RecipeCveMetaData()
+		must_be_equal = [ 'cve_version', 'cve_version_suffix' ]
+		for attr_name in old.encode():
+			old_attr = getattr(old, attr_name)
+			new_attr = getattr(new, attr_name)
+			if old_attr == new_attr:
+				setattr(res, attr_name, old_attr)
+			elif attr_name in must_be_equal:
+				raise ModelError(
+					f"can't merge cve metadata for {old.cve_product[0].product}"
+					f": '{attr_name}' mismatch"
+				)
+			else:
+				setattr(res, attr_name, new_attr)
+		return res
 
 
 class Recipe(BaseModel):
 	def __init__(
 		self,
 		metadata: RecipeMetaData = None,
+		cve_metadata: RecipeCveMetaData = None,
 		source_files: List[SourceFile] = None,
 		chk_sum: str = None
 	) -> None:
 		self.metadata = RecipeMetaData.decode(metadata)
+		self.cve_metadata = RecipeCveMetaData.decode(cve_metadata)
 		self.source_files = SourceFile.drilldown(source_files)
 		self.chk_sum = chk_sum
 
@@ -291,16 +333,12 @@ class Container(BaseModel):
 						             # to merge
 						"root.packages", # same here
 						"root.recipe.chk_sum",
+						"root.recipe.metadata.description",
+						"root.recipe.metadata.homepage",
+						"root.recipe.metadata.summary",
 						"root.recipe.metadata.depends_provides", # same here
-						"root.recipe.metadata.build_workdir", # specific to
-									# local build, needed just for aliensrc
-									# package creation in a previous stage;
-									# we expect it may be different if
-									# tinfoilhat files to merge have been
-									# generated in different local builds, but
-									# it doesn't matter here
-						"root.recipe.metadata.compiled_source_dir", # same here
-						"root.recipe.source_files"
+						"root.recipe.source_files",
+						"root.recipe.cve_metadata"
 					]
 				)
 				if diff:
@@ -314,20 +352,22 @@ class Container(BaseModel):
 					old[id].packages,
 					new[id].packages
 				)
-				res[id].recipe.metadata.depends_provides = (
-					DependsProvidesContainer.merge(
-						old[id].recipe.metadata.depends_provides,
-						new[id].recipe.metadata.depends_provides
-				))
-
+				res[id].recipe.metadata = RecipeMetaData.merge(
+					old[id].recipe.metadata,
+					new[id].recipe.metadata
+				)
+				res[id].recipe.cve_metadata = RecipeCveMetaData.merge(
+					old[id].recipe.cve_metadata,
+					new[id].recipe.cve_metadata
+				)
 				### FIXME This is a tinfoilhat merge hack!
 				# Merging source_files
-				old_files = { f'{s.src_uri}-{s.sha1}': s for s in old[id].recipe.source_files }
-				new_files = { f'{s.src_uri}-{s.sha1}': s for s in new[id].recipe.source_files }
+				old_files = { f'{s.src_uri}-{s.git_sha1 or s.sha1_cksum}': s for s in old[id].recipe.source_files }
+				new_files = { f'{s.src_uri}-{s.git_sha1 or s.sha1_cksum}': s for s in new[id].recipe.source_files }
 				for new_id in new_files:
 					if new_id in old_files:
 						for el in new_files[new_id].tags:
-							old_files[new_id].tags.add(el)
+							old_files[new_id].tags.append(el)
 					else:
 						res[id].recipe.source_files.append(new_files[new_id])
 
@@ -338,9 +378,10 @@ class Container(BaseModel):
 					m = res[id].recipe.metadata
 					res[id].recipe.chk_sum = sha1sum_str(f'{m.name}{m.version}{m.revision}')
 				else:
-					sha1list = [ f.sha1 for f in res[id].recipe.source_files ]
+					sha1list = [ (f.git_sha1 or f.sha1_cksum) for f in res[id].recipe.source_files ]
 					sha1list.sort()
 					res[id].recipe.chk_sum = sha1sum_str(''.join(sha1list))
+					res[id].recipe.metadata.variant = res[id].recipe.chk_sum[:8]
 
 			elif id in new:
 				logger.debug(f"{id} found in new")
@@ -367,3 +408,9 @@ class TinfoilHatModel(DictModel):
 		res = TinfoilHatModel({})
 		res._container = Container.merge(old._container, new._container)
 		return res
+
+	# FIXME: All merge methods here are based on one assumption:
+    # that the "new" tinfoilhat file is really newer than the "old"
+    # one, and that it containes more updated info than the "old" one.
+    # We should add some field ('project manifest commit date'?)
+    # tinfoilhat.json in order to check this

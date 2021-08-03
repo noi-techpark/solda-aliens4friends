@@ -116,6 +116,8 @@ class Aliens4Friends:
 			pass
 		logger = logging.getLogger(PROGNAME)
 		logger.setLevel(Settings.LOGLEVEL)
+		logging.getLogger("urllib3").setLevel(logging.INFO)
+		logging.getLogger("chardet").setLevel(logging.INFO)
 
 		self.pool = Pool(Settings.POOLPATH)
 		basepath_deb = self.pool.mkdir(Settings.PATH_DEB)
@@ -291,6 +293,15 @@ class Aliens4Friends:
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
 
+	def parser_snapmatch(self, cmd: str) -> None:
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Find a matching source package on snapshot.debian.org"
+		)
+		self._args_defaults(self.parsers[cmd])
+		self._args_print_to_stdout(self.parsers[cmd])
+		self._args_glob(self.parsers[cmd])
+
 	def parser_scan(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
@@ -364,12 +375,6 @@ class Aliens4Friends:
 		)
 		self._args_print_to_stdout(self.parsers[cmd])
 		self.parsers[cmd].add_argument(
-			"--add-details",
-			action = "store_true",
-			default = False,
-			help = "Add more information to the report while harvesting."
-		)
-		self.parsers[cmd].add_argument(
 			"--add-missing",
 			action = "store_true",
 			default = False,
@@ -385,6 +390,12 @@ class Aliens4Friends:
 		)
 
 	def match(self) -> None:
+		AlienSnapMatcher.execute(
+			self.args.glob_name,
+			self.args.glob_version
+		)
+
+	def snapmatch(self) -> None:
 		AlienSnapMatcher.execute(
 			self.args.glob_name,
 			self.args.glob_version
@@ -439,7 +450,6 @@ class Aliens4Friends:
 	def harvest(self) -> None:
 		Harvest.execute(
 			self.pool,
-			self.args.add_details,
 			self.args.add_missing
 		)
 

@@ -28,31 +28,34 @@ class UploadAliens2Fossy:
 	def __init__(
 		self,
 		alien_package: AlienPackage,
+		pool: Pool,
 		alien_spdx_filename: str,
 		fossy: FossyWrapper,
-		folder: str
+		fossy_folder: str
 	):
+
+		self.fossy = fossy
+		self.alien_package = alien_package
+		m = alien_package.metadata
+		variant = f"-{m['variant']}" if m['variant'] else ""
+		self.uploadname = (f"{m['base_name']}@{m['version']}-{m['revision']}{variant}")
+		self.pool = pool
+		self.alien_spdx_filename = pool.abspath(alien_spdx_filename)
+		self.fossy_folder = fossy_folder
+
 		if not alien_package.package_files:
 			raise UploadAliens2FossyException(
-				f"AlienPackage {alien_package.archive_fullpath} does not contain"
+				f"[{self.uploadname}] AlienPackage does not contain "
 				"any files (is it a meta-package?), not uploading it"
 			)
 		if not alien_package.internal_archive_name:
 			logger.warning(
-				f"AlienPackage {alien_package.archive_fullpath} does not contain"
+				f"[{self.uploadname}] AlienPackage does not contain"
 				" any internal archive"
 			)
-		self.fossy = fossy
-		self.alien_package = alien_package
-		m = alien_package.metadata
-		self.uploadname = (f"{m['base_name']}@{m['version']}-{m['revision']}")
-		self.alien_spdx_filename = alien_spdx_filename
 
 	def get_or_do_upload(self):
-		upload = self.fossy.get_upload(
-			self.alien_package.name,
-			self.alien_package.version.str
-		)
+		upload = self.fossy.get_upload(self.uploadname)
 		if upload:
 			logger.info(f"[{self.uploadname}] Package already uploaded")
 			self.upload = upload
@@ -67,7 +70,7 @@ class UploadAliens2Fossy:
 		tar2upload = os.path.join(tmpdir, f"{self.uploadname}.tar.xz")
 		bash(f"tar cJf {tar2upload} .", cwd=files_dir)
 		logger.info(f"[{self.uploadname}] Uploading package")
-		folder = self.fossy.get_or_create_folder(folder) # FIXME do not hardcode it
+		folder = self.fossy.get_or_create_folder(self.fossy_folder)
 		self.upload = self.fossy.upload(
 			tar2upload,
 			folder,
@@ -174,47 +177,52 @@ class UploadAliens2Fossy:
 	def execute(pool: Pool, folder: str, glob_name: str = "*", glob_version: str = "*"):
 		fossy = FossyWrapper()
 		found = False
-		for path in pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc"):
+		for path in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.aliensrc"):
 			found = True
-			package = f"{path.parts[-3]}-{path.parts[-2]}"
+
+			cur_pckg = path.stem
+			cur_path = pool.relpath(
+				Settings.PATH_USR,
+				path.parts[-3],
+				path.parts[-2]
+			)
+
 			try:
 				apkg = AlienPackage(path)
+				if not apkg.package_files:
+					logger.info(
+						f"[{cur_pckg}] package does not contain any files"
+						" (is it a meta-package?), skipping"
+					)
+					continue
 				logger.info(
-					f"[{package}] expanding alien package,"
+					f"[{cur_pckg}] expanding alien package,"
 					" it may require a lot of time"
 				)
 				apkg.expand()
-				a = apkg.metadata
-				apkg_fullname = f'{a["base_name"]}-{a["version"]}-{a["revision"]}'
-				apkg_name = a["base_name"]
-				apkg_version = f'{a["version"]}-{a["revision"]}'
 			except Exception as ex:
-				log_minimal_error(logger, ex, f"[{package}] Unable to load aliensrc from {path} ")
+				log_minimal_error(logger, ex, f"[{cur_pckg}] Unable to load aliensrc from {path} ")
 				continue
+
 			try:
-				alien_spdx_filename = pool.relpath(
-					"userland",
-					apkg_name,
-					apkg_version,
+				alien_spdx_filename = pool.abspath(
+					cur_path,
 					f'{apkg.internal_archive_name}.alien.spdx'
 				) if apkg.internal_archive_name else ""
 
-				alien_fossy_json_filename = pool.relpath(
-					"userland",
-					apkg_name,
-					apkg_version,
-					f'{apkg_fullname}.fossy.json'
-				)
-				a2f = UploadAliens2Fossy(apkg, alien_spdx_filename, fossy, folder)
+				a2f = UploadAliens2Fossy(apkg, pool, alien_spdx_filename, fossy, folder)
 				a2f.get_or_do_upload()
 				a2f.run_fossy_scanners()
 				a2f.import_spdx()
-				fossy_json = a2f.get_metadata_from_fossology()
-				with open(alien_fossy_json_filename, "w") as f:
-					json.dump(fossy_json, f)
+
+				pool.write_json(
+					a2f.get_metadata_from_fossology(),
+					cur_path,
+					f'{cur_pckg}.fossy.json'
+				)
 
 			except Exception as ex:
-				log_minimal_error(logger, ex, f"[{package}] ")
+				log_minimal_error(logger, ex, f"[{cur_pckg}] ")
 
 		if not found:
 			logger.info(

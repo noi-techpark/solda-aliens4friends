@@ -22,14 +22,14 @@ class BaseModel():
 		"""
 		return self.__dict__
 
-	def to_json(self) -> str:
+	def to_json(self, indent=None) -> str:
 		"""
 		Create a JSON string out of this object.
 
 		Returns:
 			str: JSON of this object
 		"""
-		return dumps(self, cls=BaseModelEncoder)
+		return dumps(self, cls=BaseModelEncoder, indent=indent)
 
 	@classmethod
 	def drilldown(
@@ -132,9 +132,15 @@ class DictModel(BaseModel):
 
 	def __init__(
 		self,
-		container: dict
+		container: dict = None
 	):
-		self._container: Dict[str, Any] = self.decode(container)
+		self._container: Dict[str, Any] = self.decode(container) if container else {}
+
+	def add(self, key: str, value: Any) -> None:
+		self._container[key] = value
+
+	def get(self, key: str) -> Any:
+		return self._container[key]
 
 	@classmethod
 	def from_file(

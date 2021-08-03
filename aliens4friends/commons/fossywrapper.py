@@ -84,8 +84,13 @@ class FossyWrapper:
 	def _wait_for_jobs_completion(self, upload: Upload) -> None:
 		all_completed = False
 		jobs = []
-		# FIXME: add time limit?
+		count = 0
 		while not all_completed:
+			count += 1
+			if count > 6*60*4:
+				raise FossyWrapperException(
+					f"timeout (4h) for job completion for upload {upload.id}"
+				)
 			sleep(10)
 			try:
 				jobs = self.fossology.list_jobs(upload=upload, page_size=2000)
@@ -94,6 +99,10 @@ class FossyWrapper:
 			if jobs:
 				all_completed = True
 				for job in jobs:
+					d = datetime.strptime(f"{job.queueDate}00", "%Y-%m-%d %H:%M:%S.%f%z")
+					delta = d - datetime.now(d.tzinfo)
+					if delta.days < -2: # ignore old jobs
+						continue
 					# FIXME: handle also killed jobs
 					if job.status == "Processing" or job.status == "Started":
 						all_completed = False
@@ -108,7 +117,7 @@ class FossyWrapper:
 		return parent
 
 	def check_already_uploaded(self, uploadname: str) -> Upload:
-		logger.info(f"checking if '{uploadname}' has already been uploaded")
+		logger.info(f"[{uploadname}] Checking if it has already been uploaded")
 		# FIXME upstream: page_size missing in fossology-python 0.2.0, wait that
 		# fossology-python 1.x is made backwards compatibile with API 1.0.16 -
 		# Fossology 3.9.0 (latest release), and upgrade it
@@ -118,7 +127,7 @@ class FossyWrapper:
 				return upload
 
 	def upload(self, filename: str, folder: Folder, description: str = '') -> Upload:
-		logger.info(f"uploading {filename} to Fossology")
+		logger.info(f"[{filename}] Uploading the file to Fossology")
 		try:
 			upload = self.fossology.upload_file(
 				folder,
@@ -201,7 +210,7 @@ class FossyWrapper:
 	def report_import(self, upload: Upload, spdxrdf_path: str) -> None:
 		"""import SPDX RDF report file into Fossology, via webUI"""
 		# TODO: upstream: add missing REST API for reportImport in Fossology
-		logger.info(f"uploading '{spdxrdf_path}' to Fossology")
+		logger.info(f"Uploading '{spdxrdf_path}' to Fossology")
 		# package has been uploaded to fossology but there may no
 		# corresponding entry in the upload_clearing table
 		# (that we need to in order to make reportImport actually work).
@@ -230,17 +239,16 @@ class FossyWrapper:
 		logger.info("monitoring reportImport job status...")
 		self._wait_for_jobs_completion(upload)
 
-	def get_upload(self, name: str, version: str) -> Upload:
+	def get_upload(self, uploadname: str) -> Upload:
 		"""Get Fossology Upload object from pakage name and version,
 		assuming that uploadname follows the scheme <name>@<version>, and
 		assuming that uploadnames are unique in queried Fossology instance"""
-		uploadname = f'{name}@{version}'
 		return self.check_already_uploaded(uploadname)
 
 	def get_license_findings_conclusions(self, upload: Upload):
 		logger.info(
-			"getting license findings and conclusions for upload "
-			f"{upload.uploadname} (id={upload.id})"
+			f"[{upload.uploadname}] Getting license findings and conclusions "
+			f"for upload with id={upload.id}"
 		)
 		agents = ["monk", "nomos", "ojo", "reportImport"]
 		for a in self.get_not_scheduled_agents(upload):
@@ -284,13 +292,13 @@ class FossyWrapper:
 		return res.json()
 
 	def get_spdxtv(self, upload: Upload):
-		logger.info(f"[{upload.uploadname}] generating spdx report")
+		logger.info(f"[{upload.uploadname}] Generating spdx report")
 		rep_id = self.fossology.generate_report(
 			upload=upload,
 			report_format=ReportFormat.SPDX2TV
 		)
 		self._wait_for_jobs_completion(upload)
-		logger.info(f"[{upload.uploadname}] downloading spdx report")
+		logger.info(f"[{upload.uploadname}] Downloading spdx report")
 		report_text, report_name = self.fossology.download_report(rep_id)
 		doc, _ = parse_spdx_tv_str(report_text)
 		return doc

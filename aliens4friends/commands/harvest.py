@@ -5,6 +5,7 @@ import json
 import logging
 import os
 import re
+import sys
 from typing import List, Dict, Any
 
 from datetime import datetime
@@ -62,7 +63,6 @@ class Harvest:
 		pool: Pool,
 		input_files,
 		result_file : str,
-		add_details : bool = False,
 		add_missing : bool = False,
 		package_id_ext : str = Settings.PACKAGE_ID_EXT
 	):
@@ -72,23 +72,26 @@ class Harvest:
 		self.result_file = result_file
 		self.result = None
 		self.package_id_ext = package_id_ext
-		self.add_details = add_details
 		self.add_missing = add_missing
 
 	@staticmethod
 	def _filename_split(path):
 		p = str(path).split("/")
-		package_id = f'{p[-3]}-{p[-2]}'
 		path = os.path.basename(path)
-		rest, mainext = os.path.splitext(path)
+		package_id, mainext = os.path.splitext(path)
 		if mainext == ".aliensrc":
 			ext = mainext
 		else:
-			fname, subext = os.path.splitext(rest)
+			package_id, subext = os.path.splitext(package_id)
 			ext = f"{subext}{mainext}"
 		if ext not in Harvest.SUPPORTED_FILES:
 			raise HarvestException("Unsupported file extension")
-		return package_id, ext
+
+		name = p[-3]
+		version = p[-2]
+		variant = package_id[len(name)+len(version)+2:]
+
+		return name, version, variant, ext
 
 	def _warn_missing_input(self, package: SourcePackage, package_inputs):
 		missing = []
@@ -96,57 +99,154 @@ class Harvest:
 			if input_file_type not in package_inputs:
 				missing.append(input_file_type)
 		if missing:
-			logger.warning(f'Package {package.id} misses the {missing} input files.')
+			logger.warning(f'[{package.id}] Package misses the {missing} input files.')
 			if self.add_missing:
 				package.harvest_info = {
 					"missing_input": missing
 				}
 		else:
-			logger.debug(f'Package {package.id} does not miss any input files.')
+			logger.debug(f'[{package.id}] Package does not miss any input files.')
 
+	def _create_groups(self):
+		self.package_groups = {}
+		for path in self.input_files:
+			try:
+				logger.debug(f"Parsing {self.pool.clnpath(path)}... ")
+				try:
+					name, version, variant, ext = Harvest._filename_split(path)
+				except HarvestException as ex:
+					if str(ex) == "Unsupported file extension":
+						logger.debug(f"File {self.pool.clnpath(path)} is not supported. Skipping...")
+						continue
+
+				group_id = f"{name}-{version}"
+
+				if group_id not in self.package_groups:
+					self.package_groups[group_id] = {
+						"variants": {},
+						"scancode": None,
+						"deltacode": None,
+						"alienmatcher": None
+					}
+
+				if ext == ".alienmatcher.json":
+					amm = AlienMatcherModel.from_file(path)
+					self.package_groups[group_id]['alienmatcher'] = DebianMatchBasic(
+						amm.debian.match.name,
+						amm.debian.match.version
+					)
+				elif ext == ".scancode.json":
+					with open(path) as f:
+						sc = json.load(f)
+					self.package_groups[group_id]['scancode'] = {
+						'upstream_source_total' : sum([1 for f in sc['files'] if f['type'] == 'file'])
+					}
+				elif ext == ".deltacode.json":
+					dc = DeltaCodeModel.from_file(path)
+					self.package_groups[group_id]['deltacode'] = dc.header.stats
+				else:
+					if variant not in self.package_groups[group_id]['variants']:
+						self.package_groups[group_id]['variants'][variant] = []
+					self.package_groups[group_id]['variants'][variant].append(
+						{
+							"ext": ext,
+							"path": path
+						}
+					)
+			except Exception as ex:
+				log_minimal_error(logger, ex, f"[{self.pool.clnpath(path)}] Grouping: ")
+
+	def _parse_groups(self):
+		for group_id, group in self.package_groups.items():
+			cur_package_stats = []
+
+			logger.debug(f"[{group_id}] Group has {len(group['variants'])} variants")
+
+			for variant_id, variant in group['variants'].items():
+
+				logger.debug(f"[{group_id}][{variant_id}] Variant has {len(variant)} file infos")
+
+				package_id = f"{group_id}-{variant_id}+{self.package_id_ext}"
+				cur_package_inputs = []
+				source_package = self._create_source_package(package_id, group, cur_package_inputs)
+				self.result.source_packages.append(source_package)
+				for fileinfo in variant:
+					logger.debug(f"[{group_id}][{variant_id}] Processing {self.pool.clnpath(fileinfo['path'])}...")
+					cur_package_inputs.append(fileinfo['ext'])
+					if fileinfo['ext'] == ".fossy.json":
+						self._parse_fossy_main(fileinfo['path'], source_package)
+					elif fileinfo['ext'] == ".tinfoilhat.json":
+						self._parse_tinfoilhat_main(fileinfo['path'], source_package)
+					elif fileinfo['ext'] == ".aliensrc":
+						self._parse_aliensrc_main(fileinfo['path'], source_package)
+
+				cur_package_stats.append(source_package.statistics)
+				self._warn_missing_input(source_package, cur_package_inputs)
+				self._set_aggregation_flag(cur_package_stats)
 
 	def readfile(self):
 		self.result = HarvestModel(Tool(__name__, Settings.VERSION))
-		cur_package_id = None
-		cur_package_inputs = []
-		old_package = None
-		source_package = None
-		for path in self.input_files:
-			try:
-				logger.debug(f"Parsing {path}... ")
-				try:
-					package_id, ext = Harvest._filename_split(path)
-				except HarvestException as ex:
-					if str(ex) == "Unsupported file extension":
-						logger.debug(f"File {path} is not supported. Skipping...")
-						continue
-				package_id += f"+{self.package_id_ext}"
-				if not cur_package_id or package_id != cur_package_id:
-					if cur_package_id:
-						self._warn_missing_input(old_package, cur_package_inputs)
-					cur_package_id = package_id
-					source_package = SourcePackage(package_id)
-					self.result.source_packages.append(source_package)
-					old_package = source_package
-					cur_package_inputs = []
-				cur_package_inputs.append(ext)
-				if ext == ".fossy.json":
-					self._parse_fossy_main(path, source_package)
-				elif ext == ".tinfoilhat.json":
-					self._parse_tinfoilhat_main(path, source_package)
-				elif ext == ".alienmatcher.json":
-					self._parse_alienmatcher_main(path, source_package)
-				elif ext == ".deltacode.json":
-					self._parse_deltacode_main(path, source_package)
-				elif ext == ".scancode.json":
-					self._parse_scancode_main(path, source_package)
-				elif ext == ".aliensrc":
-					self._parse_aliensrc_main(path, source_package)
-			except Exception as ex:
-				log_minimal_error(logger, ex, f"{self.pool.clnpath(path)} ")
+		self._create_groups()
+		self._parse_groups()
 
-		if source_package:
-			self._warn_missing_input(source_package, cur_package_inputs)
+
+
+	@staticmethod
+	def _create_source_package(
+		package_id: str,
+		group: Dict[str, str],
+		cur_package_inputs: List[str]
+	) -> SourcePackage:
+		source_package = SourcePackage(package_id)
+
+		try:
+			upstream_source_total = group['scancode']['upstream_source_total']
+			cur_package_inputs.append(".scancode.json")
+		except TypeError:
+			upstream_source_total = 0
+		source_package.statistics.files.upstream_source_total = upstream_source_total
+
+		if group['alienmatcher']:
+			source_package.debian_matching = group['alienmatcher']
+			cur_package_inputs.append(".alienmatcher.json")
+		else:
+			source_package.debian_matching = None
+
+		if group['deltacode']:
+			cur_package_inputs.append(".deltacode.json")
+			source_package.debian_matching.ip_matching_files = (
+				group['deltacode'].same_files
+				+ group['deltacode'].changed_files_with_no_license_and_copyright
+				+ group['deltacode'].changed_files_with_same_copyright_and_license
+				+ group['deltacode'].changed_files_with_updated_copyright_year_only
+			)
+
+		return source_package
+
+
+	@staticmethod
+	def _set_aggregation_flag(cur_package_stats: List[Statistics]):
+		min_todo = sys.maxsize
+		for stats in cur_package_stats:
+			if stats.files.audit_total > 0:
+				min_todo = min(min_todo, stats.files.audit_to_do)
+
+		if min_todo == sys.maxsize:
+			min_todo = 0
+
+		# Even if we have more than one package with equal audit_to_do counts,
+		# we must consider only one.
+		already_set = False
+		for stats in cur_package_stats:
+			if (
+				stats.files.audit_total > 0
+				and stats.files.audit_to_do == min_todo
+				and not already_set
+			):
+				already_set = True
+				stats.aggregate = True
+			else:
+				stats.aggregate = False
 
 	def write_results(self):
 		self.pool.write_json_with_history(
@@ -164,28 +264,6 @@ class Harvest:
 		stats_files.unknown_provenance = apkg.unknown_provenance
 		stats_files.total = apkg.total
 
-
-	def _parse_alienmatcher_main(self, path, source_package: SourcePackage) -> None:
-		amm = AlienMatcherModel.from_file(path)
-		source_package.debian_matching = DebianMatchBasic(
-			amm.debian.match.name,
-			amm.debian.match.version
-		)
-
-	def _parse_scancode_main(self, path, source_package: SourcePackage) -> None:
-		with open(path) as f:
-			cur = json.load(f)
-		files = [f for f in cur['files'] if f['type'] == 'file']
-		source_package.statistics.files.upstream_source_total = len(files)
-
-	def _parse_deltacode_main(self, path, source_package: SourcePackage) -> None:
-		cur = DeltaCodeModel.from_file(path)
-		source_package.debian_matching.ip_matching_files = (
-			cur.header.stats.same_files
-			+ cur.header.stats.changed_files_with_no_license_and_copyright
-			+ cur.header.stats.changed_files_with_same_copyright_and_license
-			+ cur.header.stats.changed_files_with_updated_copyright_year_only
-		)
 
 	@staticmethod
 	def _increment(dict: dict, key: str, val: Any) -> None:
@@ -262,21 +340,6 @@ class Harvest:
 			result.append(self._parse_tinfoilhat_package(name, package))
 		return result
 
-	def _parse_tinfoilhat_metadata(self, package_metadata: PackageMetaData) -> Dict[str, str]:
-		SKIP_LIST = [
-			"license",
-			"compiled_source_dir",
-			"revision",
-			"version",
-			"name"
-		]
-		result = PackageMetaData()
-		for k, v in package_metadata.__dict__.items():
-			if k in SKIP_LIST:
-				continue
-			setattr(result, k, v)
-		return result
-
 	def _parse_tinfoilhat_package(self, name: str, cur: PackageWithTags) -> BinaryPackage:
 		result = BinaryPackage(
 			name,
@@ -284,9 +347,7 @@ class Harvest:
 			cur.package.metadata.revision,
 			cur.tags
 		)
-		if self.add_details:
-			result.metadata = self._parse_tinfoilhat_metadata(cur.package.metadata)
-			result.tags = cur.tags
+		result.metadata = cur.package.metadata
 		return result
 
 	def _parse_tinfoilhat_main(self, path, source_package: SourcePackage) -> None:
@@ -297,34 +358,33 @@ class Harvest:
 			source_package.name = container.recipe.metadata.name
 			source_package.version = container.recipe.metadata.version
 			source_package.revision = container.recipe.metadata.revision
+			source_package.variant = container.recipe.metadata.variant
 			source_package.tags = aggregate_tags(container.tags)
 			source_package.binary_packages = self._parse_tinfoilhat_packages(container.packages)
-			if self.add_details:
-				source_package.metadata = self._parse_tinfoilhat_metadata(container.recipe.metadata)
+			source_package.metadata = container.recipe.metadata
 
 	@staticmethod
-	def execute(pool: Pool, add_details, add_missing, glob_name: str = "*", glob_version: str = "*") -> None:
+	def execute(pool: Pool, add_missing, glob_name: str = "*", glob_version: str = "*") -> None:
 
-		result_path = pool.relpath("stats")
+		result_path = pool.relpath(Settings.PATH_STT)
 		pool.mkdir(result_path)
 		result_file = 'report.harvest.json'
 		output = os.path.join(result_path, result_file)
 
 		files = []
 		for supp in Harvest.SUPPORTED_FILES:
-			for fn in pool.absglob(f"userland/{glob_name}/{glob_version}/*{supp}"):
+			for fn in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*{supp}"):
 				files.append(str(fn))
 
 		tfh = Harvest(
 			pool,
 			files,
 			output,
-			add_details,
 			add_missing
 		)
 		tfh.readfile()
 
 		tfh.write_results()
-		logger.info(f'Results written to {pool.abspath(output)}.')
+		logger.info(f'Results written to {pool.clnpath(output)}.')
 		if Settings.PRINTRESULT:
 			print(json.dumps(tfh.result, indent=2))

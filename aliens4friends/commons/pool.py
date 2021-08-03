@@ -50,7 +50,7 @@ class Pool:
 	def clnpath(self, path: Union[Path, str]) -> str:
 		if isinstance(path, Path):
 			path = os.path.join(path)
-		if path.startswith(self.basepath):
+		if path.startswith(f"{self.basepath}/"):
 			return path[len(self.basepath) + 1:]
 
 		if path.startswith(os.path.sep):
@@ -71,6 +71,11 @@ class Pool:
 
 	def abspath(self, *sub_folders: str) -> str:
 		if sub_folders:
+			if sub_folders[0].startswith(os.path.sep):
+				path = os.path.join(*sub_folders)
+				if not path.startswith(f"{self.basepath}/"):
+					raise PoolError(f'Path {path} is outside the pool!')
+				return path
 			return os.path.join(
 				self.basepath,
 				self.relpath(*sub_folders)
@@ -289,4 +294,4 @@ class Pool:
 		else:
 			logger.debug(f"{debug_prefix}Extracting archive {archive_relpath} to {dest_in_pool}")
 			archive.extract(dest_abspath)
-
+		return dest_in_pool

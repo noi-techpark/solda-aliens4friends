@@ -27,7 +27,7 @@ services:
             POSTGRES_USER: fossy
             POSTGRES_PASSWORD: fossy
         volumes:
-            - ./fossydb/:/var/lib/postgresql/data/
+            - ../fossydb/:/var/lib/postgresql/data/
         ports:
             - 5555:5432
     toolchain:

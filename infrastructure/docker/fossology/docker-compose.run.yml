@@ -1,0 +1,12 @@
+version: "3.4"
+
+services:
+  fossology:
+    image: ${DOCKER_FOSSOLOGY_IMAGE}:${DOCKER_TAG}
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - /build/shared_fossy_testing/fossology:/srv/fossology
+    ports:
+      - "${FOSSOLOGY_SERVER_PORT}:80"

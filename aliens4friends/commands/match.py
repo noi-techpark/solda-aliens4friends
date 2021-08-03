@@ -114,7 +114,7 @@ class AlienMatcher:
 		# FIXME add control if cached copy is outdated
 		logger.debug(f"Search cache pool for existing API response.")
 		try:
-			response = pool.get(api_response_cached)
+			response = pool.get_json(api_response_cached)
 			logger.debug(f"API call result found in cache at {api_response_cached}.")
 		except FileNotFoundError:
 			logger.debug(f"API call result not found in cache. Making an API call...")
@@ -123,9 +123,7 @@ class AlienMatcher:
 				raise AlienMatcherError(
 					f"Cannot get API response, got error {response.status_code}"
 					f" from {AlienMatcher.API_URL_ALLSRC}")
-			# open absolute path for os compatibility
-			with open(Settings.POOLPATH + "/" + api_response_cached, "w") as f:
-				f.write(response.text)
+			pool.write_json(response.text, api_response_cached)
 			response = response.text
 		return json.loads(response)
 
