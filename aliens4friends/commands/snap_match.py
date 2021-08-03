@@ -254,6 +254,7 @@ class AlienSnapMatcher:
 		# TODO: normalized distance as score
 		return res
 
+	@staticmethod
 	def loadSources() -> None:
 		if 'SNAP_ALL_SOURCES' not in globals():
 			global SNAP_ALL_SOURCES
