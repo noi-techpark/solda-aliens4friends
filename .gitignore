@@ -10,3 +10,13 @@ __pycache__
 /fossydb
 PEMOSER.md
 /files
+
+*.egg-info
+*.pyi
+dist/
+
+infrastructure/utils/*
+!infrastructure/utils/spdxtool-wrapper
+!infrastructure/utils/scancode-wrapper
+!infrastructure/utils/yoctobuilder.py
+!infrastructure/utils/yoctobuilder.yml
