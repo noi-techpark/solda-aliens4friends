@@ -97,6 +97,8 @@ class AlienMatcher:
 			global DEB_ALL_SOURCES
 			DEB_ALL_SOURCES = AlienMatcher.get_deb_all_sources()
 
+		logging.getLogger("urllib3").setLevel(logging.WARNING)
+
 	def _reset(self) -> None:
 		self.errors = []
 

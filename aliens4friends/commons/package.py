@@ -137,6 +137,12 @@ class AlienPackage(Package):
 		self.expanded = True
 		checksums = self.archive.checksums("files/")
 
+		if len(checksums) != len(self.package_files):
+			raise PackageError(
+				"We do not have the same number of archive-files and checksums"
+				f" inside {self.ALIEN_MATCHER_JSON} of package {self.name}-{self.version.str}"
+			)
+
 		self.internal_archive_name = None
 		self.internal_archive_checksums = None
 		self.internal_archive_rootfolder = None
