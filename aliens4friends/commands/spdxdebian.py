@@ -39,7 +39,7 @@ from spdx.writers.tagvalue import write_document
 
 from flanker.addresslib import address as email_address
 
-from aliens4friends.commons.utils import bash, md5, log_minimal_error
+from aliens4friends.commons.utils import bash, md5, log_minimal_error, debug_with_stacktrace
 from aliens4friends.commons.archive import Archive
 
 from aliens4friends.commons.pool import Pool

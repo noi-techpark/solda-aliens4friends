@@ -194,7 +194,7 @@ class Harvest:
 	@staticmethod
 	def _create_source_package(
 		package_id: str,
-		group: Dict[str, str],
+		group: Dict[str, Any],
 		cur_package_inputs: List[str]
 	) -> SourcePackage:
 		source_package = SourcePackage(package_id)

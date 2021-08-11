@@ -6,8 +6,9 @@ import logging
 import copy
 import csv
 import time
-
 import numpy
+
+from pathlib import Path
 
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.settings import Settings
@@ -90,7 +91,7 @@ class AlienSnapMatcher:
 		return json.loads(response)
 
 	# name & version-match for debian packages.
-	def match(self, apkg: AlienPackage) -> AlienSnapMatcherModel:
+	def match(self, apkg: AlienPackage) -> List[Union[int, str]]:
 
 		int_arch_count = apkg.internal_archive_count()
 		if int_arch_count > 1:
@@ -190,8 +191,8 @@ class AlienSnapMatcher:
 			results.append(distance)
 
 			results.append(snap_match.score)
-			results.append(snap_match.package_score_ident)
-			results.append(snap_match.version_score_ident)
+			results.append(snap_match.package_score)
+			results.append(snap_match.version_score)
 
 		else:
 			results.append('-')
@@ -222,16 +223,27 @@ class AlienSnapMatcher:
 			for binary in hashes["result"]["binaries"]:
 				for file in binary["files"]:
 					info = self.get_file_info(file["hash"])
-					source = SourceFile(info["name"], file["hash"], AlienSnapMatcher.API_URL_FILES + file["hash"], False, [info["path"]])
+					source = SourceFile(
+						name=info["name"],
+						sha1_cksum=file["hash"],
+						src_uri=AlienSnapMatcher.API_URL_FILES + file["hash"],
+						paths=[info["path"]]
+					)
 					file_links.append(source)
 		else:
 			for file in hashes["result"]["source"]:
 				info = self.get_file_info(file["hash"])
-				source = SourceFile(info["name"], file["hash"], AlienSnapMatcher.API_URL_FILES + file["hash"], False, [info["path"]])
+				source = SourceFile(
+					name=info["name"],
+					sha1_cksum=file["hash"],
+					src_uri=AlienSnapMatcher.API_URL_FILES + file["hash"],
+					paths=[info["path"]]
+				)
 				file_links.append(source)
 
 		return file_links
 
+	@staticmethod
 	def clearDiff():
 		pool = Pool(Settings.POOLPATH)
 
@@ -244,7 +256,7 @@ class AlienSnapMatcher:
 			csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "match status", "version match distance", "name snapmatch", "version snapmatch", "snapmatch status", "version snapmatch distance", "snapscore", "package match info", "version match info"])
 
-	def run(self, package_path: str) -> Optional[AlienSnapMatcherModel]:
+	def run(self, package_path: Union[str, Path]) -> Optional[AlienSnapMatcherModel]:
 		try:
 			package = AlienPackage(package_path)
 
@@ -389,6 +401,7 @@ class AlienSnapMatcher:
 		# TODO: normalized distance as score
 		return res
 
+	@staticmethod
 	def loadSources() -> None:
 		if 'SNAP_ALL_SOURCES' not in globals():
 			global SNAP_ALL_SOURCES
@@ -422,5 +435,5 @@ class AlienSnapMatcher:
 			)
 
 	@staticmethod
-	def _execute(path: str) -> None:
+	def _execute(path: Union[str, Path]) -> Optional[AlienSnapMatcherModel]:
 		return AlienSnapMatcher().run(path)

@@ -454,5 +454,5 @@ class AlienMatcher:
 			)
 
 	@staticmethod
-	def _execute(path: str) -> None:
+	def _execute(path: str) -> Optional[AlienMatcherModel]:
 		return AlienMatcher().run(path)

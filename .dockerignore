@@ -2,9 +2,10 @@
 # SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
 
 __pycache__
-/tmp
-.vscode
 .env
+.git
 .pytype
+.vscode
 /build
 /fossydb
+/tmp

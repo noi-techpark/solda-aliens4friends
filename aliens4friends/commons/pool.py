@@ -3,10 +3,11 @@
 
 import os
 import logging
+from enum import IntEnum
 from json import dump as jsondump, load as jsonload
 from pathlib import Path
 from shutil import rmtree
-from typing import Generator, Any, Union, List, Type
+from typing import Generator, Any, Union, List, Type, Tuple
 from datetime import datetime
 
 from spdx.document import Document as SPDXDocument
@@ -20,13 +21,13 @@ from aliens4friends.commons.spdxutils import write_spdx_tv
 
 logger = logging.getLogger(__name__)
 
-class SRCTYPE:
+class SRCTYPE(IntEnum):
 	JSON = 0
 	TEXT = 1
 	PATH = 2
 	SPDX = 3
 
-class OVERWRITE:
+class OVERWRITE(IntEnum):
 	CACHE_SETTING = 0
 	ALWAYS = 1
 	RAISE = 2
@@ -108,7 +109,7 @@ class Pool:
 		link_filename: str,
 		history_prefix: str,
 		src_type: SRCTYPE
-	) -> str:
+	) -> None:
 		history_filename = history_prefix + link_filename
 		history_path = os.path.join(dir_in_pool, "history")
 		self._add(src, history_path, history_filename, src_type, OVERWRITE.RAISE)
@@ -174,13 +175,13 @@ class Pool:
 			model = type(src)
 			old = model.from_file(dest_full)
 			new = src
-			to_add = model.merge(old, new)
+			to_add = model.merge(old, new) # type: ignore
 		self._add(src, history_path, history_filename, SRCTYPE.JSON, OVERWRITE.RAISE)
 		self._add(to_add, dir_in_pool, filename, SRCTYPE.JSON, OVERWRITE.ALWAYS)
 		return dir_in_pool
 
 
-	def _splitpath(self, *path_args: str) -> [str, str]:
+	def _splitpath(self, *path_args: str) -> Tuple[str, str]:
 		relpath = self.relpath(*path_args)
 		return os.path.dirname(relpath), os.path.basename(relpath)
 
@@ -190,22 +191,22 @@ class Pool:
 		filepath = self.relpath(*path_args)
 		return self._add(src, filepath, filename, SRCTYPE.PATH)
 
-	def add_with_history(self, src: str, history_prefix: str, *path_args: str) -> str:
+	def add_with_history(self, src: str, history_prefix: str, *path_args: str) -> None:
 		filename = os.path.basename(src)
 		filepath = self.relpath(*path_args)
-		return self._add_with_history(src, filepath, filename, history_prefix, SRCTYPE.PATH)
+		self._add_with_history(src, filepath, filename, history_prefix, SRCTYPE.PATH)
 
-	def write_with_history(self, contents: bytes, history_prefix: str, *path_args: str) -> str:
+	def write_with_history(self, contents: bytes, history_prefix: str, *path_args: str) -> None:
 		filepath, filename = self._splitpath(*path_args)
-		return self._add_with_history(contents, filepath, filename, history_prefix, SRCTYPE.TEXT)
+		self._add_with_history(contents, filepath, filename, history_prefix, SRCTYPE.TEXT)
 
 	def write(self, contents: bytes, *path_args: str) -> str:
 		filepath, filename = self._splitpath(*path_args)
 		return self._add(contents, filepath, filename, SRCTYPE.TEXT)
 
-	def write_json_with_history(self, contents: Any, history_prefix: str, *path_args: str) -> str:
+	def write_json_with_history(self, contents: Any, history_prefix: str, *path_args: str) -> None:
 		filepath, filename = self._splitpath(*path_args)
-		return self._add_with_history(contents, filepath, filename, history_prefix, SRCTYPE.JSON)
+		self._add_with_history(contents, filepath, filename, history_prefix, SRCTYPE.JSON)
 
 	def merge_json_with_history(self, contents: BaseModel, filename: str, history_prefix: str, *path_args: str) -> str:
 		filepath = self.relpath(*path_args)
@@ -215,9 +216,9 @@ class Pool:
 		filepath, filename = self._splitpath(*path_args)
 		return self._add(contents, filepath, filename, SRCTYPE.JSON)
 
-	def write_spdx_with_history(self, spdx_doc_obj: SPDXDocument, history_prefix: str, *path_args: str) -> str:
+	def write_spdx_with_history(self, spdx_doc_obj: SPDXDocument, history_prefix: str, *path_args: str) -> None:
 		filepath, filename = self._splitpath(*path_args)
-		return self._add_with_history(spdx_doc_obj, filepath, filename, history_prefix, SRCTYPE.SPDX)
+		self._add_with_history(spdx_doc_obj, filepath, filename, history_prefix, SRCTYPE.SPDX)
 
 	def write_spdx(self, spdx_doc_obj: SPDXDocument, *path_args: str) -> str:
 		filepath, filename = self._splitpath(*path_args)

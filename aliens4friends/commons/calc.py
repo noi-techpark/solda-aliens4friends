@@ -86,11 +86,11 @@ class Calc:
 		return 0
 
 	@staticmethod
-	def version_score_ident(score) -> int:
+	def version_score_ident(score) -> str:
 		return Calc.VSCORES["s" + str(score)]
 
 	@staticmethod
-	def package_score_ident(score) -> int:
+	def package_score_ident(score) -> str:
 		return Calc.SCORES["s" + str(score)]
 
 	@staticmethod

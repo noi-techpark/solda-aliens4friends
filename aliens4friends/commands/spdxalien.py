@@ -172,7 +172,7 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 		self.set_package_and_document_metadata()
 
 
-	def calc_proximity(self):
+	def calc_proximity(self) -> None:
 		s = self.deltacodeng_results.header.stats
 		similar = (
 			s.same_files
@@ -185,7 +185,7 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 			s.changed_files_with_changed_copyright_or_license
 			+ s.new_files_with_license_or_copyright
 		)
-		self.proximity = similar / (similar + different)
+		self.proximity = int(similar / (similar + different))
 		# excluding deleted files and new files with no license/copyright from
 		# the count, on purpose, because here the need is to have  a criterion
 		# to decide whether to apply debian/copyright metadata to the

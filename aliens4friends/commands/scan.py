@@ -48,7 +48,7 @@ class Scancode:
 		return scancode_result
 
 
-	def run_scancode(self, archive_unpacked_relpath: str, scancode_result: str) -> str:
+	def run_scancode(self, archive_unpacked_relpath: str, scancode_result: str) -> None:
 
 		# FIXME should only run once per host machine (during config maybe)
 		out, _ = bash('grep "cpu cores" /proc/cpuinfo | uniq | cut -d" " -f3')

@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 import difflib
 from multiprocessing import Pool as MultiProcessingPool
-from typing import List, Dict, Any, Generator
+from typing import List, Dict, Any, Generator, Optional
 from pathlib import Path
 
 from deepdiff import DeepDiff
@@ -166,7 +166,7 @@ class DeltaCodeNG:
 		if findings_diff.get("type_changes"):
 			del findings_diff["type_changes"]
 
-	def compare(self) -> dict:
+	def compare(self) -> DeltaCodeModel:
 		moved = []
 		for path in self.old:
 			sha1 = self.old[path]['sha1']
@@ -253,7 +253,7 @@ class DeltaCodeNG:
 			)
 
 	@staticmethod
-	def _execute(path: Path) -> None:
+	def _execute(path: Path) -> Optional[str]:
 		pool = Pool(Settings.POOLPATH)
 		package = f"{path.parts[-3]}-{path.parts[-2]}"
 		relpath = pool.clnpath(path)
