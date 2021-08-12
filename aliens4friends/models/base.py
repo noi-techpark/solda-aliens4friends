@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -132,7 +132,7 @@ class DictModel(BaseModel):
 
 	def __init__(
 		self,
-		container: dict = None
+		container: Optional[dict] = None
 	):
 		self._container: Dict[str, Any] = self.decode(container) if container else {}
 

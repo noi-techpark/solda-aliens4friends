@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 import os
 import sys
@@ -29,7 +29,7 @@ class Package:
 		self,
 		name : Union[str, List[str]],
 		version : Union[str, Version],
-		archive_fullpath: str = None
+		archive_fullpath: Optional[str] = None
 	) -> None:
 		if isinstance(name, list):
 			self.alternative_names = name[1:]
@@ -78,7 +78,7 @@ class DebianPackage(Package):
 		version: Union[str, Version],
 		debsrc_orig: str,
 		debsrc_debian: str,
-		dsc_format: str = None
+		dsc_format: Optional[str] = None
 	) -> None:
 
 		if dsc_format and dsc_format not in self.SUPPORTED_DSC_FORMATS:

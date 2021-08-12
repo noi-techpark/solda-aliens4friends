@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
+#
+# SPDX-License-Identifier: Apache-2.0
+
 from aliens4friends.models.base import BaseModel
 from aliens4friends.models.aliensrc import AlienSrc
 

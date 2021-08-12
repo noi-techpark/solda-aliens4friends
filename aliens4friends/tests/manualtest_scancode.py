@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 import os
 from pathlib import Path
 import json
 
-from aliens4friends.scancode import Scancode
+from aliens4friends.commands.scan import Scancode
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.archive import Archive
 

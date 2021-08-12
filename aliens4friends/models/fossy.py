@@ -1,9 +1,9 @@
-# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 from .base import BaseModel
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 class FossySummary(BaseModel):
 	def __init__(
@@ -16,9 +16,9 @@ class FossySummary(BaseModel):
 		filesToBeCleared: int = 0,
 		filesCleared: int = 0,
 		copyrightCount: int = 0,
-		clearingStatus: str = None,
-		uploadName: str = None,
-		mainLicense: str = None
+		clearingStatus: Optional[str] = None,
+		uploadName: Optional[str] = None,
+		mainLicense: Optional[str] = None
 	):
 		self.id = id
 		self.uniqueLicenses = uniqueLicenses
@@ -35,9 +35,9 @@ class FossySummary(BaseModel):
 class FossyLicenseFinding(BaseModel):
 	def __init__(
 		self,
-		filePath: str = None,
-		agentFindings: List[str] = None,
-		conclusions: List[str] = None
+		filePath: Optional[str] = None,
+		agentFindings: Optional[List[str]] = None,
+		conclusions: Optional[List[str]] = None
 	):
 		self.filePath = filePath
 		self.agentFindings = agentFindings
@@ -47,10 +47,10 @@ class FossyLicenseFinding(BaseModel):
 class FossyModel(BaseModel):
 	def __init__(
 		self,
-		origin: str = None,
-		metadata: Dict[str, str] = None,
-		summary: FossySummary = None,
-		licenses: List[FossyLicenseFinding] = None
+		origin: Optional[str] = None,
+		metadata: Optional[Dict[str, str]] = None,
+		summary: Optional[FossySummary] = None,
+		licenses: Optional[List[FossyLicenseFinding]] = None
 	):
 		self.origin = origin
 		self.metadata = metadata

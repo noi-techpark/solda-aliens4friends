@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 import os
 import re
@@ -27,7 +27,7 @@ class Scancode:
 		super().__init__()
 		self.pool = pool
 
-	def run(self, archive: Archive, package_name: str, package_version_str: str, archive_in_archive: str = None) -> Optional[str]:
+	def run(self, archive: Archive, package_name: str, package_version_str: str, archive_in_archive: Optional[str] = None) -> Optional[str]:
 		self.curpkg = f"{package_name}-{package_version_str}"
 		result_filename = f"{package_name}-{package_version_str}.scancode.json"
 		scancode_result = os.path.join(

@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 import os
-from aliens4friends.alienmatcher import AlienMatcher, AlienMatcherError
+from aliens4friends.commands.match import AlienMatcher, AlienMatcherError
 from aliens4friends.commons.package import PackageError, Package, DebianPackage
 
 IGNORE_CACHE = True
@@ -52,3 +52,4 @@ def test_list():
 
 	for p in packages:
 		matcher.run(os.path.join(path, p))
+

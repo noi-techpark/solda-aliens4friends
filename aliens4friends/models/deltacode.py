@@ -1,10 +1,10 @@
-# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 from .base import BaseModel
 from .common import Tool
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from deepdiff import DeepDiff
 
@@ -20,16 +20,16 @@ class MovedFile(BaseModel):
 class Body(BaseModel):
 	def __init__(
 		self,
-		same_files: List[str] = None,
-		moved_files: List[MovedFile] = None,
-		changed_files_with_no_license_and_copyright: List[str] = None,
-		changed_files_with_same_copyright_and_license: List[str] = None,
-		changed_files_with_updated_copyright_year_only: Dict[str, DeepDiff] = None,
-		changed_files_with_changed_copyright_or_license: Dict[str, DeepDiff] = None,
-		deleted_files_with_no_license_and_copyright: List[str] = None,
-		deleted_files_with_license_or_copyright: List[str] = None,
-		new_files_with_no_license_and_copyright: List[str] = None,
-		new_files_with_license_or_copyright: List[str] = None
+		same_files: Optional[List[str]] = None,
+		moved_files: Optional[List[MovedFile]] = None,
+		changed_files_with_no_license_and_copyright: Optional[List[str]] = None,
+		changed_files_with_same_copyright_and_license: Optional[List[str]] = None,
+		changed_files_with_updated_copyright_year_only: Optional[Dict[str, DeepDiff]] = None,
+		changed_files_with_changed_copyright_or_license: Optional[Dict[str, DeepDiff]] = None,
+		deleted_files_with_no_license_and_copyright: Optional[List[str]] = None,
+		deleted_files_with_license_or_copyright: Optional[List[str]] = None,
+		new_files_with_no_license_and_copyright: Optional[List[str]] = None,
+		new_files_with_license_or_copyright: Optional[List[str]] = None
 	):
 		self.same_files = same_files or []
 		self.moved_files = moved_files or []
@@ -75,8 +75,8 @@ class Stats(BaseModel):
 class Compared(BaseModel):
 	def __init__(
 		self,
-		old_scan_out_file: str = None,
-		new_scan_out_file: str = None
+		old_scan_out_file: Optional[str] = None,
+		new_scan_out_file: Optional[str] = None
 	):
 		self.old_scan_out_file = old_scan_out_file
 		self.new_scan_out_file = new_scan_out_file
@@ -84,8 +84,8 @@ class Compared(BaseModel):
 class Header(BaseModel):
 	def __init__(
 		self,
-		compared_json_files: Compared = None,
-		stats: Stats = None
+		compared_json_files: Optional[Compared] = None,
+		stats: Optional[Stats] = None
 	):
 		self.compared_json_files = Compared.decode(compared_json_files)
 		self.stats = Stats.decode(stats)
@@ -93,9 +93,9 @@ class Header(BaseModel):
 class DeltaCodeModel(BaseModel):
 	def __init__(
 		self,
-		tool: Tool = None,
-		header: Header = None,
-		body: Body = None
+		tool: Optional[Tool] = None,
+		header: Optional[Header] = None,
+		body: Optional[Body] = None
 	):
 		self.tool = Tool.decode(tool)
 		self.header = Header.decode(header)

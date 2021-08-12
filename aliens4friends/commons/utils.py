@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: Apache-2.0
-# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 import subprocess
 from datetime import datetime
@@ -9,11 +9,11 @@ import requests
 import hashlib
 import logging
 import traceback
-from typing import List, Tuple, Type, Dict, Union, NoReturn
+from typing import List, Tuple, Type, Dict, Union, NoReturn, Optional
 
 def bash(
 	command: str,
-	cwd: str = None,
+	cwd: Optional[str] = None,
 	exception: Type[Exception] = Exception
 ) -> Tuple[str, str]:
 	"""Run a command in bash shell, and return stdout and stderr
@@ -42,7 +42,7 @@ def bash(
 
 def bash_live(
 	command: str,
-	cwd: str = None,
+	cwd: Optional[str] = None,
 	exception: Type[Exception] = Exception,
 	prefix: str = ""
 ) -> None:
@@ -107,7 +107,7 @@ def md5(string: str) -> str:
 def sha1sum_str(string):
     return hashlib.sha1(string.encode('utf-8')).hexdigest()
 
-def get_prefix_formatted(date_time: datetime = None) -> str:
+def get_prefix_formatted(date_time: Optional[datetime] = None) -> str:
 	date_time = date_time or datetime.now()
 	return date_time.strftime("%Y%m%d-%H%M%S_")
 

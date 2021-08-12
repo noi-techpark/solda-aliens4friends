@@ -1,249 +1,59 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# Copyright 2021 Peter Moser <p.moser@noi.bz.it>
+# Copyright 2021 NOI Techpark <info@noi.bz.it>
 
 
 # see https://docs.gitlab.com/ee/ci/yaml/README.html for all available options
 
 stages:
+  - test
   - dockerize
-  - prepare
-  - build
-  - tinfoilhat
-  - aliensrc
-  - aliens4friends
 
-variables:
-  PROJECT: allscenarios
-  MANIFEST_URL: https://git.ostc-eu.org/OSTC/OHOS/manifest.git
-  BRANCH: refs/tags/v1.0.0-alpha
-  YOCTOBUILD: |
-    version: 1
-    repo:
-      url: $MANIFEST_URL
-      branch: $BRANCH
-    cache_dir: /build/common
-    flavours:
-      linux:
-        machines:
-          - qemux86-64
-          - qemux86
-          - seco-intel-b68
-          - stm32mp1-av96
-          - seco-imx8mm-c61
-          - raspberrypi4-64
-        images:
-          - allscenarios-image-base
-          - allscenarios-image-base-tests
-          - allscenarios-image-extra
-          - allscenarios-image-extra-tests
-        configs:
-          _all:
-            - INHERIT += "cve-check"
-          seco-intel-b68:
-            - CONFIG_SERIAL_OF_PLATFORM = "y"
-          seco-imx8mm-c61:
-            - ACCEPT_FSL_EULA = "1"
-      zephyr:
-        machines:
-          - qemu-x86
-          - qemu-cortex-m3
-          - 96b-nitrogen
-          - 96b-avenger96
-          - nrf52840dk-nrf52840
-          - arduino-nano-33-ble
-        images:
-          - zephyr-philosophers
-        configs:
-          _all:
-            - INHERIT += "cve-check"
-      freertos:
-        machines:
-          - qemuarmv5
-        images:
-          - freertos-demo
-        configs:
-          _all:
-            - INHERIT += "cve-check"
+include:
+ - project: 'OSTC/infrastructure/pipelines'
+   file: 'reuse.yaml'
 
-default:
-  image: registry.ostc-eu.org/oss-compliance/toolchain/aliens4friends/yoctobuild:latest
-  timeout: 5h
-  tags:
-    - soldademo
-    - docker
+pytype:
+  stage: test
+  tags: [ soldademo, docker ]
+  image: python:3.8
+  script:
+    - pip install pytype setuptools wheel
+    - pip install .
+    - python -c "from flanker.addresslib import address" >/dev/null 2>&1
+    - pytype aliens4friends
 
-dockerize toolchain:
+reuse:
+  tags: [ soldademo, docker ]
+  stage: test
+  extends: .reuse
+
+.dockerize:
+  tags: [ soldademo, docker ]
   stage: dockerize
   image: docker:20.10
-  variables:
-    CI_REGISTRY_IMAGE: $CI_REGISTRY/oss-compliance/toolchain/aliens4friends/toolchain
   only:
-    - gitlabci
+    - master
+  variables:
+    CI_REGISTRY_BASE: $CI_REGISTRY/oss-compliance/toolchain/aliens4friends
   script:
+    - CI_REGISTRY_IMAGE=$CI_REGISTRY_BASE/$REGISTRY_NAME
     - echo -n $CI_REGISTRY_PASSWORD | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
     - docker pull $CI_REGISTRY_IMAGE:latest || true
-    - docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest . -f infrastructure/docker/toolchain.dockerfile
+    - docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest . -f $DOCKERFILE
     - docker push $CI_REGISTRY_IMAGE:latest
+  needs:
+    - pytype
+    - reuse
+
+dockerize toolchain:
+  extends: .dockerize
+  variables:
+    REGISTRY_NAME: toolchain
+    DOCKERFILE: infrastructure/docker/toolchain.dockerfile
 
 dockerize yoctobuild:
-  stage: dockerize
-  image: docker:20.10
+  extends: .dockerize
   variables:
-      CI_REGISTRY_IMAGE: $CI_REGISTRY/oss-compliance/toolchain/aliens4friends/yoctobuild
-  only:
-      - gitlabci
-  script:
-      - echo -n $CI_REGISTRY_PASSWORD | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
-      - docker pull $CI_REGISTRY_IMAGE:latest || true
-      - docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest . -f infrastructure/docker/yoctobuild.dockerfile
-      - docker push $CI_REGISTRY_IMAGE:latest
-
-prepare:
-  stage: prepare
-  script:
-    - cd $(mktemp -d)
-    - repo init -u $MANIFEST_URL -b $BRANCH
-    - cd .repo/manifests; RELEASE=$(git describe --tags --always); cd -
-    - echo "RELEASE=$RELEASE" > $CI_PROJECT_DIR/yoctobuild.env
-    # - echo "RELEASE=v1.0.0-alpha-10-g4684601" > $CI_PROJECT_DIR/yoctobuild.env
-    - mkdir -p /build/$PROJECT/$RELEASE
-  artifacts:
-    reports:
-      dotenv: yoctobuild.env
-
-yoctobuild:
-  stage: build
-  timeout: 120h
-  # when: manual
-  script:
-    - |
-      WORKDIR="/build/$PROJECT/$RELEASE"
-      echo "PROJECT = $PROJECT; RELEASE = $RELEASE; WORKDIR = $WORKDIR"
-      cd $WORKDIR
-      echo "$YOCTOBUILD" > yoctobuilder.yml
-    - yoctobuilder
-  dependencies:
-    - prepare
-
-tinfoilhat:
-  stage: tinfoilhat
-  timeout: 10h
-  script: |
-    WORKDIR="/build/$PROJECT/$RELEASE"
-    echo "PROJECT = $PROJECT; RELEASE = $RELEASE; WORKDIR = $WORKDIR"
-    if [ -f "$WORKDIR/.success-tinfoilhat" ]; then
-        echo "$WORKDIR/tinfoilhat already done."
-    else
-        mkdir -p "$WORKDIR/tinfoilhat"
-        export PYTHONPATH=$WORKDIR/sources/poky/bitbake/lib
-        tinfoilhat "$WORKDIR/tinfoilhat" "$PROJECT" "$RELEASE" "$WORKDIR/linux-*" "$WORKDIR/zephyr-*" "$WORKDIR/freertos-*"
-        touch $WORKDIR/.success-tinfoilhat
-    fi
-  dependencies:
-    - prepare
-
-aliensrc:
-  stage: aliensrc
-  script: |
-    WORKDIR="/build/$PROJECT/$RELEASE"
-    echo "PROJECT = $PROJECT; RELEASE = $RELEASE; WORKDIR = $WORKDIR"
-    if [ -f "$WORKDIR/.success-aliensrc" ]; then
-        echo "$WORKDIR/aliensrc already done."
-    else
-        mkdir -p "$WORKDIR/aliensrc"
-        aliensrc_creator "$WORKDIR/aliensrc" "$WORKDIR/tinfoilhat"
-        touch $WORKDIR/.success-aliensrc
-    fi
-  dependencies:
-    - prepare
-
-aliens4friends:
-  stage: aliens4friends
-  image: registry.ostc-eu.org/oss-compliance/toolchain/aliens4friends/toolchain:latest
-  timeout: 120h
-  tags:
-    - soldademo
-    - docker
-  variables:
-    POOL_PATH: "/build/common/a4fpool"
-  script:
-    - WORKDIR="/build/$PROJECT/$RELEASE"
-    - echo "PROJECT = $PROJECT; RELEASE = $RELEASE; WORKDIR = $WORKDIR"
-    - cd $HOME
-    - |
-        echo "A4F_POOL=$POOL_PATH" >> .env
-        echo "A4F_LOGLEVEL=INFO" >> .env
-        echo "A4F_CACHE=true" >> .env
-        echo "A4F_SCANCODE=native" >> .env
-        echo "FOSSY_USER=fossy" >> .env
-        echo "FOSSY_PASSWORD=fossy" >> .env
-        echo "FOSSY_GROUP_ID=3" >> .env
-        echo "FOSSY_SERVER=https://fossology.solda.testingmachine.eu" >> .env
-    - |
-        if [ -f "$WORKDIR/.success-a4f-add" ]; then
-            echo "a4f add... already done."
-        else
-            a4f add $WORKDIR/tinfoilhat/*
-            a4f add $WORKDIR/aliensrc/*
-            touch $WORKDIR/.success-a4f-add
-        fi
-    - |
-        if [ -f "$WORKDIR/.success-a4f-match" ]; then
-            echo "a4f match... already done."
-        else
-            a4f match
-            touch $WORKDIR/.success-a4f-match
-        fi
-    - |
-        if [ -f "$WORKDIR/.success-a4f-scan" ]; then
-            echo "a4f scan... already done."
-        else
-            a4f scan
-            touch $WORKDIR/.success-a4f-scan
-        fi
-    - |
-        if [ -f "$WORKDIR/.success-a4f-delta" ]; then
-            echo "a4f delta... already done."
-        else
-            a4f delta
-            touch $WORKDIR/.success-a4f-delta
-        fi
-    - |
-        if [ -f "$WORKDIR/.success-a4f-spdxdebian" ]; then
-            echo "a4f spdxdebian... already done."
-        else
-            a4f spdxdebian
-            touch $WORKDIR/.success-a4f-spdxdebian
-        fi
-    - |
-        if [ -f "$WORKDIR/.success-a4f-spdxalien" ]; then
-            echo "a4f spdxalien... already done."
-        else
-            a4f spdxalien
-            touch $WORKDIR/.success-a4f-spdxalien
-        fi
-    - |
-        if [ -f "$WORKDIR/.success-a4f-upload" ]; then
-            echo "a4f upload... already done."
-        else
-            a4f upload --folder TEST
-            touch $WORKDIR/.success-a4f-upload
-        fi
-    - |
-        if [ -f "$WORKDIR/.success-a4f-fossy" ]; then
-            echo "a4f fossy... already done."
-        else
-            a4f fossy
-            touch $WORKDIR/.success-a4f-fossy
-        fi
-    - |
-        if [ -f "$WORKDIR/.success-a4f-harvest" ]; then
-            echo "a4f harvest... already done."
-        else
-            a4f harvest
-            touch $WORKDIR/.success-a4f-harvest
-        fi
-
-  dependencies:
-    - prepare
+    REGISTRY_NAME: yoctobuild
+    DOCKERFILE: infrastructure/docker/yoctobuild.dockerfile

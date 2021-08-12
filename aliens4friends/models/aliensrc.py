@@ -1,10 +1,10 @@
-# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 from .base import BaseModel
 from .common import SourceFile
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 class InternalArchive(BaseModel):
 	"""
@@ -12,11 +12,11 @@ class InternalArchive(BaseModel):
 	"""
 	def __init__(
 		self,
-		name: str = None,
-		checksums: Dict[str, str] = None,
-		rootfolder: str = None,
-		src_uri: str = None,
-		paths: List[str] = None
+		name: Optional[str] = None,
+		checksums: Optional[Dict[str, str]] = None,
+		rootfolder: Optional[str] = None,
+		src_uri: Optional[str] = None,
+		paths: Optional[List[str]] = None
 	):
 		self.name = name
 		self.checksums = checksums
@@ -27,13 +27,13 @@ class InternalArchive(BaseModel):
 class SourcePackage(BaseModel):
 	def __init__(
 		self,
-		name: List[str] = None,
-		version: str = None,
-		manager: str = None,
-		metadata: Dict[str, Any] = None,
-		cve_metadata: Dict[str, Any] = None,
-		files: List[SourceFile] = None,
-		tags: List[str] = None
+		name: Optional[List[str]] = None,
+		version: Optional[str] = None,
+		manager: Optional[str] = None,
+		metadata: Optional[Dict[str, Any]] = None,
+		cve_metadata: Optional[Dict[str, Any]] = None,
+		files: Optional[List[SourceFile]] = None,
+		tags: Optional[List[str]] = None
 	):
 		self.name = name
 		self.version = version
@@ -46,7 +46,7 @@ class AlienSrc(BaseModel):
 	def __init__(
 		self,
 		version: int = 0,
-		source_package: SourcePackage = None
+		source_package: Optional[SourcePackage] = None
 	):
 		self.version = version
 		self.source_package = SourcePackage.decode(source_package)

@@ -15,7 +15,7 @@ import json
 import logging
 import tempfile
 from uuid import uuid4
-from typing import List, Tuple, Type, Dict, Union
+from typing import List, Tuple, Type, Dict, Union, Optional
 from multiprocessing import Pool as MultiProcessingPool
 
 from debian.copyright import Copyright as DebCopyright
@@ -212,7 +212,7 @@ class Debian2SPDX:
 	:raises Debian2SPDXException: if any error occurs during data processing
 	"""
 
-	def __init__(self, debsrc_orig: str, debsrc_debian: str = None) -> None:
+	def __init__(self, debsrc_orig: str, debsrc_debian: Optional[str] = None) -> None:
 		self.debarchive_orig = Archive(debsrc_orig)
 		if debsrc_debian:
 			self.native_rootdir = ''
@@ -433,7 +433,7 @@ class Debian2SPDX:
 		self.create_spdx_package()
 		self.create_spdx_document()
 
-	def write_SPDX(self, filename: str = None) -> None:
+	def write_SPDX(self, filename: Optional[str] = None) -> None:
 		"""write SPDX Document object to file (in tagvalue format)"""
 		filename = filename or f"{self.spdx_doc.name}.spdx"
 		with open(filename, "w") as f:

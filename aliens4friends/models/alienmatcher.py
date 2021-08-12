@@ -1,15 +1,15 @@
-# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 from .base import BaseModel
 from .common import Tool, SourceFile
-from typing import List
+from typing import List, Optional
 
 class VersionCandidate(BaseModel):
 	def __init__(
 		self,
-		version: str = None,
+		version: Optional[str] = None,
 		distance: int = -1,
 		is_aliensrc: bool = False
 	):
@@ -21,12 +21,12 @@ class VersionCandidate(BaseModel):
 class DebianMatch(BaseModel):
 	def __init__(
 		self,
-		name: str = None,
-		version: str = None,
-		debsrc_debian: str = None,
-		debsrc_orig: str = None,
-		dsc_format: str = None,
-		version_candidates: List[VersionCandidate] = None
+		name: Optional[str] = None,
+		version: Optional[str] = None,
+		debsrc_debian: Optional[str] = None,
+		debsrc_orig: Optional[str] = None,
+		dsc_format: Optional[str] = None,
+		version_candidates: Optional[List[VersionCandidate]] = None
 	):
 		self.name = name
 		self.version = version
@@ -39,19 +39,19 @@ class DebianMatch(BaseModel):
 class DebianMatchContainer(BaseModel):
 	def __init__(
 		self,
-		match: DebianMatch = None
+		match: Optional[DebianMatch] = None
 	):
 		self.match = DebianMatch.decode(match)
 
 class AlienSrc(BaseModel):
 	def __init__(
 		self,
-		name: str = None,
-		version: str = None,
-		alternative_names: List[str] = None,
-		internal_archive_name: str = None,
-		filename: str = None,
-		files: List[SourceFile] = None
+		name: Optional[str] = None,
+		version: Optional[str] = None,
+		alternative_names: Optional[List[str]] = None,
+		internal_archive_name: Optional[str] = None,
+		filename: Optional[str] = None,
+		files: Optional[List[SourceFile]] = None
 	):
 		self.name = name
 		self.version = version
@@ -65,10 +65,10 @@ class AlienMatcherModel(BaseModel):
 
 	def __init__(
 		self,
-		tool: Tool = None,
-		aliensrc: AlienSrc = None,
-		debian: DebianMatchContainer = None,
-		errors: List[str] = None
+		tool: Optional[Tool] = None,
+		aliensrc: Optional[AlienSrc] = None,
+		debian: Optional[DebianMatchContainer] = None,
+		errors: Optional[List[str]] = None
 	):
 		self.tool = Tool.decode(tool)
 		self.aliensrc = AlienSrc.decode(aliensrc)
@@ -78,14 +78,14 @@ class AlienMatcherModel(BaseModel):
 class DebianSnapMatch(BaseModel):
 	def __init__(
 		self,
-		name: str = None,
-		version: str = None,
+		name: Optional[str] = None,
+		version: Optional[str] = None,
 		score: int = 0,
 		distance: int = 0,
 		package_score: int = 0,
 		version_score: int = 0,
-		srcfiles: List[SourceFile] = None,
-		binfiles: List[SourceFile] = None
+		srcfiles: Optional[List[SourceFile]] = None,
+		binfiles: Optional[List[SourceFile]] = None
 	):
 		self.name = name
 		self.version = version
@@ -99,10 +99,10 @@ class DebianSnapMatch(BaseModel):
 class AlienSnapMatcherModel(BaseModel):
 	def __init__(
 		self,
-		tool: Tool = None,
-		aliensrc: AlienSrc = None,
-		match: DebianSnapMatch = None,
-		errors: List[str] = None
+		tool: Optional[Tool] = None,
+		aliensrc: Optional[AlienSrc] = None,
+		match: Optional[DebianSnapMatch] = None,
+		errors: Optional[List[str]] = None
 	):
 		self.tool = Tool.decode(tool)
 		self.aliensrc = AlienSrc.decode(aliensrc)

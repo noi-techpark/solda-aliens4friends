@@ -1,10 +1,10 @@
-# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 import logging
 
-from typing import List, Dict, TypeVar
+from typing import List, Dict, TypeVar, Optional
 from copy import deepcopy
 
 from deepdiff import DeepDiff
@@ -17,12 +17,12 @@ logger = logging.getLogger(__name__)
 class SourceFile(BaseModel):
 	def __init__(
 		self,
-		rootpath: str = None,
-		relpath: str = None,
-		src_uri: str = None,
-		sha1_cksum: str = None,
-		git_sha1: str = None,
-		tags: List[str] = None
+		rootpath: Optional[str] = None,
+		relpath: Optional[str] = None,
+		src_uri: Optional[str] = None,
+		sha1_cksum: Optional[str] = None,
+		git_sha1: Optional[str] = None,
+		tags: Optional[List[str]] = None
 	) -> None:
 		self.rootpath = rootpath
 		self.relpath = relpath
@@ -34,8 +34,8 @@ class SourceFile(BaseModel):
 class FileWithSize(BaseModel):
 	def __init__(
 		self,
-		path: str = None,
-		sha256: str = None,
+		path: Optional[str] = None,
+		sha256: Optional[str] = None,
 		size: int = 0
 	) -> None:
 		self.path = path
@@ -45,8 +45,8 @@ class FileWithSize(BaseModel):
 class FileContainer(BaseModel):
 	def __init__(
 		self,
-		file_dir: str = None,
-		files: List[FileWithSize] = None
+		file_dir: Optional[str] = None,
+		files: Optional[List[FileWithSize]] = None
 	) -> None:
 		self.file_dir = file_dir
 		self.files = FileWithSize.drilldown(files)
@@ -97,19 +97,19 @@ class DependsProvidesContainer(DictModel):
 class PackageMetaData(BaseModel):
 	def __init__(
 		self,
-		name: str = None,
-		base_name: str = None,
-		version: str = None,
-		revision: str = None,
-		package_arch: str = None,
-		recipe_name: str = None,
-		recipe_version: str = None,
-		recipe_revision: str = None,
-		license: str = None,
-		summary: str = None,
-		description: str = None,
-		depends: List[str] = None,
-		provides: List[str] = None
+		name: Optional[str] = None,
+		base_name: Optional[str] = None,
+		version: Optional[str] = None,
+		revision: Optional[str] = None,
+		package_arch: Optional[str] = None,
+		recipe_name: Optional[str] = None,
+		recipe_version: Optional[str] = None,
+		recipe_revision: Optional[str] = None,
+		license: Optional[str] = None,
+		summary: Optional[str] = None,
+		description: Optional[str] = None,
+		depends: Optional[List[str]] = None,
+		provides: Optional[List[str]] = None
 	) -> None:
 		self.name = name
 		self.base_name = base_name
@@ -129,9 +129,9 @@ _TPackage = TypeVar('_TPackage', bound='Package')
 class Package(BaseModel):
 	def __init__(
 		self,
-		metadata: PackageMetaData = None,
-		files: FileContainer = None,
-		chk_sum: str = None
+		metadata: Optional[PackageMetaData] = None,
+		files: Optional[FileContainer] = None,
+		chk_sum: Optional[str] = None
 	) -> None:
 		self.metadata = PackageMetaData.decode(metadata)
 		self.files = FileContainer.decode(files)
@@ -142,8 +142,8 @@ class Package(BaseModel):
 class PackageWithTags(BaseModel):
 	def __init__(
 		self,
-		package: Package = None,
-		tags: List[str] = None
+		package: Optional[Package] = None,
+		tags: Optional[List[str]] = None
 	) -> None:
 		self.package = Package.decode(package)
 		self.tags = tags
@@ -202,17 +202,17 @@ class PackageContainer(DictModel):
 class RecipeMetaData(BaseModel):
 	def __init__(
 		self,
-		name: str = None,
-		base_name: str = None,
-		version: str = None,
-		revision: str = None,
-		variant: str = None,
-		author: str = None,
-		homepage: str = None,
-		summary: str = None,
-		description: str = None,
-		license: str = None,
-		depends_provides: Dict[str, DependsProvides] = None
+		name: Optional[str] = None,
+		base_name: Optional[str] = None,
+		version: Optional[str] = None,
+		revision: Optional[str] = None,
+		variant: Optional[str] = None,
+		author: Optional[str] = None,
+		homepage: Optional[str] = None,
+		summary: Optional[str] = None,
+		description: Optional[str] = None,
+		license: Optional[str] = None,
+		depends_provides: Optional[Dict[str, DependsProvides]] = None
 	) -> None:
 		self.name = name
 		self.base_name = base_name
@@ -244,8 +244,8 @@ class RecipeMetaData(BaseModel):
 class CveProduct(BaseModel):
 	def __init__(
 		self,
-		vendor: str = None,
-		product: str = None
+		vendor: Optional[str] = None,
+		product: Optional[str] = None
 	):
 		self.vendor = vendor
 		self.product = product
@@ -253,10 +253,10 @@ class CveProduct(BaseModel):
 class RecipeCveMetaData(BaseModel):
 	def __init__(
 		self,
-		cve_version: str = None,
-		cve_version_suffix: str = None,
-		cve_check_whitelist: List[str] = None,
-		cve_product: List[CveProduct] = None
+		cve_version: Optional[str] = None,
+		cve_version_suffix: Optional[str] = None,
+		cve_check_whitelist: Optional[List[str]] = None,
+		cve_product: Optional[List[CveProduct]] = None
 	):
 		self.cve_version = cve_version
 		self.cve_version_suffix = cve_version_suffix
@@ -285,10 +285,10 @@ class RecipeCveMetaData(BaseModel):
 class Recipe(BaseModel):
 	def __init__(
 		self,
-		metadata: RecipeMetaData = None,
-		cve_metadata: RecipeCveMetaData = None,
-		source_files: List[SourceFile] = None,
-		chk_sum: str = None
+		metadata: Optional[RecipeMetaData] = None,
+		cve_metadata: Optional[RecipeCveMetaData] = None,
+		source_files: Optional[List[SourceFile]] = None,
+		chk_sum: Optional[str] = None
 	) -> None:
 		self.metadata = RecipeMetaData.decode(metadata)
 		self.cve_metadata = RecipeCveMetaData.decode(cve_metadata)
@@ -301,9 +301,9 @@ class Container(BaseModel):
 
 	def __init__(
 		self,
-		recipe: Recipe = None,
-		tags: List[str] = None,
-		packages: Dict[str, PackageWithTags] = None
+		recipe: Optional[Recipe] = None,
+		tags: Optional[List[str]] = None,
+		packages: Optional[Dict[str, PackageWithTags]] = None
 	) -> None:
 		self.recipe = Recipe.decode(recipe)
 		self.tags = tags

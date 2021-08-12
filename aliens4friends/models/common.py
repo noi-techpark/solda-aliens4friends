@@ -1,9 +1,9 @@
-# SPDX-FileCopyrightText: Peter Moser <p.moser@noi.bz.it>
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 #
 # SPDX-License-Identifier: Apache-2.0
 
 from .base import BaseModel
-from typing import Union, Dict, Any, List
+from typing import Union, Dict, Any, List, Optional
 
 class License(BaseModel):
 	def __init__(self, spdxid: str) -> None:
@@ -36,7 +36,7 @@ class Tool(BaseModel):
 		self,
 		name: str,
 		version: str,
-		parameters: Dict[str, str] = None
+		parameters: Optional[Dict[str, str]] = None
 	) -> None:
 		self.name = name
 		self.version = version
@@ -47,12 +47,12 @@ class Tool(BaseModel):
 class SourceFile(BaseModel):
 	def __init__(
 		self,
-		name: str = None,
-		sha1_cksum: str = None,
-		git_sha1: str = None,
-		src_uri: str = None,
-		files_in_archive: Union[int, bool] = False,
-		paths: List[str] = None
+		name: Optional[str] = None,
+		sha1_cksum: Optional[str] = None,
+		git_sha1: Optional[str] = None,
+		src_uri: Optional[str] = None,
+		files_in_archive: Optional[Union[int, bool]] = False,
+		paths: Optional[List[str]] = None
 	):
 		self.name = name
 		self.sha1_cksum = sha1_cksum
