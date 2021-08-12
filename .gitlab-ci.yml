@@ -21,7 +21,7 @@ pytype:
     - pip install pytype setuptools wheel
     - pip install .
     - python -c "from flanker.addresslib import address" >/dev/null 2>&1
-    - pytype aliens4friends
+    - pytype --config pytype.cfg aliens4friends
 
 reuse:
   tags: [ soldademo, docker ]

@@ -21,3 +21,6 @@ indent_size = 2
 [*.json]
 indent_style = space
 indent_size = 2
+
+[pytype.cfg]
+indent_style = space
