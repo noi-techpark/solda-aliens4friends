@@ -19,8 +19,7 @@
     "xz": "xz-utils",
     "which": "doesnotexistindebian",
     "wpa-supplicant": "wpa",
-    "zlib-intel": "zlib",
-    "gmmlib": "intel-gmmlib"
+    "zlib-intel": "zlib"
   },
   "exclude": [
     "freertos-demo",

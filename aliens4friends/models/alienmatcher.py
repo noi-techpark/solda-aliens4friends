@@ -86,8 +86,7 @@ class DebianSnapMatch(BaseModel):
 		version_score: int = 0,
 		package_score_ident: Optional[str] = None,
 		version_score_ident: Optional[str] = None,
-		srcfiles: Optional[List[SourceFile]] = None,
-		binfiles: Optional[List[SourceFile]] = None
+		srcfiles: Optional[List[SourceFile]] = None
 	):
 		self.name = name
 		self.version = version
@@ -98,7 +97,6 @@ class DebianSnapMatch(BaseModel):
 		self.package_score_ident = package_score_ident
 		self.version_score_ident = version_score_ident
 		self.srcfiles = SourceFile.drilldown(srcfiles)
-		self.binfiles = SourceFile.drilldown(binfiles)
 
 class AlienSnapMatcherModel(BaseModel):
 	def __init__(
