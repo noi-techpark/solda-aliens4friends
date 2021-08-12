@@ -446,7 +446,7 @@ class AlienMatcher:
 		)
 		if Settings.PRINTRESULT:
 			for match in results:
-				print(json.dumps(match, indent=2))
+				print(match.to_json())
 		if not results:
 			logger.info(
 				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "

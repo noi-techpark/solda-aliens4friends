@@ -376,15 +376,15 @@ class Harvest:
 			for fn in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*{supp}"):
 				files.append(str(fn))
 
-		tfh = Harvest(
+		harvest = Harvest(
 			pool,
 			files,
 			output,
 			add_missing
 		)
-		tfh.readfile()
+		harvest.readfile()
 
-		tfh.write_results()
+		harvest.write_results()
 		logger.info(f'Results written to {pool.clnpath(output)}.')
 		if Settings.PRINTRESULT:
-			print(json.dumps(tfh.result, indent=2))
+			print(harvest.result.to_json())

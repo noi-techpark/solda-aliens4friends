@@ -22,7 +22,7 @@ from urllib.parse import quote as url_encode
 from multiprocessing import Pool as MultiProcessingPool
 
 from enum import Enum
-from typing import Union, Any, Optional, List
+from typing import Union, Any, Optional, List, Tuple
 
 import requests
 
@@ -95,7 +95,7 @@ class AlienSnapMatcher:
 		return json.loads(response)
 
 	# name & version-match for debian packages.
-	def match(self, apkg: AlienPackage) -> List[Union[int, str]]:
+	def match(self, apkg: AlienPackage) -> Tuple[List[Union[int, str]], Optional[AlienSnapMatcherModel]]:
 
 		int_arch_count = apkg.internal_archive_count()
 		if int_arch_count > 1:
@@ -156,6 +156,7 @@ class AlienSnapMatcher:
 		snap_match = self._searchPackage(apkg, True)
 
 		# if we found at least something, fetch sources
+		amm = None
 		if snap_match.score > 0:
 			snap_match.srcfiles = self.get_all_sourcefiles(snap_match)
 
@@ -207,7 +208,7 @@ class AlienSnapMatcher:
 			results.append('-')
 			results.append('-')
 
-		return results
+		return results, amm
 
 	def get_file_info(self, filehash):
 		uri = AlienSnapMatcher.API_URL_FILEINFO + filehash + "/info"
@@ -261,6 +262,9 @@ class AlienSnapMatcher:
 			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "match status", "version match distance", "name snapmatch", "version snapmatch", "snapmatch status", "version snapmatch distance", "snapscore", "package match info", "version match info"])
 
 	def run(self, package_path: Union[str, Path]) -> Optional[AlienSnapMatcherModel]:
+
+		# If we find something return that model, otherwise None
+		model = None
 		try:
 			package = AlienPackage(package_path)
 
@@ -278,7 +282,7 @@ class AlienSnapMatcher:
 			else:
 				package.expand()
 
-				comparedResults = self.match(package)
+				comparedResults, model = self.match(package)
 
 				compare_csv = self.pool.abspath(
 					Settings.PATH_USR,
@@ -294,7 +298,8 @@ class AlienSnapMatcher:
 				logger.warning(f"[{self.curpkg}] NO MATCH: {ex}")
 			else:
 				logger.error(f"[{self.curpkg}] ERROR: {ex}")
-			return None
+
+		return model
 
 	# search for package string, if found check version and return an overall matching score
 	def _searchPackage(self, apkg : AlienPackage, altSearch = True) -> DebianSnapMatch:
@@ -424,14 +429,14 @@ class AlienSnapMatcher:
 
 		results = []
 
-		for package in packages:
-			results.append(AlienSnapMatcher._execute(package))
+		# for package in packages:
+		# 	results.append(AlienSnapMatcher._execute(package))
 
-		#results = multiprocessing_pool.map(AlienSnapMatcher._execute, packages)
+		results = multiprocessing_pool.map(AlienSnapMatcher._execute, packages)
 
 		if Settings.PRINTRESULT:
 			for match in results:
-				print(json.dumps(match, indent=2))
+				print(match.to_json())
 		if not results:
 			logger.info(
 				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "

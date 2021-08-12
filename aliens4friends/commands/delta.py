@@ -300,13 +300,13 @@ class DeltaCodeNG:
 				),
 				result_path
 			)
-			result = deltacode.compare()
+			dcmodel = deltacode.compare()
 			deltacode.write_results()
 			logger.debug(f'[{package}] Results written to {result_path}')
 			for stat in deltacode.get_stats():
 				logger.debug(f'[{package}] Stats: {stat}')
 			if Settings.PRINTRESULT:
-				print(json.dumps(result, indent=2))
+				print(dcmodel.to_json())
 			return result_path
 		except Exception as ex:
 			log_minimal_error(logger, ex, f"[{package}] ")
