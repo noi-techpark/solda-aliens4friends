@@ -55,6 +55,7 @@ class AlienSnapMatcher:
 		self.errors = []
 		self.pool = Pool(Settings.POOLPATH)
 		AlienSnapMatcher.loadSources()
+		self._load_exclusions()
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 	def _reset(self) -> None:
@@ -261,23 +262,24 @@ class AlienSnapMatcher:
 			csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "match status", "version match distance", "name snapmatch", "version snapmatch", "snapmatch status", "version snapmatch distance", "snapscore", "package match info", "version match info"])
 
+	def _load_exclusions(self):
+		# check for exclusions
+		dir_path = os.path.dirname(os.path.realpath(__file__))
+		with open(dir_path + '/../commons/aliases.json', 'r') as aliasfile:
+			data=aliasfile.read()
+		jsona = json.loads(data)
+		self.exclusions = jsona["exclude"]
+
+
 	def run(self, package_path: Union[str, Path]) -> Optional[AlienSnapMatcherModel]:
 
 		# If we find something return that model, otherwise None
 		model = None
 		try:
 			package = AlienPackage(package_path)
-
-			# check for exclusions
-			dir_path = os.path.dirname(os.path.realpath(__file__))
-			with open(dir_path + '/../commons/aliases.json', 'r') as aliasfile:
-				data=aliasfile.read()
-			jsona = json.loads(data)
-			exclusions = jsona["exclude"]
-
 			self.curpkg = f"{package.name}-{package.version.str}"
 
-			if package.name in exclusions:
+			if package.name in self.exclusions:
 				logger.info(f"[{self.curpkg}] IGNORING: Known non-debian")
 			else:
 				package.expand()
