@@ -422,21 +422,14 @@ class AlienSnapMatcher:
 		AlienSnapMatcher.clearDiff()
 
 		pool = Pool(Settings.POOLPATH)
-
 		multiprocessing_pool = MultiProcessingPool()
 
 		packages = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
-
-		results = []
-
-		# for package in packages:
-		# 	results.append(AlienSnapMatcher._execute(package))
-
 		results = multiprocessing_pool.map(AlienSnapMatcher._execute, packages)
 
 		if Settings.PRINTRESULT:
 			for match in results:
-				print(match.to_json())
+				print(match.to_json(indent=2))
 		if not results:
 			logger.info(
 				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "

@@ -84,6 +84,8 @@ class DebianSnapMatch(BaseModel):
 		distance: int = 0,
 		package_score: int = 0,
 		version_score: int = 0,
+		package_score_ident: Optional[str] = None,
+		version_score_ident: Optional[str] = None,
 		srcfiles: Optional[List[SourceFile]] = None,
 		binfiles: Optional[List[SourceFile]] = None
 	):
@@ -93,6 +95,8 @@ class DebianSnapMatch(BaseModel):
 		self.distance = distance
 		self.package_score = package_score
 		self.version_score = version_score
+		self.package_score_ident = package_score_ident
+		self.version_score_ident = version_score_ident
 		self.srcfiles = SourceFile.drilldown(srcfiles)
 		self.binfiles = SourceFile.drilldown(binfiles)
 
