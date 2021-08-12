@@ -3,6 +3,6 @@ Upstream-Name: aliens4friends
 Upstream-Contact: Peter Moser <p.moser@noi.bz.it>
 Source: https://git.ostc-eu.org/oss-compliance/toolchain/aliens4friends
 
-Files: infrastructure/* *.json
+Files: infrastructure/* *.json .mailmap CONTRIBUTORS.rst
 Copyright: NOI Techpark <info@noi.bz.it>
 License: CC0-1.0
