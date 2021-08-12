@@ -1,6 +1,10 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
-#
 # SPDX-License-Identifier: Apache-2.0
+#
+# FIXME This method will replace match in short time, which involves some cleanup.
+#   - Remove all match vs snapmatch csv outputs and comparisons
+#   - Remove the old match command
+#   - Move this into the "match" subcommand: cleanup also docs and the help text
 
 import collections as col
 import json
@@ -262,7 +266,7 @@ class AlienSnapMatcher:
 			csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "match status", "version match distance", "name snapmatch", "version snapmatch", "snapmatch status", "version snapmatch distance", "snapscore", "package match info", "version match info"])
 
-	def _load_exclusions(self):
+	def _load_exclusions(self) -> None:
 		# check for exclusions
 		dir_path = os.path.dirname(os.path.realpath(__file__))
 		with open(dir_path + '/../commons/aliases.json', 'r') as aliasfile:
