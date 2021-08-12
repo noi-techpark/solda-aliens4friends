@@ -424,10 +424,10 @@ class AlienSnapMatcher:
 		pool = Pool(Settings.POOLPATH)
 		multiprocessing_pool = MultiProcessingPool()
 
-		results = multiprocessing_pool.map(
+		results = multiprocessing_pool.map( # type: ignore
 			AlienSnapMatcher._execute,
 			pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
-		) # type: ignore
+		)
 
 		if Settings.PRINTRESULT:
 			for match in results:
