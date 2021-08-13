@@ -38,6 +38,11 @@ setuptools.setup(
         'deepdiff==5.2.3',
         'beautifulsoup4==4.9.3',
     ],
+	package_data={
+        'aliens4friends.commons': [
+            'aliases.json'
+        ]
+    },
     scripts=['bin/a4f', 'bin/aliens4friends'],
     license_files=['LICENSE',],
     zip_safe=False, # needed to make dotenv work
