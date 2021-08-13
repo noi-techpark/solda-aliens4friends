@@ -8,9 +8,9 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setuptools.setup(
     name="aliens4friends",
-    version="0.3.1",
-    author="Alberto Pianon, Peter Moser",
-    author_email="pianon@array.eu, p.moser@noi.bz.it",
+    version="0.4.0",
+    author="Alberto Pianon, Peter Moser, Martin Rabanser, Alex Complojer",
+    author_email="pianon@array.eu, p.moser@noi.bz.it, martin.rabanser@rmb.bz.it, alex@agon-e.com",
     description="Aliens4Friends",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -25,8 +25,8 @@ setuptools.setup(
     ],
     python_requires='>=3.6',
     install_requires=[
-        'wheel',
-        'numpy',
+        'wheel==0.34.2',
+        'numpy==1.21.1',
         'python-debian==0.1.39',
         'spdx-tools==0.6.1',
         'fossology==0.2.0',
