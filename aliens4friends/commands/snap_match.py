@@ -215,7 +215,7 @@ class AlienSnapMatcher:
 
 		return results, amm
 
-	def get_file_info(self, filehash: str) -> Union[str, bool]:
+	def get_file_info(self, filehash: str) -> Union[dict, bool]:
 		uri = AlienSnapMatcher.API_URL_FILEINFO + filehash + "/info"
 		fileinfo = self.get_data(uri)
 		if fileinfo["result"] and len(fileinfo["result"]) > 0:

@@ -87,11 +87,14 @@ class Scancode:
 
 
 	@staticmethod
-	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*") -> None:
+	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*", use_oldmatcher: bool = False) -> None:
 		scancode = Scancode(pool)
 
+		#FIXME Remove this, when removing the legacy debian matcher
+		fileext = "alienmatcher.json" if use_oldmatcher else "snapmatch.json"
+
 		found = False
-		for path in pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json"):
+		for path in pool.absglob(f"{glob_name}/{glob_version}/*.{fileext}"):
 			found = True
 			package = f"{path.parts[-3]}-{path.parts[-2]}"
 
