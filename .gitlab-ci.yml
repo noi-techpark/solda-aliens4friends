@@ -18,7 +18,7 @@ pytype:
   tags: [ soldademo, docker ]
   image: python:3.8
   script:
-    - pip install pytype setuptools wheel
+    - pip install python-dotenv pytype setuptools wheel
     - pip install .
     - python -c "from flanker.addresslib import address" >/dev/null 2>&1
     - pytype --config pytype.cfg aliens4friends
