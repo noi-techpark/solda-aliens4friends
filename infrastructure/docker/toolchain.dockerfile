@@ -12,7 +12,7 @@
 #     docker run -it toolchain spdxtool
 #     docker run -it toolchain scancode --help
 #
-FROM python:3.6
+FROM python:3.8
 
 # TODOS
 # - Use slim or alpine versions if possible
@@ -48,7 +48,7 @@ ENV PATH=/code/bin:$PATH
 COPY setup.py README.md /code/
 COPY bin/* /code/bin/
 COPY aliens4friends /code/aliens4friends/
-RUN cd /code && pip install python-dotenv && pip3 install . && \
+RUN cd /code && pip3 install python-dotenv && pip3 install . && \
 	python -c "from flanker.addresslib import address" >/dev/null 2>&1
 
 RUN useradd --create-home --uid 1000 --shell /usr/bin/bash a4fuser
