@@ -1,14 +1,16 @@
+#!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
 import setuptools
+from aliens4friends.commons.settings import Settings
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="aliens4friends",
-    version="0.4.0",
+    version=Settings.VERSION,
     author="Alberto Pianon, Peter Moser, Martin Rabanser, Alex Complojer",
     author_email="pianon@array.eu, p.moser@noi.bz.it, martin.rabanser@rmb.bz.it, alex@agon-e.com",
     description="Aliens4Friends",
