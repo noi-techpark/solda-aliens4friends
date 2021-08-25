@@ -136,11 +136,14 @@ class AlienPackage(Package):
 
 		self.expanded = True
 		checksums = self.archive.checksums("files/")
+		archive_checksum_set = sorted(list(set([ fsha1 for fpath, fsha1 in checksums.items() ])))
+		metadata_checksum_set = sorted(list(set([ p.sha1_cksum for p in self.package_files ])))
 
-		if len(checksums) != len(self.package_files):
+
+		if archive_checksum_set != metadata_checksum_set:
 			raise PackageError(
-				"We do not have the same number of archive-files and checksums"
-				f" inside {self.ALIEN_MATCHER_JSON} of package {self.name}-{self.version.str}"
+				f"File checksum mismatch between {self.ALIEN_MATCHER_JSON} and actual files"
+				f" in package {self.name}-{self.version.str}"
 			)
 
 		self.internal_archive_name = None
@@ -218,13 +221,13 @@ class AlienPackage(Package):
 			self.internal_archive_src_uri = primary.src_uri
 			if len(self.internal_archives) > 1:
 				logger.warning(
-					f"[{self.name}-{self.version.str}]:"
+					f"[{self.name}-{self.version.str}]"
 					 " more than one internal archive, using just primary"
 					f" archive '{primary.name}' for comparison"
 			)
 		elif not primary and len(self.internal_archives) > 1:
 			logger.warning(
-				f"[{self.name}-{self.version.str}]: "
+				f"[{self.name}-{self.version.str}] "
 				"Too many internal archives for alien repository comparison,"
 				" and no primary archive detected"
 			)
