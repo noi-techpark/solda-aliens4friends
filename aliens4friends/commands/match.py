@@ -91,16 +91,12 @@ class AlienMatcher:
 
 	def __init__(self) -> None:
 		super().__init__()
-		self.errors = []
 		self.pool = Pool(Settings.POOLPATH)
 		if 'DEB_ALL_SOURCES' not in globals():
 			global DEB_ALL_SOURCES
 			DEB_ALL_SOURCES = AlienMatcher.get_deb_all_sources()
 
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
-
-	def _reset(self) -> None:
-		self.errors = []
 
 	@staticmethod
 	def get_deb_all_sources() -> Any:
@@ -316,6 +312,7 @@ class AlienMatcher:
 		)
 
 	def match(self, apkg: AlienPackage) -> AlienMatcherModel:
+		errors = []
 		logger.debug(f"[{self.curpkg}] Find a matching package on Debian repositories.")
 		int_arch_count = apkg.internal_archive_count()
 		if int_arch_count > 1:
@@ -327,17 +324,18 @@ class AlienMatcher:
 					f" '{apkg.internal_archive_name}' for comparison"
 				)
 			else:
-				raise AlienMatcherError(
-					f"The Alien Package {apkg.name}-{apkg.version.str} has"
+				logger.warning(
+					f"[{apkg.name}-{apkg.version.str}] IGNORED: Alien Package has"
 					f" {int_arch_count} internal archives and no primary archive."
 					 " We support comparison of one archive only at the moment!"
 				)
+				errors.append(f"{int_arch_count} internal archives and no primary archive")
 		elif int_arch_count == 0:
-			raise AlienMatcherError(
-				f"The Alien Package {apkg.name}-{apkg.version.str} has"
+			logger.warning(
+				f"[{apkg.name}-{apkg.version.str}] IGNORED: Alien Package has"
 				 " no internal archive, nothing to compare!"
 			)
-		self._reset()
+			errors.append("no internal archive")
 		resultpath = self.pool.relpath(
 			Settings.PATH_USR,
 			apkg.name,
@@ -395,9 +393,9 @@ class AlienMatcher:
 					self.errors.append("No internal archive")
 
 			except AlienMatcherError as ex:
-				self.errors.append(str(ex))
+				errors.append(str(ex))
 
-			amm.errors = self.errors
+			amm.errors = errors
 			self.pool.write_json(amm, resultpath)
 			logger.debug(f"[{self.curpkg}] Result written to {resultpath}.")
 		return amm
@@ -419,18 +417,13 @@ class AlienMatcher:
 
 			outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'
 			if not debsrc_debian and not debsrc_orig and not amm.errors:
-				amm.errors = 'FATAL: NO MATCH without errors'
+				amm.errors = 'NO MATCH without errors'
 			logger.info(
 				f"[{self.curpkg}] {outcome}:"
-				f" {debsrc_debian} {debsrc_orig} {amm.errors or ''}"
+				f" {debsrc_debian} {debsrc_orig} {'; '.join(amm.errors)}"
 			)
 			return amm
-		except (AlienMatcherError, PackageError) as ex:
-			if str(ex) == "No internal archive":
-				logger.warning(f"[{self.curpkg}] IGNORED: {ex}")
-			elif str(ex) == "Can't find a similar package on Debian repos":
-				logger.warning(f"[{self.curpkg}] NO MATCH: {ex}")
-			else:
+		except PackageError as ex:
 				logger.error(f"[{self.curpkg}] ERROR: {ex}")
 			return None
 
@@ -446,6 +439,7 @@ class AlienMatcher:
 		)
 		if Settings.PRINTRESULT:
 			for match in results:
+				if match:
 				print(match.to_json())
 		if not results:
 			logger.info(
