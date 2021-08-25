@@ -158,7 +158,7 @@ class AlienMatcher:
 			logger.debug(f"[{self.curpkg}] Package with name {package.name} not found. Trying with {cur_package_name}.")
 		if multi_names:
 			cand_set = set(c[1] for c in candidates)
-			logger.debug(f"[{self.curpkg}] Warning: We multiple similar packages for '{package.name}': {cand_set}.")
+			logger.debug(f"[{self.curpkg}] We have multiple similar packages for '{package.name}': {cand_set}.")
 
 		logger.debug(f"[{self.curpkg}] API call result OK. Find nearest neighbor of {cur_package_name}/{package.version.str}.")
 
@@ -318,8 +318,7 @@ class AlienMatcher:
 		if int_arch_count > 1:
 			if apkg.internal_archive_name:
 				logger.warning(
-					f"[{self.curpkg}] The Alien Package"
-					f" {apkg.name}-{apkg.version.str} has more than one"
+					f"[{self.curpkg}] Alien Package has more than one"
 					 " internal archive, using just primary archive"
 					f" '{apkg.internal_archive_name}' for comparison"
 				)
@@ -354,8 +353,12 @@ class AlienMatcher:
 				amm.debian.match.debsrc_debian,
 				amm.debian.match.dsc_format
 			)
-			logger.debug(f"[{self.curpkg}] Result already exists, skipping.")
-		except (FileNotFoundError, KeyError):
+			logger.debug(f"[{self.curpkg}] Result already exists (MATCH), skipping.")
+
+		except (PackageError):
+			logger.debug(f"[{self.curpkg}] Result already exists (NO MATCH), skipping.")
+
+		except (FileNotFoundError):
 
 			amm = AlienMatcherModel(
 				tool=Tool(__name__, Settings.VERSION),
@@ -389,8 +392,6 @@ class AlienMatcher:
 							for c in self.candidate_list
 						]
 					)
-				else:
-					self.errors.append("No internal archive")
 
 			except AlienMatcherError as ex:
 				errors.append(str(ex))
@@ -424,7 +425,7 @@ class AlienMatcher:
 			)
 			return amm
 		except PackageError as ex:
-				logger.error(f"[{self.curpkg}] ERROR: {ex}")
+			logger.error(f"[{self.curpkg}] ERROR: {ex}")
 			return None
 
 	@staticmethod
@@ -440,7 +441,7 @@ class AlienMatcher:
 		if Settings.PRINTRESULT:
 			for match in results:
 				if match:
-				print(match.to_json())
+					print(match.to_json())
 		if not results:
 			logger.info(
 				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
