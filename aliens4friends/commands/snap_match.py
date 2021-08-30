@@ -431,7 +431,6 @@ class AlienSnapMatcher:
 		results = [ 
 			AlienSnapMatcher._execute(a) 
 			for a in pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
-			if "python3" not in str(a) # FIXME remove me temporary!
 		]
 
 		if Settings.PRINTRESULT:
