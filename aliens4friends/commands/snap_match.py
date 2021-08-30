@@ -428,12 +428,11 @@ class AlienSnapMatcher:
 		AlienSnapMatcher.clearDiff()
 
 		pool = Pool(Settings.POOLPATH)
-		multiprocessing_pool = MultiProcessingPool()
-
-		results = multiprocessing_pool.map( # type: ignore
-			AlienSnapMatcher._execute,
-			pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
-		)
+		results = [ 
+			AlienSnapMatcher._execute(a) 
+			for a in pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
+			if "python3" not in str(a) # FIXME remove me temporary!
+		]
 
 		if Settings.PRINTRESULT:
 			for match in results:
