@@ -166,7 +166,7 @@ class FossyWrapper:
 		)
 		html = BeautifulSoup(res.content, 'html.parser')
 		return [
-			option.attrs["value"].replace("agent_","")
+			option.attrs["value"].replace("agent_","") #pytype: disable=attribute-error
 			for option in html.find_all("option")
 		]
 
