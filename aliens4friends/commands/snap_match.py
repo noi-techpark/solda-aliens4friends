@@ -18,7 +18,8 @@ import numpy
 
 from pathlib import Path
 
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import Pool, PoolError
+from aliens4friends.models.base import ModelError
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.calc import Calc
 from aliens4friends.commons.version import Version
@@ -56,15 +57,10 @@ class AlienSnapMatcher:
 
 	def __init__(self) -> None:
 		super().__init__()
-		self.errors = []
 		self.pool = Pool(Settings.POOLPATH)
 		AlienSnapMatcher.loadSources()
 		self._load_exclusions()
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
-
-	def _reset(self) -> None:
-		self.errors = []
-
 
 
 	@staticmethod
@@ -100,37 +96,14 @@ class AlienSnapMatcher:
 		return json.loads(response)
 
 	# name & version-match for debian packages.
-	def match(self, apkg: AlienPackage) -> Tuple[List[Union[int, str]], Optional[AlienSnapMatcherModel]]:
+	def match(self, apkg: AlienPackage, amm: AlienSnapMatcherModel, results: List[Union[int, str]]) -> None:
 
-		int_arch_count = apkg.internal_archive_count()
-		if int_arch_count > 1:
-			if apkg.internal_archive_name:
-				logger.warning(
-					f"[{self.curpkg}] The Alien Package"
-					f" {apkg.name}-{apkg.version.str} has more than one"
-					 " internal archive, using just primary archive"
-					f" '{apkg.internal_archive_name}' for comparison"
-				)
-			else:
-				raise AlienSnapMatcherError(
-					f"The Alien Package {apkg.name}-{apkg.version.str} has"
-					f" {int_arch_count} internal archives and no primary archive."
-					 " We support comparison of one archive only at the moment!"
-				)
-		elif int_arch_count == 0:
-			raise AlienSnapMatcherError(
-				f"The Alien Package {apkg.name}-{apkg.version.str} has"
-				 " no internal archive, nothing to compare!"
-			)
+		logger.debug(f"[{self.curpkg}] Find a matching package through Debian Snapshot API.")
 
 		pool = Pool(Settings.POOLPATH)
 
 		main_match = False
 		snap_match = False
-
-		results = []
-		results.append(apkg.name);
-		results.append(apkg.version.str);
 
 		main_match_path = pool.relpath(
 			Settings.PATH_USR,
@@ -142,10 +115,9 @@ class AlienSnapMatcher:
 		try:
 			main_match = pool.get_json(main_match_path)
 			main_match = main_match['debian']['match']
-			results.append(main_match['name'])
-			results.append(main_match['version'])
-
-			results.append('found')
+			results.append(main_match['name'] or '-')
+			results.append(main_match['version'] or '-')
+			results.append('found' if main_match['debsrc_orig'] or main_match['debsrc_debian'] else '-')
 			# matcher distance
 			v1 = Version(main_match['version'])
 			distance = apkg.version.distance(v1)
@@ -156,16 +128,9 @@ class AlienSnapMatcher:
 			results.append('-')
 			results.append('missing')
 			results.append('-')
-			logger.warning(f"Unable to load current alienmatch from {main_match_path}.")
-
-		snap_match = self._searchPackage(apkg, True)
-
-		# if we found at least something, fetch sources
-		amm = None
-		if snap_match.score > 0:
-			snap_match.srcfiles = self.get_all_sourcefiles(snap_match)
-
-			pool = Pool(Settings.POOLPATH)
+			logger.warning(
+				f"[{self.curpkg}] Unable to load current alienmatch from {main_match_path}."
+			)
 
 			resultpath = pool.relpath(
 				Settings.PATH_USR,
@@ -174,19 +139,82 @@ class AlienSnapMatcher:
 				f"{apkg.name}-{apkg.version.str}.snapmatch.json"
 			)
 
-			amm = AlienSnapMatcherModel(
-				tool=Tool(__name__, Settings.VERSION),
-				aliensrc=AlienSrc(
-					apkg.name,
-					apkg.version.str,
-					apkg.alternative_names,
-					apkg.internal_archive_name,
-					apkg.archive_name,
-					apkg.package_files
-				),
-				match=snap_match,
-				errors=self.errors
+		try:
+			if not Settings.POOLCACHED:
+				raise FileNotFoundError()
+			amm = AlienSnapMatcherModel.from_file(pool.abspath(resultpath))
+			if amm.match.score > 0:
+				results.append(amm.match.name)
+				results.append(amm.match.version)
+				results.append('found')
+				v1 = Version(amm.match.version)
+				distance = apkg.version.distance(v1)
+				results.append(distance)
+				results.append(amm.match.score)
+				results.append(amm.match.package_score)
+				results.append(amm.match.version_score)
+				outcome = "MATCH"
+			else:
+				results.append('-')
+				results.append('-')
+				results.append('missing')
+				results.append('-')
+				results.append(amm.match.score)
+				results.append('-')
+				results.append('-')
+				amm.errors.append("NO MATCH without errors")
+				outcome = "NO MATCH"
+			logger.debug(f"[{self.curpkg}] Result already exists ({outcome}), skipping.")
+			return
+		except FileNotFoundError:
+			pass
+		except (PoolError, ModelError) as ex:
+			logger.warning(
+				f"[{self.curpkg}] Result file already exists but it is not readable: {ex}"
 			)
+
+		int_arch_count = apkg.internal_archive_count()
+		if int_arch_count > 1:
+			if apkg.internal_archive_name:
+				logger.warning(
+					f"[{self.curpkg}] The Alien Package"
+					f" {apkg.name}-{apkg.version.str} has more than one"
+					 " internal archive, using just primary archive"
+					f" '{apkg.internal_archive_name}' for comparison"
+				)
+			else:
+				logger.warning(
+					f"[{apkg.name}-{apkg.version.str}] IGNORED: Alien Package has"
+					f" {int_arch_count} internal archives and no primary archive."
+					 " We support comparison of one archive only at the moment!"
+				)
+				results.append('-')
+				results.append('-')
+				results.append('no primary archive')
+				results.append('-')
+				amm.errors.append(
+					f"{int_arch_count} internal archives and no primary archive"
+				)
+				return
+		elif int_arch_count == 0:
+			logger.warning(
+				f"[{apkg.name}-{apkg.version.str}] IGNORED: Alien Package has"
+				 " no internal archive, nothing to compare!"
+			)
+			results.append('-')
+			results.append('-')
+			results.append('no internal archive')
+			results.append('-')
+			amm.errors.append("no internal archive")
+			return
+
+		snap_match = self._searchPackage(apkg, True)
+
+		# if we found at least something, fetch sources
+		if snap_match.score > 0:
+			snap_match.srcfiles = self.get_all_sourcefiles(snap_match)
+
+			amm.match = snap_match
 
 			results.append(amm.match.name)
 			results.append(amm.match.version)
@@ -203,6 +231,10 @@ class AlienSnapMatcher:
 			results.append(snap_match.score)
 			results.append(snap_match.package_score)
 			results.append(snap_match.version_score)
+			logger.info(
+				f"[{self.curpkg}] MATCH: {snap_match.name} {snap_match.version}"
+				f" (score: {snap_match.score})"
+			)
 
 		else:
 			results.append('-')
@@ -212,8 +244,9 @@ class AlienSnapMatcher:
 			results.append(snap_match.score)
 			results.append('-')
 			results.append('-')
+			amm.errors.append("NO MATCH without errors")
+			logger.info(f"[{self.curpkg}] NO MATCH")
 
-		return results, amm
 
 	def get_file_info(self, filehash: str) -> Union[dict, bool]:
 		uri = AlienSnapMatcher.API_URL_FILEINFO + filehash + "/info"
@@ -277,18 +310,33 @@ class AlienSnapMatcher:
 
 	def run(self, package_path: Union[str, Path]) -> Optional[AlienSnapMatcherModel]:
 
-		# If we find something return that model, otherwise None
-		model = None
 		try:
+			# Return model in any case, we need to keep also "no match" results
 			package = AlienPackage(package_path)
 			self.curpkg = f"{package.name}-{package.version.str}"
+			amm = AlienSnapMatcherModel(
+				tool=Tool(__name__, Settings.VERSION),
+				aliensrc=AlienSrc(
+					name = package.name,
+					version = package.version.str,
+					alternative_names = package.alternative_names,
+					internal_archive_name = None,
+					filename = package.archive_name,
+					files = package.package_files
+				)
+			)
+			results = []
+			results.append(package.name)
+			results.append(package.version.str)
 
 			if package.name in self.exclusions:
-				logger.info(f"[{self.curpkg}] IGNORING: Known non-debian")
+				logger.warning(f"[{self.curpkg}] IGNORED: Known non-debian")
+				amm.errors.append("IGNORED: Known non-debian")
 			else:
 				package.expand()
+				amm.aliensrc.internal_archive_name = package.internal_archive_name
 
-				comparedResults, model = self.match(package)
+				self.match(package, amm, results) # pass amm and results by reference
 
 				compare_csv = self.pool.abspath(
 					Settings.PATH_USR,
@@ -297,19 +345,16 @@ class AlienSnapMatcher:
 
 				with open(compare_csv, 'a+') as csvfile:
 					csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-					csvwriter.writerow(comparedResults)
+					csvwriter.writerow(results)
 
 		except (AlienSnapMatcherError, PackageError) as ex:
-			if str(ex) == "Can't find a similar package on Debian repos":
-				logger.warning(f"[{self.curpkg}] NO MATCH: {ex}")
-			else:
 				logger.error(f"[{self.curpkg}] ERROR: {ex}")
 
-		return model
+		return amm
 
 	# search for package string, if found check version and return an overall matching score
 	def _searchPackage(self, apkg : AlienPackage, altSearch = True) -> DebianSnapMatch:
-		logger.info(f"[{apkg.name}] Searching for {apkg.name} v {apkg.version.str} @ snapshot.debian.org/mr/package")
+		logger.info(f"[{self.curpkg}] Searching for {apkg.name} v {apkg.version.str} @ snapshot.debian.org/mr/package")
 
 		name_needle = apkg.name
 		res = DebianSnapMatch()
@@ -322,7 +367,7 @@ class AlienSnapMatcher:
 
 			# guessing packages
 			if fuzzy_score > 0:
-				logger.info(f"[{apkg.name}] Fuzzy package match { name_needle } vs { pkg['package'] }: { fuzzy_score }")
+				logger.info(f"[{self.curpkg}] Fuzzy package match { name_needle } vs { pkg['package'] }: { fuzzy_score }")
 				versionMatch = self._searchVersion(apkg, pkg['package'])
 				fuzzy_overall = Calc.overallScore(fuzzy_score, versionMatch["score"])
 
@@ -345,7 +390,7 @@ class AlienSnapMatcher:
 	# search for package version and return a matching score. score can be negative in order that score-sum can invalidate any positive package score
 	def _searchVersion(self, apkg : AlienPackage, altname = False) -> Any:
 
-		logger.debug(f"[{apkg.name}]  Searching for package version { apkg.name } { apkg.version.str }")
+		logger.debug(f"[{self.curpkg}]  Searching for package version { apkg.name } { apkg.version.str }")
 
 		needle = apkg.name
 		if altname:
@@ -383,13 +428,13 @@ class AlienSnapMatcher:
 
 				# this does not happen, cause the cat bites its own tail
 				if similarity == 0:
-					logger.debug(f"[{needle}]  Exact version match (ident) { apkg.version.str } vs { item['version'] } is { similarity }")
+					logger.debug(f"[{self.curpkg}] {needle}: Exact version match (ident) { apkg.version.str } vs { item['version'] } is { similarity }")
 					res['score'] = 100
 					res['slug'] = item['version']
 					return res
 
 				elif distance <= 10:
-					logger.debug(f"[{needle}]  Exact version match (distance) { apkg.version.str } vs { item['version'] } is { distance }")
+					logger.debug(f"[{self.curpkg}] {needle}: Exact version match (distance) { apkg.version.str } vs { item['version'] } is { distance }")
 					res['score'] = 99
 					res['slug'] = item['version']
 					return res
@@ -402,10 +447,10 @@ class AlienSnapMatcher:
 		else:
 			# should not be the case, cause if we find a package by name there should be at least 1 available version
 			res['score'] = -99
-			logger.debug(f"[{needle}]  Can not find any version for {apkg.version.str}")
+			logger.debug(f"[{self.curpkg}] {needle}: Can not find any version for {apkg.version.str}")
 
 		if bestVersion["distance"] < Version.MAX_DISTANCE:
-			logger.debug(f"[{needle}]  Fuzzy version match { apkg.version.str } vs { bestVersion['version'] }: { bestVersion['distance'] }")
+			logger.debug(f"[{self.curpkg}] {needle}:  Fuzzy version match { apkg.version.str } vs { bestVersion['version'] }: { bestVersion['distance'] }")
 			res['slug'] = bestVersion['version']
 			if bestVersion["distance"] != Version.OK_DISTANCE:
 				if bestVersion["distance"] < Version.KO_DISTANCE:
@@ -435,6 +480,7 @@ class AlienSnapMatcher:
 
 		if Settings.PRINTRESULT:
 			for match in results:
+				if match:
 				print(match.to_json(indent=2))
 		if not results:
 			logger.info(
