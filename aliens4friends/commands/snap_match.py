@@ -23,6 +23,7 @@ from aliens4friends.models.base import ModelError
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.calc import Calc
 from aliens4friends.commons.version import Version
+from aliens4friends.commons.utils import md5sum
 from urllib.parse import quote as url_encode
 from multiprocessing import Pool as MultiProcessingPool
 
@@ -215,6 +216,7 @@ class AlienSnapMatcher:
 		if snap_match.score > 0:
 			self.get_all_sourcefiles(snap_match) # pass snap_match by reference
 			self.download_all_to_debian(snap_match)
+			self.get_format_orig_debian(snap_match)
 
 			amm.match = snap_match
 
@@ -292,6 +294,82 @@ class AlienSnapMatcher:
 					srcfile.name
 				)
 				logger.debug(f"[{self.curpkg}] Result cached in {local_path}.")
+
+	def get_format_orig_debian(self, snap_match: DebianSnapMatch) -> None:
+		for srcfile in snap_match.srcfiles:
+			if srcfile.name.endswith('.dsc'):
+				dsc_file = self.pool.abspath(
+					Settings.PATH_DEB,
+					snap_match.name,
+					snap_match.version,
+					srcfile.name
+				)
+				with open(dsc_file) as f:
+					dsc_file_content = f.read()
+				debian_control = Deb822(dsc_file_content)
+				break
+		debian_control_files = []
+
+		if debian_control.get('Checksums-Sha1'):
+			dsc_chksums = debian_control['Checksums-Sha1'].split('\n')
+			sha1 = True
+		else:
+			dsc_chksums = debian_control['Files'].split('\n')
+			sha1 = False
+
+		for line in dsc_chksums:
+			elem = line.strip().split()
+			# Format is triple: "chksum size filename"
+			if len(elem) != 3:
+				continue
+			debian_control_files.append(f"{elem[0]} {elem[2]}")
+		
+		srcfiles = []
+		for srcfile in snap_match.srcfiles:
+			if srcfile.name.endswith('.dsc'):
+				continue
+			if sha1:
+				chksum = srcfile.sha1_cksum
+			else:
+				filepath = self.pool.abspath(
+					Settings.PATH_DEB,
+					snap_match.name,
+					snap_match.version,
+					srcfile.name
+				)
+				chksum = md5sum(filepath)
+			srcfiles.append(f"{chksum} {srcfile.name}")
+				
+		if sorted(debian_control_files) != sorted(srcfiles):
+			raise AlienSnapMatcherError(
+				f"checksum mismatch in debian package {snap_match.name} {snap_match.version}:"
+				f" debian control files are {debian_control_files} while snap match srcfiles"
+				f" are {srcfiles}"
+			)
+		for srcfile in snap_match.srcfiles:
+			if srcfile.name.endswith('.dsc'):
+				continue
+			debian_relpath = self.pool.relpath(
+				Settings.PATH_DEB,
+				snap_match.name,
+				snap_match.version,
+				srcfile.name
+			)
+			snap_match.dsc_format = debian_control['Format']
+			if snap_match.dsc_format == "1.0":
+				if 'orig' in srcfile.name:
+					snap_match.debsrc_orig = debian_relpath
+				else: # XXX Assume archives without patterns in name are from Debian
+					snap_match.debsrc_debian = debian_relpath
+			elif snap_match.dsc_format == "3.0 (quilt)":
+				if 'debian' in srcfile.name:
+					snap_match.debsrc_debian = debian_relpath
+				elif 'orig' in srcfile.name:
+					snap_match.debsrc_orig = debian_relpath
+			elif snap_match.dsc_format == "3.0 (native)":
+				snap_match.debsrc_orig = debian_relpath				
+			
+
 	def get_all_sourcefiles(self, snap_match, bin_files = False) -> None:
 		uri = AlienSnapMatcher.API_URL_ALLSRC + snap_match.name +"/"+ snap_match.version +"/allfiles"
 		logger.info(f"[{self.curpkg}] Acquire package sources from " + uri)
@@ -320,7 +398,7 @@ class AlienSnapMatcher:
 					paths=[info["path"]]
 				)
 				snap_match.srcfiles.append(source)
-
+		
 
 	@staticmethod
 	def clearDiff():
