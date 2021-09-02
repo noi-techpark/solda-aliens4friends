@@ -59,7 +59,7 @@ class AlienSnapMatcher:
 		super().__init__()
 		self.pool = Pool(Settings.POOLPATH)
 		AlienSnapMatcher.loadSources()
-		self._load_exclusions()
+		self._load_aliases_exclusions()
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
@@ -132,12 +132,12 @@ class AlienSnapMatcher:
 				f"[{self.curpkg}] Unable to load current alienmatch from {main_match_path}."
 			)
 
-			resultpath = pool.relpath(
-				Settings.PATH_USR,
-				apkg.name,
-				apkg.version.str,
-				f"{apkg.name}-{apkg.version.str}.snapmatch.json"
-			)
+		resultpath = pool.relpath(
+			Settings.PATH_USR,
+			apkg.name,
+			apkg.version.str,
+			f"{apkg.name}-{apkg.version.str}.snapmatch.json"
+		)
 
 		try:
 			if not Settings.POOLCACHED:
@@ -299,13 +299,14 @@ class AlienSnapMatcher:
 			csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "match status", "version match distance", "name snapmatch", "version snapmatch", "snapmatch status", "version snapmatch distance", "snapscore", "package match info", "version match info"])
 
-	def _load_exclusions(self) -> None:
-		# check for exclusions
+	def _load_aliases_exclusions(self) -> None:
+		# check for aliases and exclusions
 		dir_path = os.path.dirname(os.path.realpath(__file__))
 		with open(dir_path + '/../commons/aliases.json', 'r') as aliasfile:
 			data=aliasfile.read()
 		jsona = json.loads(data)
 		self.exclusions = jsona["exclude"]
+		self.aliases = jsona["aliases"]
 
 
 	def run(self, package_path: Union[str, Path]) -> Optional[AlienSnapMatcherModel]:
@@ -360,8 +361,16 @@ class AlienSnapMatcher:
 		res = DebianSnapMatch()
 
 		for pkg in SNAP_ALL_SOURCES["result"]:
-			similarity = Calc.levenshtein(name_needle, pkg["package"])
-			fuzzy_score = Calc.fuzzy_package_score(name_needle, pkg["package"], {})
+
+			if apkg.name in self.aliases:
+				if pkg["package"] == self.aliases[apkg.name]:
+					fuzzy_score = 100
+					similarity = 0
+				else:
+					continue
+			else:
+				similarity = Calc.levenshtein(name_needle, pkg["package"])
+				fuzzy_score = Calc.fuzzy_package_score(name_needle, pkg["package"], {})
 
 			# logger.debug(f"[{apkg.name}] vs { pkg['package'] } / { fuzzy_score }")
 
@@ -481,7 +490,7 @@ class AlienSnapMatcher:
 		if Settings.PRINTRESULT:
 			for match in results:
 				if match:
-				print(match.to_json(indent=2))
+					print(match.to_json(indent=2))
 		if not results:
 			logger.info(
 				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
