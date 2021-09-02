@@ -30,6 +30,7 @@ from enum import Enum
 from typing import Union, Any, Optional, List, Tuple
 
 import requests
+from debian.deb822 import Deb822
 
 from urllib3.exceptions import NewConnectionError
 
@@ -212,7 +213,8 @@ class AlienSnapMatcher:
 
 		# if we found at least something, fetch sources
 		if snap_match.score > 0:
-			snap_match.srcfiles = self.get_all_sourcefiles(snap_match)
+			self.get_all_sourcefiles(snap_match) # pass snap_match by reference
+			self.download_all_to_debian(snap_match)
 
 			amm.match = snap_match
 
@@ -255,12 +257,47 @@ class AlienSnapMatcher:
 			return fileinfo["result"][0]
 		return False
 
-	def get_all_sourcefiles(self, match, bin_files = False) -> List[SourceFile]:
-		uri = AlienSnapMatcher.API_URL_ALLSRC + match.name +"/"+ match.version +"/allfiles"
+	def download_all_to_debian(self, snap_match: DebianSnapMatch) -> None:
+		for srcfile in snap_match.srcfiles:
+			logger.debug(
+				f"[{self.curpkg}] Retrieving file from Debian:"
+				f" '{srcfile.name}'."
+			)
+			try:
+				if not Settings.POOLCACHED:
+					raise FileNotFoundError
+				response = self.pool.get_binary(
+					Settings.PATH_DEB,
+					snap_match.name,
+					snap_match.version,
+					srcfile.name
+				)
+				logger.debug(f"[{self.curpkg}] Found in Debian cache pool.")
+			except FileNotFoundError:
+				logger.debug(f"[{self.curpkg}] Not found in Debian cache pool.")
+				logger.debug(
+					f"[{self.curpkg}] Trying to download deb source {srcfile.name}"
+					f" from {srcfile.src_uri}."
+				)
+				r = requests.get(srcfile.src_uri)
+				if r.status_code != 200:
+					raise AlienSnapMatcherError(
+						f"Error {r.status_code} in downloading {srcfile.name}"
+					)
+				local_path = self.pool.write(
+					r.content,
+					Settings.PATH_DEB,
+					snap_match.name,
+					snap_match.version,
+					srcfile.name
+				)
+				logger.debug(f"[{self.curpkg}] Result cached in {local_path}.")
+	def get_all_sourcefiles(self, snap_match, bin_files = False) -> None:
+		uri = AlienSnapMatcher.API_URL_ALLSRC + snap_match.name +"/"+ snap_match.version +"/allfiles"
 		logger.info(f"[{self.curpkg}] Acquire package sources from " + uri)
 		hashes = self.get_data(uri)
 
-		file_links = []
+		snap_match.srcfiles = []
 
 		if bin_files:
 			for binary in hashes["result"]["binaries"]:
@@ -272,7 +309,7 @@ class AlienSnapMatcher:
 						src_uri=AlienSnapMatcher.API_URL_FILES + file["hash"],
 						paths=[info["path"]]
 					)
-					file_links.append(source)
+					snap_match.srcfiles.append(source)
 		else:
 			for file in hashes["result"]["source"]:
 				info = self.get_file_info(file["hash"])
@@ -282,9 +319,8 @@ class AlienSnapMatcher:
 					src_uri=AlienSnapMatcher.API_URL_FILES + file["hash"],
 					paths=[info["path"]]
 				)
-				file_links.append(source)
+				snap_match.srcfiles.append(source)
 
-		return file_links
 
 	@staticmethod
 	def clearDiff():
