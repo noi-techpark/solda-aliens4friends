@@ -86,7 +86,10 @@ class DebianSnapMatch(BaseModel):
 		version_score: int = 0,
 		package_score_ident: Optional[str] = None,
 		version_score_ident: Optional[str] = None,
-		srcfiles: Optional[List[SourceFile]] = None
+		srcfiles: Optional[List[SourceFile]] = None,
+		debsrc_debian: Optional[str] = None,
+		debsrc_orig: Optional[str] = None,
+		dsc_format: Optional[str] = None,
 	):
 		self.name = name
 		self.version = version
@@ -97,6 +100,9 @@ class DebianSnapMatch(BaseModel):
 		self.package_score_ident = package_score_ident
 		self.version_score_ident = version_score_ident
 		self.srcfiles = SourceFile.drilldown(srcfiles)
+		self.debsrc_debian = debsrc_debian
+		self.debsrc_orig = debsrc_orig
+		self.dsc_format = dsc_format
 
 class AlienSnapMatcherModel(BaseModel):
 	def __init__(

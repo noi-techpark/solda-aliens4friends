@@ -70,7 +70,7 @@ class Calc:
 					else:
 						dist[f][s] = replace+1
 
-		res = dist[len(first)][len(second)];
+		res = dist[len(first)][len(second)]
 
 		return res
 

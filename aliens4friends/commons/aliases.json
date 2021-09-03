@@ -2,7 +2,6 @@
   "aliases": {
     "gtk+3": "gtk+3.0",
     "gmmlib": "intel-gmmlib",
-    "libpcre": "doesnotexistindebian",
     "libpcre2": "pcre2",
     "libusb1": "libusb-1.0",
     "libva-intel": "libva",
@@ -12,17 +11,19 @@
     "linux-seco-fslc": "linux",
     "linux-stm32mp": "linux",
     "linux-yocto": "linux",
-    "ltp": "doesnotexistindebian",
+    "python3": "python3.9",
     "systemd-boot": "systemd",
     "tcl": "tcl8.6",
-    "xserver-xorg": "doesnotexistindebian",
     "xz": "xz-utils",
-    "which": "doesnotexistindebian",
     "wpa-supplicant": "wpa",
     "zlib-intel": "zlib"
   },
   "exclude": [
     "freertos-demo",
-    "zephyr-philosophers"
+    "zephyr-philosophers",
+    "ltp",
+    "libpcre",
+    "xserver-xorg",
+    "which"
   ]
 }

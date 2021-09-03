@@ -87,6 +87,12 @@ def sha1sum(file_path: str) -> str:
 	)
 	return stdout.split(' ', 1)[0]
 
+def md5sum (file_path: str) -> str:
+	stdout, stderr = bash(
+		f'md5sum {file_path}'
+	)
+	return stdout.split(' ', 1)[0]
+
 def copy(src_filename: str, dst_filename: str) -> None:
 	with open(src_filename, 'rb') as fr:
 		with open(dst_filename, 'wb') as fw:
