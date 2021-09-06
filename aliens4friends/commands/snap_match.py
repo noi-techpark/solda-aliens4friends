@@ -527,7 +527,7 @@ class AlienSnapMatcher:
 
 				# FIXME should we use distance == 0 here?
 				if apkg.version.str == item["version"]:
-					logger.debug(f"[{self.curpkg}] {needle}: Exact version match (ident) { apkg.version.str } vs { item['version'] } is { similarity }")
+					logger.debug(f"[{self.curpkg}] {needle}: Exact version match (ident) { apkg.version.str } vs { item['version'] } is 0")
 					res['score'] = 100
 					res['slug'] = item['version']
 					return res
