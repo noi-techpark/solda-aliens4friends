@@ -4,8 +4,9 @@
 
 from .base import BaseModel
 from .common import Tool
-from typing import List, Optional
+from typing import List, Optional, TypeVar
 
+_TPackageListModel = TypeVar('_TPackageListModel', bound='PackageListModel')
 class PackageListModel(BaseModel):
 	def __init__(
 		self,
@@ -21,7 +22,7 @@ class PackageListModel(BaseModel):
 		self.selected = selected
 		self.reason = reason
 
-	def __eq__(self, o: object) -> bool:
+	def __eq__(self, o: _TPackageListModel) -> bool:
 		return (
 			self.name == o.name
 			and self.version == o.version
