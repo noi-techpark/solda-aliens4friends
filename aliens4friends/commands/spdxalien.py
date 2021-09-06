@@ -245,7 +245,7 @@ class MakeAlienSPDX:
 			fix_spdxtv(scancode_spdx_filename)
 			scancode_spdx, err = parse_spdx_tv(scancode_spdx_filename)
 			alien_package = AlienPackage(alien_package_filename)
-			alien_package.expand()
+			alien_package.expand(get_internal_archive_checksums=True)
 
 			deltacodeng_results_filename = ""
 			debian_spdx_filename = ""

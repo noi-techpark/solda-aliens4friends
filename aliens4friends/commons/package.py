@@ -129,22 +129,29 @@ class AlienPackage(Package):
 		self.expanded = False
 		self.aliensrc = aliensrc
 
-	def expand(self) -> None:
+	def expand(
+			self,
+			check_checksums: Optional[bool] = False,
+			get_internal_archive_checksums: Optional[bool] = False,
+			get_internal_archive_rootfolders: Optional[bool] = False,
+		) -> None:
 		# We need this step only once for each instance...
 		if self.expanded:
 			return
 
 		self.expanded = True
-		checksums = self.archive.checksums("files/")
-		archive_checksum_set = sorted(list(set([ fsha1 for fpath, fsha1 in checksums.items() ])))
-		metadata_checksum_set = sorted(list(set([ p.sha1_cksum for p in self.package_files ])))
+		if check_checksums:
+			logger.debug(f"[{self.name}-{self.version.str}] checking checksums")
+			checksums = self.archive.checksums("files/")
+			archive_checksum_set = sorted(list(set([ fsha1 for fpath, fsha1 in checksums.items() ])))
+			metadata_checksum_set = sorted(list(set([ p.sha1_cksum for p in self.package_files ])))
 
 
-		if archive_checksum_set != metadata_checksum_set:
-			raise PackageError(
-				f"File checksum mismatch between {self.ALIEN_MATCHER_JSON} and actual files"
-				f" in package {self.name}-{self.version.str}"
-			)
+			if archive_checksum_set != metadata_checksum_set:
+				raise PackageError(
+					f"File checksum mismatch between {self.ALIEN_MATCHER_JSON} and actual files"
+					f" in package {self.name}-{self.version.str}"
+				)
 
 		self.internal_archive_name = None
 		self.internal_archive_checksums = None
@@ -160,25 +167,38 @@ class AlienPackage(Package):
 			else:
 				paths = [ src_file.name ]
 
-			for path in paths:
-				try:
-					if src_file.sha1_cksum != checksums[path]:
+			if check_checksums:
+				logger.debug(
+					f"[{self.name}-{self.version.str}]"
+					f" checking match between path(s) and checksum for source file {src_file.name}"
+					)
+				for path in paths:
+					try:
+						if src_file.sha1_cksum != checksums[path]:
+							raise PackageError(
+								f"{src_file.sha1_cksum} is not {checksums[path]} for {path}."
+							)
+						count_files += 1
+					except KeyError:
 						raise PackageError(
-							f"{src_file.sha1_cksum} is not {checksums[path]} for {path}."
-						)
-					count_files += 1
-				except KeyError:
-					raise PackageError(
-							f"{src_file.sha1_cksum} does not exist in checksums for {path}."
-						)
+								f"{src_file.sha1_cksum} does not exist in checksums for {path}."
+							)
 
 			if '.tar.' in src_file.name or src_file.name.endswith('.tgz'):
-				files_path = os.path.join("files", path)
+				files_path = os.path.join("files", paths[0])
 				self.internal_archives.append(
 					InternalArchive(
 						name = src_file.name,
-						checksums = self.archive.in_archive_checksums(files_path),
-						rootfolder = self.archive.in_archive_rootfolder(files_path),
+						checksums = (
+							self.archive.in_archive_checksums(files_path) 
+							if get_internal_archive_checksums 
+							else None
+						),
+						rootfolder = (
+							self.archive.in_archive_rootfolder(files_path)
+							if get_internal_archive_rootfolders
+							else None
+						),
 						src_uri = src_file.src_uri
 					)
 				)
@@ -186,7 +206,7 @@ class AlienPackage(Package):
 					f"[{self.name}-{self.version.str}]"
 					f" adding internal archive {src_file.name}")
 
-		if len(checksums) != count_files:
+		if check_checksums and len(checksums) != count_files:
 			raise PackageError(
 				"We do not have the same count of files and checksums"
 				f" inside {self.ALIEN_MATCHER_JSON} of package {self.name}-{self.version.str}"
