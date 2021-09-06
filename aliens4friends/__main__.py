@@ -42,6 +42,7 @@ from aliens4friends.commands.spdxalien import MakeAlienSPDX
 from aliens4friends.commands.harvest import Harvest
 from aliens4friends.commands.fossy import GetFossyData
 from aliens4friends.commands.add import Add
+from aliens4friends.commands.session import Session
 from aliens4friends.commands.upload import UploadAliens2Fossy
 
 PROGNAME = "aliens4friends"
@@ -60,7 +61,8 @@ SUPPORTED_COMMANDS = [
 	"config",
 	"harvest",
 	"snapmatch",
-	"help"
+	"help",
+	"session"
 ]
 
 class Aliens4Friends:
@@ -255,6 +257,12 @@ class Aliens4Friends:
 				""")
 		)
 
+	def parser_session(self, cmd: str) -> None:
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Initialize a session"
+		)
+
 	def parser_add(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
@@ -371,6 +379,9 @@ class Aliens4Friends:
 			default = False,
 			help = "Add missing input files to the report while harvesting."
 		)
+
+	def session(self) -> None:
+		Session.execute(self.pool)
 
 	def add(self) -> None:
 		file_list = [ f.name for f in self.args.FILES ]

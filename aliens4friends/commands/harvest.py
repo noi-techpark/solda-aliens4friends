@@ -8,8 +8,6 @@ import re
 import sys
 from typing import List, Dict, Any
 
-from datetime import datetime
-
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.settings import Settings
@@ -20,10 +18,8 @@ from aliens4friends.models.harvest import (
 	HarvestModel,
 	SourcePackage,
 	Statistics,
-	StatisticsFiles,
 	StatisticsLicenses,
 	AuditFindings,
-	BaseModelEncoder,
 	License,
 	DebianMatchBasic,
 	BinaryPackage,

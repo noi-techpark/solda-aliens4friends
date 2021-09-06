@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from .base import BaseModel, BaseModelEncoder, ModelError
+from .base import BaseModel
 from .common import License, Tool, SourceFile
 from typing import Any, Dict, List, Optional
 

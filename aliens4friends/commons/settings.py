@@ -9,6 +9,7 @@ class Settings:
 	PATH_DEB = "debian"
 	PATH_USR = "userland"
 	PATH_STT = "stats"
+	PATH_SES = "sessions"
 
 	DOTENV = dotenv_values(find_dotenv(usecwd=True))
 
