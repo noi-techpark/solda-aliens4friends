@@ -152,6 +152,15 @@ class Aliens4Friends:
 		if hasattr(self.args, 'print') and self.args.print:
 			Settings.DOTENV["A4F_PRINTRESULT"] = Settings.PRINTRESULT = True
 
+	def _args_session(self, parser: argparse.ArgumentParser) -> None:
+		parser.add_argument(
+			"-s",
+			"--session",
+			type = str,
+			default="",
+			help="Use a session to create a list of packages, otherwise all packages inside the pool are used"
+		)
+
 
 	def _args_defaults(self, parser: argparse.ArgumentParser, describe_files: str = "") -> None:
 		parser.add_argument(
@@ -262,6 +271,7 @@ class Aliens4Friends:
 			cmd,
 			help="Initialize a session"
 		)
+		self._args_session(self.parsers[cmd])
 
 	def parser_add(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -282,6 +292,7 @@ class Aliens4Friends:
 			self.parsers[cmd],
 			"The Alien Packages (also wildcards allowed)"
 		)
+		self._args_session(self.parsers[cmd])
 
 	def parser_match(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -381,14 +392,18 @@ class Aliens4Friends:
 		)
 
 	def session(self) -> None:
-		Session.execute(self.pool)
+		Session.execute(
+			self.pool,
+			self.args.session
+		)
 
 	def add(self) -> None:
 		file_list = [ f.name for f in self.args.FILES ]
 		Add.execute(
 			file_list,
 			self.pool,
-			self.args.force
+			self.args.force,
+			self.args.session
 		)
 
 	def match(self) -> None:

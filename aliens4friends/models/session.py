@@ -9,13 +9,24 @@ from typing import List, Optional
 class PackageListModel(BaseModel):
 	def __init__(
 		self,
-		name: Optional[str] = None,
-		version: Optional[str] = None,
-		selected: bool = True
+		name: str,
+		version: str,
+		variant: str = "",
+		selected: bool = True,
+		reason: Optional[str] = ""
 	) -> None:
 		self.name = name
 		self.version = version
+		self.variant = variant
 		self.selected = selected
+		self.reason = reason
+
+	def __eq__(self, o: object) -> bool:
+		return (
+			self.name == o.name
+			and self.version == o.version
+			and self.variant == o.variant
+		)
 
 class SessionModel(BaseModel):
 	def __init__(
