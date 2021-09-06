@@ -1,3 +1,9 @@
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
+# SPDX-License-Identifier: Apache-2.0
+
+# These mappings are match aliases. That is, if the matchers find
+# something on the key-side of this map, then it gets replaced by
+# the value. This is useful, not to overcomplicate matching rules.
 ALIASES = {
 	"gtk+3": "gtk+3.0",
 	"gmmlib": "intel-gmmlib",
@@ -18,6 +24,8 @@ ALIASES = {
 	"zlib-intel": "zlib"
 }
 
+# Exclude these packages from Debian package searches, since we
+# are sure that we will not find anything.
 EXCLUSIONS = [
 	"freertos-demo",
 	"zephyr-philosophers",
