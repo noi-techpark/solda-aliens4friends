@@ -1,20 +1,12 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 # SPDX-License-Identifier: Apache-2.0
-#
-# FIXME This method will replace match in short time, which involves some cleanup.
-#   - Remove all match vs snapmatch csv outputs and comparisons
-#   - Remove the old match command
-#   - Move this into the "match" subcommand: cleanup also docs and the help text
 
+from aliens4friends.commons.aliases import ALIASES, EXCLUSIONS
 import collections as col
 import json
-import os
-import sys
 import logging
-import copy
 import csv
 import time
-import numpy
 
 from pathlib import Path
 
@@ -22,20 +14,18 @@ from aliens4friends.commons.pool import Pool, PoolError
 from aliens4friends.models.base import ModelError
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.calc import Calc
+from aliens4friends.commons.aliases import ALIASES, EXCLUSIONS
 from aliens4friends.commons.version import Version
 from aliens4friends.commons.utils import md5sum
-from urllib.parse import quote as url_encode
-from multiprocessing import Pool as MultiProcessingPool
 
-from enum import Enum
-from typing import Union, Any, Optional, List, Tuple
+from typing import Union, Any, Optional, List
 
 import requests
 from debian.deb822 import Deb822
 
 from urllib3.exceptions import NewConnectionError
 
-from aliens4friends.commons.package import AlienPackage, Package, PackageError, DebianPackage
+from aliens4friends.commons.package import AlienPackage, PackageError
 from aliens4friends.models.alienmatcher import (
 	AlienSnapMatcherModel,
 	Tool,
@@ -61,7 +51,6 @@ class AlienSnapMatcher:
 		super().__init__()
 		self.pool = Pool(Settings.POOLPATH)
 		AlienSnapMatcher.loadSources()
-		self._load_aliases_exclusions()
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
 
 
@@ -323,7 +312,7 @@ class AlienSnapMatcher:
 			if len(elem) != 3:
 				continue
 			debian_control_files.append(f"{elem[0]} {elem[2]}")
-		
+
 		srcfiles = []
 		for srcfile in snap_match.srcfiles:
 			if srcfile.name.endswith('.dsc'):
@@ -339,7 +328,7 @@ class AlienSnapMatcher:
 				)
 				chksum = md5sum(filepath)
 			srcfiles.append(f"{chksum} {srcfile.name}")
-				
+
 		if sorted(debian_control_files) != sorted(srcfiles):
 			raise AlienSnapMatcherError(
 				f"checksum mismatch in debian package {snap_match.name} {snap_match.version}:"
@@ -367,8 +356,8 @@ class AlienSnapMatcher:
 				elif 'orig' in srcfile.name:
 					snap_match.debsrc_orig = debian_relpath
 			elif snap_match.dsc_format == "3.0 (native)":
-				snap_match.debsrc_orig = debian_relpath				
-			
+				snap_match.debsrc_orig = debian_relpath
+
 
 	def get_all_sourcefiles(self, snap_match, bin_files = False) -> None:
 		uri = AlienSnapMatcher.API_URL_ALLSRC + snap_match.name +"/"+ snap_match.version +"/allfiles"
@@ -398,7 +387,7 @@ class AlienSnapMatcher:
 					paths=[info["path"]]
 				)
 				snap_match.srcfiles.append(source)
-		
+
 
 	@staticmethod
 	def clearDiff():
@@ -412,16 +401,6 @@ class AlienSnapMatcher:
 		with open(compare_csv, 'w+') as csvfile:
 			csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "match status", "version match distance", "name snapmatch", "version snapmatch", "snapmatch status", "version snapmatch distance", "snapscore", "package match info", "version match info"])
-
-	def _load_aliases_exclusions(self) -> None:
-		# check for aliases and exclusions
-		dir_path = os.path.dirname(os.path.realpath(__file__))
-		with open(dir_path + '/../commons/aliases.json', 'r') as aliasfile:
-			data=aliasfile.read()
-		jsona = json.loads(data)
-		self.exclusions = jsona["exclude"]
-		self.aliases = jsona["aliases"]
-
 
 	def run(self, package_path: Union[str, Path]) -> Optional[AlienSnapMatcherModel]:
 
@@ -444,7 +423,7 @@ class AlienSnapMatcher:
 			results.append(package.name)
 			results.append(package.version.str)
 
-			if package.name in self.exclusions:
+			if package.name in EXCLUSIONS:
 				logger.warning(f"[{self.curpkg}] IGNORED: Known non-debian")
 				amm.errors.append("IGNORED: Known non-debian")
 			else:
@@ -476,15 +455,15 @@ class AlienSnapMatcher:
 
 		for pkg in SNAP_ALL_SOURCES["result"]:
 
-			if apkg.name in self.aliases:
-				if pkg["package"] == self.aliases[apkg.name]:
+			if apkg.name in ALIASES:
+				if pkg["package"] == ALIASES[apkg.name]:
 					fuzzy_score = 100
 					similarity = 0
 				else:
 					continue
 			else:
 				similarity = Calc.levenshtein(name_needle, pkg["package"])
-				fuzzy_score = Calc.fuzzy_package_score(name_needle, pkg["package"], {})
+				fuzzy_score = Calc.fuzzy_package_score(name_needle, pkg["package"])
 
 			# logger.debug(f"[{apkg.name}] vs { pkg['package'] } / { fuzzy_score }")
 
@@ -596,8 +575,8 @@ class AlienSnapMatcher:
 		AlienSnapMatcher.clearDiff()
 
 		pool = Pool(Settings.POOLPATH)
-		results = [ 
-			AlienSnapMatcher._execute(a) 
+		results = [
+			AlienSnapMatcher._execute(a)
 			for a in pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
 		]
 
