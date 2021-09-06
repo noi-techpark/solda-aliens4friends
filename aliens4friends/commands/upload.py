@@ -199,7 +199,7 @@ class UploadAliens2Fossy:
 					f"[{cur_pckg}] expanding alien package,"
 					" it may require a lot of time"
 				)
-				apkg.expand()
+				apkg.expand(get_internal_archive_rootfolders=True)
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"[{cur_pckg}] Unable to load aliensrc from {path} ")
 				continue

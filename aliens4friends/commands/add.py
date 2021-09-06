@@ -32,6 +32,7 @@ class Add:
 		alienpackage = AlienPackage(path)
 		if not isinstance(alienpackage, AlienPackage):
 			raise TypeError("Parameter must be an AlienPackage.")
+		alienpackage.expand(check_checksums=True)
 		dir_in_pool = self.pool.relpath(
 			Settings.PATH_USR,
 			alienpackage.name,
