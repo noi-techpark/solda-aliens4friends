@@ -162,7 +162,7 @@ class AlienMatcher:
 		if best_candidate:
 			logger.debug(
 				f"[{self.curpkg}] Nearest neighbor on Debian is"
-				f" {cur_package_name}/{best_candidate[0].str}."
+				f" {cur_package_name}/{best_candidate[0].str}." #pytype: disable=attribute-error
 			)
 		else:
 			logger.debug(f"[{self.curpkg}] Found no neighbor on Debian.")
