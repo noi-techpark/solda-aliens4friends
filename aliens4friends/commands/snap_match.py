@@ -520,16 +520,13 @@ class AlienSnapMatcher:
 			for item in reversed(data["result"]):
 				itemVersion = Version(item["version"])
 
-				# ident
-				similarity = Calc.levenshtein(apkg.version.str, item["version"])
-
 				# zero distance
 				distance = itemVersion.distance(apkg.version)
 
-				# logger.debug(f"[{needle}]  { apkg.version } vs { itemVersion }")
+				logger.debug(f"[{needle}]  { apkg.version } vs { itemVersion }")
 
-				# this does not happen, cause the cat bites its own tail
-				if similarity == 0:
+				# FIXME should we use distance == 0 here?
+				if apkg.version.str == item["version"]:
 					logger.debug(f"[{self.curpkg}] {needle}: Exact version match (ident) { apkg.version.str } vs { item['version'] } is { similarity }")
 					res['score'] = 100
 					res['slug'] = item['version']

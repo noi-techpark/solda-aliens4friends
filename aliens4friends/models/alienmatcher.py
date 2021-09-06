@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
+from re import S
 from .base import BaseModel
 from .common import Tool, SourceFile
 from typing import List, Optional
@@ -23,6 +24,9 @@ class DebianMatch(BaseModel):
 		self,
 		name: Optional[str] = None,
 		version: Optional[str] = None,
+		score: Optional[int] = 0,
+		package_score: Optional[int] = 0,
+		version_score: Optional[int] = 0,
 		debsrc_debian: Optional[str] = None,
 		debsrc_orig: Optional[str] = None,
 		dsc_format: Optional[str] = None,
@@ -30,6 +34,9 @@ class DebianMatch(BaseModel):
 	):
 		self.name = name
 		self.version = version
+		self.score = score
+		self.package_score = package_score
+		self.version_score = version_score
 		self.debsrc_debian = debsrc_debian
 		self.debsrc_orig = debsrc_orig
 		self.dsc_format = dsc_format

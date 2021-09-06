@@ -1,30 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
-import collections as col
 import json
 import os
-import sys
 import logging
-from urllib.parse import quote as url_encode
 from multiprocessing import Pool as MultiProcessingPool
 
-from enum import Enum
-from typing import Union, Any, Optional
+from typing import Tuple, Any, Optional
 
 import requests
 from debian.deb822 import Deb822
-from spdx import utils
-from spdx.checksum import Algorithm as SPDXAlgorithm
-from spdx.document import License as SPDXLicense
-from spdx.file import File as SPDXFile
-from spdx.parsers.loggers import StandardLogger as SPDXWriterLogger
-from spdx.parsers.tagvalue import Parser as SPDXTagValueParser
-from spdx.parsers.tagvaluebuilders import Builder as SPDXTagValueBuilder
-from spdx.writers.tagvalue import write_document
 
 from aliens4friends.commons.archive import Archive, ArchiveError
-from aliens4friends.commons.utils import sha1sum, md5, copy
+from aliens4friends.commons.utils import sha1sum
 from aliens4friends.commons.calc import Calc
 from aliens4friends.commons.package import AlienPackage, Package, PackageError, DebianPackage
 from aliens4friends.commons.version import Version
@@ -35,7 +23,6 @@ from aliens4friends.models.alienmatcher import (
 	Tool,
 	AlienSrc,
 	DebianMatch,
-	DebianMatchContainer,
 	VersionCandidate
 )
 
@@ -100,7 +87,7 @@ class AlienMatcher:
 			response = response.text
 		return json.loads(response)
 
-	def search(self, package: Package) -> Package:
+	def search(self, package: Package) -> Tuple[Package, int, int]:
 		logger.debug(f"[{self.curpkg}] Search for similar packages with {self.API_URL_ALLSRC}.")
 		if not isinstance(package, Package):
 			raise TypeError("Parameter must be a Package.")
@@ -130,6 +117,7 @@ class AlienMatcher:
 		candidates = sorted(candidates, reverse=True)
 
 		cur_package_name = candidates[0][1]
+		cur_package_score = candidates[0][0]
 		if package.name != cur_package_name:
 			logger.debug(f"[{self.curpkg}] Package with name {package.name} not found. Trying with {cur_package_name}.")
 		if multi_names:
@@ -169,17 +157,33 @@ class AlienMatcher:
 		except IndexError:
 			nn2 = [None, Version.MAX_DISTANCE]
 
-		best_version = nn1[0] if nn1[1] < nn2[1] else nn2[0]
+		best_candidate = nn1 if nn1[1] < nn2[1] else nn2
 
-		if best_version:
+		if best_candidate:
 			logger.debug(
 				f"[{self.curpkg}] Nearest neighbor on Debian is"
-				f" {cur_package_name}/{best_version.str}."
+				f" {cur_package_name}/{best_candidate[0].str}."
 			)
 		else:
 			logger.debug(f"[{self.curpkg}] Found no neighbor on Debian.")
 
-		return Package(name = cur_package_name, version = best_version)
+		# FIXME This code has been partly extracted from snap_match.py, we should
+		# create a method to solve scoring for all occasions.
+		cur_version_score = -100
+		if best_candidate[1] == 0:
+			cur_version_score = 100
+		elif best_candidate[1] <= 10:
+			cur_version_score = 99
+		elif best_candidate[1] < Version.KO_DISTANCE:
+			cur_version_score = 50
+		else:
+			cur_version_score = 10
+
+		return (
+			Package(name = cur_package_name, version = best_candidate[0]),
+			cur_package_score,
+			cur_version_score
+		)
 
 	def download_to_debian(self, package_name: str, package_version: str, filename: str) -> bytes:
 		logger.debug(
@@ -351,7 +355,7 @@ class AlienMatcher:
 			try:
 				if apkg.has_internal_primary_archive():
 
-					match = self.search(apkg)
+					match, package_score, version_score = self.search(apkg)
 
 					# It will use the cache, but we need the package also if the
 					# SPDX was already generated from the Debian sources.
@@ -360,6 +364,9 @@ class AlienMatcher:
 					amm.debian.match = DebianMatch(
 						debpkg.name,
 						debpkg.version.str,
+						Calc.overallScore(package_score, version_score),
+						package_score,
+						version_score,
 						debpkg.debsrc_debian,
 						debpkg.debsrc_orig,
 						debpkg.format,
