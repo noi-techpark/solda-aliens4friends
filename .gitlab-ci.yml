@@ -23,6 +23,13 @@ pytype:
     - python -c "from flanker.addresslib import address" >/dev/null 2>&1
     - pytype --config pytype.cfg aliens4friends
 
+unittests:
+  stage: test
+  tags: [ soldademo, docker ]
+  image: python:3.8
+  script:
+    - python -m unittest discover aliens4friends/tests/
+
 reuse:
   tags: [ soldademo, docker ]
   stage: test
