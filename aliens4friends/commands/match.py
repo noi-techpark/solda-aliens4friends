@@ -10,9 +10,11 @@ from typing import Tuple, Any, Optional
 
 import requests
 from debian.deb822 import Deb822
+from aliens4friends.commons import package
 
 from aliens4friends.commons.archive import Archive, ArchiveError
 from aliens4friends.commons.utils import sha1sum
+from aliens4friends.commons.session import Session, SessionError
 from aliens4friends.commons.calc import Calc
 from aliens4friends.commons.package import AlienPackage, Package, PackageError, DebianPackage
 from aliens4friends.commons.version import Version
@@ -168,11 +170,14 @@ class AlienMatcher:
 			logger.debug(f"[{self.curpkg}] Found no neighbor on Debian.")
 
 		# FIXME This code has been partly extracted from snap_match.py, we should
-		# create a method to solve scoring for all occasions.
+		# create a method to solve scoring for all occasions (put it inside version.py)
 		cur_version_score = -100
 		if best_candidate[1] == 0:
 			cur_version_score = 100
-		elif best_candidate[1] <= 10:
+
+		# Warning: snap_match sets this to 10 only, but we would have too small thresholds
+		# and therefore catch only packages with a very small micro-version distance
+		elif best_candidate[1] <= 100:
 			cur_version_score = 99
 		elif best_candidate[1] < Version.KO_DISTANCE:
 			cur_version_score = 50
@@ -412,14 +417,34 @@ class AlienMatcher:
 			return None
 
 	@staticmethod
-	def execute(glob_name: str = "*", glob_version: str = "*") -> None:
+	def execute(glob_name: str = "*", glob_version: str = "*", session_id: str = "") -> None:
 		global DEB_ALL_SOURCES
 		DEB_ALL_SOURCES = AlienMatcher.get_deb_all_sources()
+
 		pool = Pool(Settings.POOLPATH)
+
+		# Just take packages from the current session list
+		# On error just return, error messages are inside load()
+		if session_id:
+			try:
+				paths = []
+				for pckg in Session(pool, session_id).load().package_list:
+					paths.append(
+						pool.abspath(
+							f"{Settings.PATH_USR}/{pckg.name}/{pckg.version}/{pckg.name}-{pckg.version}-{pckg.variant}.aliensrc"
+						)
+					)
+			except SessionError:
+				return
+
+		# ...without a session_id, take information directly from the pool
+		else:
+			paths = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
+
 		multiprocessing_pool = MultiProcessingPool()
 		results = multiprocessing_pool.map( # pytype: disable=wrong-arg-types
 			AlienMatcher._execute,
-			pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
+			paths
 		)
 		if Settings.PRINTRESULT:
 			for match in results:

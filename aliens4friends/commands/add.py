@@ -8,7 +8,8 @@ from aliens4friends.commons.pool import Pool, SRCTYPE, OVERWRITE, PoolErrorFileE
 from aliens4friends.commons.settings import Settings
 
 from aliens4friends.models.tinfoilhat import TinfoilHatModel
-from aliens4friends.models.session import PackageListModel, SessionModel
+from aliens4friends.commons.session import Session, SessionError
+from aliens4friends.models.session import PackageListModel
 
 from aliens4friends.commons.utils import get_prefix_formatted, log_minimal_error
 
@@ -27,31 +28,18 @@ class Add:
 	def __init__(self, pool: Pool, session_id: str) -> None:
 		super().__init__()
 		self.pool = pool
-		self.session_id = session_id
 		self.session_list_aliensrc = []
 		self.session_list_tinfoilhat = []
+		self.session = None
 
-	def init_session(self) -> bool:
-		if not self.session_id:
-			return True
-
-		# Test immediately if the session exist, to avoid misleading error messages
-		try:
-			self.session = SessionModel.from_file(
-				self.pool.abspath(
-					Settings.PATH_SES,
-					f"{self.session_id}.json"
-				)
-			)
-			return True
-		except FileNotFoundError:
-			logger.error(
-				f"Session with ID '{self.session_id}' not found."
-				f" Use 'session' to create one..."
-			)
-
-		return False
-
+		# Load a session if possible, or terminate otherwise
+		# Error messages are already inside load()
+		if session_id:
+			self.session = Session(pool, session_id)
+			try:
+				self.session.load()
+			except SessionError:
+				return
 
 	def alienpackage(self, path: str, force: bool) -> None:
 		alienpackage = AlienPackage(path)
@@ -89,8 +77,6 @@ class Add:
 			)
 		)
 
-
-
 	def tinfoilhat(self, path: str) -> None:
 		"""add a tinfoilhat file to the pool, splitting it (if it contains
 		multiple recipes), and merging it with other possible existing
@@ -124,7 +110,7 @@ class Add:
 	def write_session_list(self) -> None:
 
 		# Nothing to do, if we do not have started a session...
-		if not self.session_id:
+		if not self.session:
 			return
 
 		# Since lists are not hashable, we need a custom duplicate removal here
@@ -164,20 +150,15 @@ class Add:
 				candidate.selected = False
 				candidate.reason = "No .tinfoilhat.json found"
 
-		self.session.package_list = candidates
-		self.pool.write_json(self.session, Settings.PATH_SES, f"{self.session_id}.json")
-
-
+		self.session.write_package_list(candidates)
 
 	@staticmethod
 	def execute(file_list, pool: Pool, force: bool, session_id: str) -> None:
 		adder = Add(pool, session_id)
-		if not adder.init_session():
-			return
 
 		for path in file_list:
 			try:
-				logger.info(f"Add {path} to pool with session {session_id})")
+				logger.info(f"Add {path} to pool with session {session_id}")
 				if path.endswith(".aliensrc"):
 					adder.alienpackage(path, force)
 				elif path.endswith(".tinfoilhat.json"):

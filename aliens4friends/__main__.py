@@ -42,7 +42,7 @@ from aliens4friends.commands.spdxalien import MakeAlienSPDX
 from aliens4friends.commands.harvest import Harvest
 from aliens4friends.commands.fossy import GetFossyData
 from aliens4friends.commands.add import Add
-from aliens4friends.commands.session import Session
+from aliens4friends.commands.session import SessionCommand
 from aliens4friends.commands.upload import UploadAliens2Fossy
 
 PROGNAME = "aliens4friends"
@@ -302,6 +302,7 @@ class Aliens4Friends:
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
+		self._args_session(self.parsers[cmd])
 
 	def parser_snapmatch(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -392,7 +393,7 @@ class Aliens4Friends:
 		)
 
 	def session(self) -> None:
-		Session.execute(
+		SessionCommand.execute(
 			self.pool,
 			self.args.session
 		)
@@ -409,7 +410,8 @@ class Aliens4Friends:
 	def match(self) -> None:
 		AlienMatcher.execute(
 			self.args.glob_name,
-			self.args.glob_version
+			self.args.glob_version,
+			self.args.session
 		)
 
 	def snapmatch(self) -> None:
