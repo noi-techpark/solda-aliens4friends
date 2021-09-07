@@ -18,6 +18,9 @@
     "wpa-supplicant": "wpa",
     "zlib-intel": "zlib"
   },
+  "valiases": {
+    "intel-microcode" : "3.20201118"
+  },
   "exclude": [
     "freertos-demo",
     "zephyr-philosophers",

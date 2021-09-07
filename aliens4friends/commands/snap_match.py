@@ -17,6 +17,7 @@ import time
 import numpy
 
 from pathlib import Path
+from tenacity import retry, wait_exponential, stop_after_attempt, retry_if_exception_type
 
 from aliens4friends.commons.pool import Pool, PoolError
 from aliens4friends.models.base import ModelError
@@ -33,7 +34,7 @@ from typing import Union, Any, Optional, List, Tuple
 import requests
 from debian.deb822 import Deb822
 
-from urllib3.exceptions import NewConnectionError
+from requests.exceptions import ConnectionError
 
 from aliens4friends.commons.package import AlienPackage, Package, PackageError, DebianPackage
 from aliens4friends.models.alienmatcher import (
@@ -56,6 +57,9 @@ class AlienSnapMatcher:
 	API_URL_FILEINFO = "https://snapshot.debian.org/mr/file/"
 
 	REQUEST_THROTTLE = 5
+	REQUEST_THROTTLE_MAX = 1000
+	REQUEST_THROTTLE_MULTIPLIER = 1
+	REQUEST_MAX_ATTEMPTS = 10
 
 	def __init__(self) -> None:
 		super().__init__()
@@ -63,9 +67,11 @@ class AlienSnapMatcher:
 		AlienSnapMatcher.loadSources()
 		self._load_aliases_exclusions()
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
+		self.get_data("https://snapshot.desdsdsdsdbian.org/mr/package/sda")
 
 
 	@staticmethod
+	@retry(wait=wait_exponential(multiplier=REQUEST_THROTTLE_MULTIPLIER, min=REQUEST_THROTTLE, max=REQUEST_THROTTLE_MAX), stop=stop_after_attempt(REQUEST_MAX_ATTEMPTS), retry=retry_if_exception_type(requests.exceptions.ConnectionError))
 	def get_data(uri : str) -> Any:
 
 		# handling snapshot.debian trailing slash inconsistencies
@@ -92,8 +98,11 @@ class AlienSnapMatcher:
 				with open(Settings.POOLPATH + "/" + api_response_cached, "w") as f:
 					f.write(response.text)
 				response = response.text
-			except NewConnectionError:
-				logger.error(f"Target temporarily not reachable {uri}")
+			except requests.exceptions.RequestException as error:
+				logger.warning(f"Connection error, trying again...")
+				# reraise for tenacity, but do not catch it
+				raise error
+				return json.loads("{}")
 
 		return json.loads(response)
 
@@ -323,7 +332,7 @@ class AlienSnapMatcher:
 			if len(elem) != 3:
 				continue
 			debian_control_files.append(f"{elem[0]} {elem[2]}")
-		
+
 		srcfiles = []
 		for srcfile in snap_match.srcfiles:
 			if srcfile.name.endswith('.dsc'):
@@ -339,7 +348,7 @@ class AlienSnapMatcher:
 				)
 				chksum = md5sum(filepath)
 			srcfiles.append(f"{chksum} {srcfile.name}")
-				
+
 		if sorted(debian_control_files) != sorted(srcfiles):
 			raise AlienSnapMatcherError(
 				f"checksum mismatch in debian package {snap_match.name} {snap_match.version}:"
@@ -367,8 +376,8 @@ class AlienSnapMatcher:
 				elif 'orig' in srcfile.name:
 					snap_match.debsrc_orig = debian_relpath
 			elif snap_match.dsc_format == "3.0 (native)":
-				snap_match.debsrc_orig = debian_relpath				
-			
+				snap_match.debsrc_orig = debian_relpath
+
 
 	def get_all_sourcefiles(self, snap_match, bin_files = False) -> None:
 		uri = AlienSnapMatcher.API_URL_ALLSRC + snap_match.name +"/"+ snap_match.version +"/allfiles"
@@ -398,7 +407,7 @@ class AlienSnapMatcher:
 					paths=[info["path"]]
 				)
 				snap_match.srcfiles.append(source)
-		
+
 
 	@staticmethod
 	def clearDiff():
@@ -421,6 +430,7 @@ class AlienSnapMatcher:
 		jsona = json.loads(data)
 		self.exclusions = jsona["exclude"]
 		self.aliases = jsona["aliases"]
+		self.valiases = jsona["valiases"]
 
 
 	def run(self, package_path: Union[str, Path]) -> Optional[AlienSnapMatcherModel]:
@@ -515,6 +525,10 @@ class AlienSnapMatcher:
 
 		logger.debug(f"[{self.curpkg}]  Searching for package version { apkg.name } { apkg.version.str }")
 
+		if apkg.name in self.valiases:
+			logger.info(f"[{self.curpkg}]  Version alias found { self.valiases[apkg.name] }")
+			apkg.version = Version(self.valiases[apkg.name])
+
 		needle = apkg.name
 		if altname:
 			needle = altname
@@ -542,12 +556,12 @@ class AlienSnapMatcher:
 				itemVersion = Version(item["version"])
 
 				# ident
-				similarity = Calc.levenshtein(apkg.version.str, item["version"])
+				similarity = Calc.levenshtein(apkg.version.str, itemVersion.str)
 
 				# zero distance
 				distance = itemVersion.distance(apkg.version)
 
-				# logger.debug(f"[{needle}]  { apkg.version } vs { itemVersion }")
+				# logger.debug(f"[{needle}]  { apkg.version } vs { itemVersion.str } = { distance } = { similarity }")
 
 				# this does not happen, cause the cat bites its own tail
 				if similarity == 0:
@@ -596,8 +610,8 @@ class AlienSnapMatcher:
 		AlienSnapMatcher.clearDiff()
 
 		pool = Pool(Settings.POOLPATH)
-		results = [ 
-			AlienSnapMatcher._execute(a) 
+		results = [
+			AlienSnapMatcher._execute(a)
 			for a in pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
 		]
 
