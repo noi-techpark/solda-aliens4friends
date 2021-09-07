@@ -37,7 +37,7 @@ setuptools.setup(
         'flanker==0.9.11',
         'deepdiff==5.2.3',
         'beautifulsoup4==4.9.3',
-        'tenacity==1.3.3',
+        'tenacity==8.0.1',
     ],
 	package_data={
         'aliens4friends.commons': [
