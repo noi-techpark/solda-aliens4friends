@@ -67,7 +67,6 @@ class AlienSnapMatcher:
 		AlienSnapMatcher.loadSources()
 		self._load_aliases_exclusions()
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
-		self.get_data("https://snapshot.desdsdsdsdbian.org/mr/package/sda")
 
 
 	@staticmethod
