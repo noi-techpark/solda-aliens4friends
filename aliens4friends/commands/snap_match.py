@@ -52,6 +52,9 @@ class AlienSnapMatcherError(Exception):
 
 class AlienSnapMatcher:
 
+	# Type hints for attributes not declared in __init__
+	curpkg: str
+
 	API_URL_ALLSRC = "https://snapshot.debian.org/mr/package/"
 	API_URL_FILES = "https://snapshot.debian.org/file/"
 	API_URL_FILEINFO = "https://snapshot.debian.org/mr/file/"
