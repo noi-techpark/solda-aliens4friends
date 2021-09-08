@@ -271,6 +271,21 @@ class Aliens4Friends:
 			cmd,
 			help="Initialize a session"
 		)
+		group = self.parsers[cmd].add_mutually_exclusive_group()
+		group.add_argument(
+			"-f",
+			"--filter",
+			type = str,
+			required = False,
+			help = "Filter the package list inside the given session (use -s SESSION for that)"
+		)
+		group.add_argument(
+			"-c",
+			"--create",
+			action = "store_true",
+			default = False,
+			help = "Create a new session from a given SESSION or random ID (if absent)"
+		)
 		self._args_session(self.parsers[cmd])
 
 	def parser_add(self, cmd: str) -> None:
@@ -395,7 +410,9 @@ class Aliens4Friends:
 	def session(self) -> None:
 		SessionCommand.execute(
 			self.pool,
-			self.args.session
+			self.args.session,
+			self.args.create,
+			self.args.filter
 		)
 
 	def add(self) -> None:
