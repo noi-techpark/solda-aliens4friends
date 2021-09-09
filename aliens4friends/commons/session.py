@@ -3,7 +3,7 @@
 
 import logging
 import random
-from typing import List
+from typing import List, Optional
 
 from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.settings import Settings
@@ -70,7 +70,10 @@ class Session:
 			raise SessionError(error)
 
 
-	def write_package_list(self, package_list: List[PackageListModel] = None) -> bool:
+	def write_package_list(
+		self,
+		package_list: Optional[List[PackageListModel]] = None
+	) -> bool:
 		if not self.session_model:
 			return False
 

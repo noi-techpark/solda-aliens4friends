@@ -81,6 +81,8 @@ class Pool:
 				f"{name}-{version}{variant}.{type}"
 			)
 
+		raise PoolError(f"Unable to find a path for the file type '{type}'")
+
 
 	def abspath_typed(
 		self,
