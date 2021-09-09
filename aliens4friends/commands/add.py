@@ -4,7 +4,7 @@
 import logging
 
 from aliens4friends.commons.package import AlienPackage
-from aliens4friends.commons.pool import Pool, SRCTYPE, OVERWRITE, PoolErrorFileExists
+from aliens4friends.commons.pool import FILETYPE, Pool, SRCTYPE, OVERWRITE, PoolErrorFileExists
 from aliens4friends.commons.settings import Settings
 
 from aliens4friends.models.tinfoilhat import TinfoilHatModel
@@ -46,21 +46,26 @@ class Add:
 		if not isinstance(alienpackage, AlienPackage):
 			raise TypeError("Parameter must be an AlienPackage.")
 		alienpackage.expand(check_checksums=True)
-		dir_in_pool = self.pool.relpath(
-			Settings.PATH_USR,
+		filepath = self.pool.relpath_typed(
+			FILETYPE.ALIENSRC,
 			alienpackage.name,
-			alienpackage.version.str
+			alienpackage.version.str,
+			alienpackage.variant,
+			with_filename=False
 		)
-		variant = f"-{alienpackage.variant}" if alienpackage.variant else ""
-		new_filename = f"{alienpackage.name}-{alienpackage.version.str}{variant}.aliensrc"
-
-		logger.info(f"[{alienpackage.name}-{alienpackage.version.str}] Position in pool will be: {dir_in_pool}/{new_filename}")
+		filename = self.pool.filename(
+			FILETYPE.ALIENSRC,
+			alienpackage.name,
+			alienpackage.version.str,
+			alienpackage.variant,
+		)
+		logger.info(f"[{alienpackage.name}-{alienpackage.version.str}] Position in pool will be: {filepath}/{filename}")
 
 		try:
 			self.pool._add(
 				alienpackage.archive_fullpath,
-				dir_in_pool,
-				new_filename,
+				filepath,
+				filename,
 				SRCTYPE.PATH,
 				overwrite=OVERWRITE.ALWAYS if force else OVERWRITE.RAISE
 			)
@@ -87,16 +92,15 @@ class Add:
 			metadata = container.recipe.metadata
 			package_name = metadata.base_name
 			package_version = f'{metadata.version}-{metadata.revision}'
-			variant = f"-{metadata.variant}" if metadata.variant else ""
-			filename = f'{package_name}-{package_version}{variant}.tinfoilhat.json'
-			logger.info(f"Position in pool will be: {Settings.PATH_USR}/{package_name}/{package_version}/{filename}")
+			filename = self.pool.filename(FILETYPE.TINFOILHAT, package_name, package_version, metadata.variant)
+			filepath = self.pool.relpath_typed(FILETYPE.TINFOILHAT, package_name, package_version, with_filename=False)
+			logger.info(f"Position in pool will be: {filepath}/{filename}")
+
 			self.pool.merge_json_with_history(
 				TinfoilHatModel({recipe_name: container}),
 				filename,
 				get_prefix_formatted(),
-				Settings.PATH_USR,
-				package_name,
-				package_version
+				filepath
 			)
 
 			self.session_list_tinfoilhat.append(

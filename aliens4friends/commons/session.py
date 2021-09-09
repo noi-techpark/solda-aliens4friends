@@ -5,7 +5,7 @@ import logging
 import random
 from typing import List, Optional
 
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import OVERWRITE, SRCTYPE, Pool
 from aliens4friends.commons.settings import Settings
 from aliens4friends.models.session import SessionModel, PackageListModel
 from aliens4friends.models.common import Tool
@@ -82,10 +82,12 @@ class Session:
 		if package_list:
 			self.session_model.package_list = package_list
 
-		self.pool.write_json(
+		self.pool._add(
 			self.session_model,
 			Settings.PATH_SES,
-			f"{self.session_id}.json"
+			f"{self.session_id}.json",
+			SRCTYPE.JSON,
+			OVERWRITE.ALWAYS
 		)
 
 	@staticmethod

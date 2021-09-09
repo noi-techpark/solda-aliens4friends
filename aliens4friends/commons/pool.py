@@ -35,6 +35,7 @@ class OVERWRITE(IntEnum):
 class FILETYPE(str, Enum):
 	ALIENMATCHER = "alienmatcher.json"
 	ALIENSRC = "aliensrc"
+	TINFOILHAT = "tinfoilhat.json"
 	# TODO Extend when needed, use it everywhere
 
 class PoolError(Exception):
@@ -53,33 +54,49 @@ class Pool:
 				f"Unable to create the POOL at path '{self.basepath}'."
 			)
 
-	def relpath_typed(
+	def filename(
 		self,
 		type: FILETYPE,
 		name: str,
 		version: str,
 		variant: str = ""
 	) -> str:
-		"""Get a relative path to the corresponding file of a certain type"""
+		"""Get the filename with extension of a certain file type"""
 
 		if variant:
 			variant = f"-{variant}"
 
 		if type == FILETYPE.ALIENMATCHER:
-			return self.relpath(
-				Settings.PATH_USR,
-				name,
-				version,
-				f"{name}-{version}.{type}"
-			)
+			return f"{name}-{version}.{type}"
 
 		if type == FILETYPE.ALIENSRC:
-			return self.relpath(
-				Settings.PATH_USR,
-				name,
-				version,
-				f"{name}-{version}{variant}.{type}"
-			)
+			return f"{name}-{version}{variant}.{type}"
+
+		if type == FILETYPE.TINFOILHAT:
+			return f'{name}-{version}{variant}.{type}'
+
+		raise PoolError(f"Unable to find a path for the file type '{type}'")
+
+
+	def relpath_typed(
+		self,
+		type: FILETYPE,
+		name: str,
+		version: str,
+		variant: str = "",
+		with_filename: bool = True
+	) -> str:
+		"""Get a relative path to the corresponding file of a certain type"""
+
+		# Files that are located inside <PATH_USR>/<name>/<version>
+		if type in [FILETYPE.ALIENMATCHER, FILETYPE.ALIENSRC, FILETYPE.TINFOILHAT]:
+			relpath = self.relpath(Settings.PATH_USR, name, version)
+			if with_filename:
+				relpath = os.path.join(
+					relpath,
+					self.filename(type, name, version, variant)
+				)
+			return relpath
 
 		raise PoolError(f"Unable to find a path for the file type '{type}'")
 
