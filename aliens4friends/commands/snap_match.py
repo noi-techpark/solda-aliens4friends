@@ -579,7 +579,7 @@ class AlienSnapMatcher:
 			try:
 				session = Session(pool, session_id)
 				session.load()
-				paths = session.package_list_paths()
+				paths = session.package_list_paths(FILETYPE.ALIENSRC)
 			except SessionError:
 				return
 
@@ -596,6 +596,7 @@ class AlienSnapMatcher:
 			for match in results:
 				if match:
 					print(match.to_json(indent=2))
+
 		if not results:
 			if session_id:
 				logger.info(

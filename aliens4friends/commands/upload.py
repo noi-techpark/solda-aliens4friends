@@ -180,11 +180,13 @@ class UploadAliens2Fossy:
 		for path in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.aliensrc"):
 			found = True
 
+			name, version = pool.packageinfo_from_path(path)
+
 			cur_pckg = path.stem
 			cur_path = pool.relpath(
 				Settings.PATH_USR,
-				path.parts[-3],
-				path.parts[-2]
+				name,
+				version
 			)
 
 			try:

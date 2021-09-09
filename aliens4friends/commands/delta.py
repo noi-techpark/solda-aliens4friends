@@ -1,10 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
-import os
 import json
 import re
-import sys
 import logging
 from datetime import datetime
 import difflib
@@ -19,7 +17,7 @@ from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.settings import Settings
 
 from aliens4friends.models.alienmatcher import AlienMatcherModel
-from aliens4friends.models.deltacode import Tool, Body, Stats, Compared, Header, DeltaCodeModel, MovedFile
+from aliens4friends.models.deltacode import Tool, Compared, Header, DeltaCodeModel, MovedFile
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +253,9 @@ class DeltaCodeNG:
 	@staticmethod
 	def _execute(path: Path) -> Optional[str]:
 		pool = Pool(Settings.POOLPATH)
-		package = f"{path.parts[-3]}-{path.parts[-2]}"
+
+		name, version = pool.package_from_path(path)
+		package = f"{name}-{version}"
 		relpath = pool.clnpath(path)
 
 		try:

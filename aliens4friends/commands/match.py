@@ -424,7 +424,7 @@ class AlienMatcher:
 			try:
 				session = Session(pool, session_id)
 				session.load()
-				paths = session.package_list_paths()
+				paths = session.package_list_paths(FILETYPE.ALIENSRC)
 			except SessionError:
 				return
 

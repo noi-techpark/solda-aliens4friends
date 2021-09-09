@@ -1,13 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
+from aliens4friends.commons.session import Session, SessionError
 import os
 import re
 import logging
 import json
 from typing import Optional
 
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.archive import Archive
 from aliens4friends.commons.utils import bash, bash_live
 from aliens4friends.commons.settings import Settings
@@ -87,16 +88,37 @@ class Scancode:
 
 
 	@staticmethod
-	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*", use_oldmatcher: bool = False) -> None:
+	def execute(
+		pool: Pool,
+		glob_name: str = "*",
+		glob_version: str = "*",
+		use_oldmatcher: bool = False,
+		session_id: str = ""
+	) -> None:
 		scancode = Scancode(pool)
 
-		#FIXME Remove this, when removing the legacy debian matcher
-		fileext = "alienmatcher.json" if use_oldmatcher else "snapmatch.json"
+		filetype = FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH
+
+		# Just take packages from the current session list
+		# On error just return, error messages are inside load()
+		if session_id:
+			try:
+				session = Session(pool, session_id)
+				session.load()
+				paths = session.package_list_paths(filetype)
+			except SessionError:
+				return
+
+		# ...without a session_id, take information directly from the pool
+		else:
+			paths = pool.absglob(f"{glob_name}/{glob_version}/*.{filetype}")
 
 		found = False
-		for path in pool.absglob(f"{glob_name}/{glob_version}/*.{fileext}"):
+		for path in paths:
 			found = True
-			package = f"{path.parts[-3]}-{path.parts[-2]}"
+
+			name, version = pool.package_from_path(path)
+			package = f"{name}-{version}"
 
 			try:
 				with open(path, "r") as jsonfile:
@@ -150,7 +172,13 @@ class Scancode:
 				log_minimal_error(logger, ex, f"[{package}] ")
 
 		if not found:
-			logger.info(
-				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-				f"Have you executed 'match' for these packages?"
-			)
+			if session_id:
+				logger.info(
+					f"Nothing found for packages in session '{session_id}'. "
+					f"Have you executed 'snapmatch/match -s {session_id}' for these packages?"
+				)
+			else:
+				logger.info(
+					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+					f"Have you executed 'snapmatch/match' for these packages?"
+				)

@@ -36,6 +36,7 @@ class FILETYPE(str, Enum):
 	ALIENMATCHER = "alienmatcher.json"
 	ALIENSRC = "aliensrc"
 	TINFOILHAT = "tinfoilhat.json"
+	SNAPMATCH = "snapmatch.json"
 	# TODO Extend when needed, use it everywhere
 
 class PoolError(Exception):
@@ -63,20 +64,29 @@ class Pool:
 	) -> str:
 		"""Get the filename with extension of a certain file type"""
 
-		if variant:
-			variant = f"-{variant}"
-
-		if type == FILETYPE.ALIENMATCHER:
+		# Types without variants
+		if type in [
+			FILETYPE.ALIENMATCHER,
+			FILETYPE.SNAPMATCH
+		]:
 			return f"{name}-{version}.{type}"
 
-		if type == FILETYPE.ALIENSRC:
+		# Types that have a variant in their filename
+		if type in [
+			FILETYPE.ALIENSRC,
+			FILETYPE.TINFOILHAT
+		]:
+			if variant:
+				variant = f"-{variant}"
 			return f"{name}-{version}{variant}.{type}"
-
-		if type == FILETYPE.TINFOILHAT:
-			return f'{name}-{version}{variant}.{type}'
 
 		raise PoolError(f"Unable to find a path for the file type '{type}'")
 
+	def package_from_path(self, path: Union[str, Path]) -> Tuple[str, str]:
+		"""Return (name,version) of a given path"""
+		if isinstance(path, str):
+			path = Path(path)
+		return path.parts[-3], path.parts[-2]
 
 	def relpath_typed(
 		self,
@@ -89,7 +99,12 @@ class Pool:
 		"""Get a relative path to the corresponding file of a certain type"""
 
 		# Files that are located inside <PATH_USR>/<name>/<version>
-		if type in [FILETYPE.ALIENMATCHER, FILETYPE.ALIENSRC, FILETYPE.TINFOILHAT]:
+		if type in [
+			FILETYPE.SNAPMATCH,
+			FILETYPE.ALIENMATCHER,
+			FILETYPE.ALIENSRC,
+			FILETYPE.TINFOILHAT
+		]:
 			relpath = self.relpath(Settings.PATH_USR, name, version)
 			if with_filename:
 				relpath = os.path.join(

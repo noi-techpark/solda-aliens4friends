@@ -202,11 +202,13 @@ class GetFossyData:
 		for path in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.aliensrc"):
 			found = True
 
+			name, version = pool.package_from_path(path)
+
 			cur_pckg = path.stem
 			cur_path = os.path.join(
 				Settings.PATH_USR,
-				path.parts[-3],
-				path.parts[-2]
+				name,
+				version
 			)
 
 			out_spdx_filename = pool.relpath(cur_path, f'{cur_pckg}.final.spdx')

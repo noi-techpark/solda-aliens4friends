@@ -69,10 +69,10 @@ class Session:
 			logger.error(error)
 			raise SessionError(error)
 
-	def package_list_paths(self, only_selected: bool = True) -> List[str]:
+	def package_list_paths(self, type: FILETYPE, only_selected: bool = True) -> List[str]:
 		return [
 			self.pool.abspath_typed(
-				FILETYPE.ALIENSRC,
+				type,
 				pckg.name,
 				pckg.version,
 				pckg.variant

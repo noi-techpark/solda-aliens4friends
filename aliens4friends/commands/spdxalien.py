@@ -206,7 +206,8 @@ class MakeAlienSPDX:
 	@staticmethod
 	def _execute(path):
 		pool = Pool(Settings.POOLPATH)
-		package = f"{path.parts[-3]}-{path.parts[-2]}"
+		name, version = pool.package_from_path(path)
+		package = f"{name}-{version}"
 		relpath = pool.clnpath(path)
 
 		try:

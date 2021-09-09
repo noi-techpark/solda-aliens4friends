@@ -339,6 +339,13 @@ class Aliens4Friends:
 		)
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
+		self.parsers[cmd].add_argument(
+			"--use-oldmatcher",
+			action = "store_true",
+			default = False,
+			help = "Use the old alienmatcher.json input files, not snapmatch.json."
+		)
+		self._args_session(self.parsers[cmd])
 
 	def parser_delta(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -443,7 +450,9 @@ class Aliens4Friends:
 		Scancode.execute(
 			self.pool,
 			self.args.glob_name,
-			self.args.glob_version
+			self.args.glob_version,
+			self.args.use_oldmatcher,
+			self.args.session
 		)
 
 	def delta(self) -> None:
