@@ -320,7 +320,7 @@ class AlienMatcher:
 				 " no internal archive, nothing to compare!"
 			)
 			errors.append("no internal archive")
-		resultpath = self.pool.relpath_typed(FILETYPE.MATCH, apkg.name, apkg.version.str)
+		resultpath = self.pool.relpath_typed(FILETYPE.ALIENMATCHER, apkg.name, apkg.version.str)
 		try:
 			if not Settings.POOLCACHED:
 				raise FileNotFoundError()
