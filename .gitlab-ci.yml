@@ -63,6 +63,7 @@ reuse:
   needs:
     - pytype
     - reuse
+    - unittests
 
 dockerize toolchain:
   extends: .dockerize

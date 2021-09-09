@@ -422,13 +422,9 @@ class AlienMatcher:
 		# On error just return, error messages are inside load()
 		if session_id:
 			try:
-				paths = []
-				for pckg in Session(pool, session_id).load().package_list:
-					paths.append(
-						pool.abspath(
-							f"{Settings.PATH_USR}/{pckg.name}/{pckg.version}/{pckg.name}-{pckg.version}-{pckg.variant}.aliensrc"
-						)
-					)
+				session = Session(pool, session_id)
+				session.load()
+				paths = session.package_list_paths()
 			except SessionError:
 				return
 
@@ -446,10 +442,16 @@ class AlienMatcher:
 				if match:
 					print(match.to_json())
 		if not results:
-			logger.info(
-				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-				f"Have you executed 'add' for these packages?"
-			)
+			if session_id:
+				logger.info(
+					f"Nothing found for packages in session '{session_id}'. "
+					f"Have you executed 'add -s {session_id}' for these packages?"
+				)
+			else:
+				logger.info(
+					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+					f"Have you executed 'add' for these packages?"
+				)
 
 	@staticmethod
 	def _execute(path: str) -> Optional[AlienMatcherModel]:

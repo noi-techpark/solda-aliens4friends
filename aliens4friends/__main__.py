@@ -327,6 +327,7 @@ class Aliens4Friends:
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
+		self._args_session(self.parsers[cmd])
 
 	def parser_scan(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -434,7 +435,8 @@ class Aliens4Friends:
 	def snapmatch(self) -> None:
 		AlienSnapMatcher.execute(
 			self.args.glob_name,
-			self.args.glob_version
+			self.args.glob_version,
+			self.args.session
 		)
 
 	def scan(self) -> None:

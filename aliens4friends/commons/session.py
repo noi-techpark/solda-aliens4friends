@@ -5,7 +5,7 @@ import logging
 import random
 from typing import List, Optional
 
-from aliens4friends.commons.pool import OVERWRITE, SRCTYPE, Pool
+from aliens4friends.commons.pool import FILETYPE, OVERWRITE, SRCTYPE, Pool
 from aliens4friends.commons.settings import Settings
 from aliens4friends.models.session import SessionModel, PackageListModel
 from aliens4friends.models.common import Tool
@@ -69,6 +69,19 @@ class Session:
 			logger.error(error)
 			raise SessionError(error)
 
+	def package_list_paths(self, only_selected: bool = True) -> List[str]:
+		return [
+			self.pool.abspath_typed(
+				FILETYPE.ALIENSRC,
+				pckg.name,
+				pckg.version,
+				pckg.variant
+			) for pckg in self.session_model.package_list
+			if (
+				only_selected and pckg.selected
+				or not only_selected
+			)
+		]
 
 	def write_package_list(
 		self,

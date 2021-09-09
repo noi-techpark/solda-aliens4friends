@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 # SPDX-License-Identifier: Apache-2.0
 
+from aliens4friends.commons.session import Session, SessionError
 from aliens4friends.commons.aliases import ALIASES, EXCLUSIONS
 import collections as col
 import json
@@ -566,14 +567,29 @@ class AlienSnapMatcher:
 			SNAP_ALL_SOURCES = AlienSnapMatcher.get_data(AlienSnapMatcher.API_URL_ALLSRC)
 
 	@staticmethod
-	def execute(glob_name: str = "*", glob_version: str = "*") -> None:
+	def execute(glob_name: str = "*", glob_version: str = "*", session_id: str = "") -> None:
 		AlienSnapMatcher.loadSources()
 		AlienSnapMatcher.clearDiff()
 
 		pool = Pool(Settings.POOLPATH)
+
+		# Just take packages from the current session list
+		# On error just return, error messages are inside load()
+		if session_id:
+			try:
+				session = Session(pool, session_id)
+				session.load()
+				paths = session.package_list_paths()
+			except SessionError:
+				return
+
+		# ...without a session_id, take information directly from the pool
+		else:
+			paths = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
+
 		results = [
 			AlienSnapMatcher._execute(a)
-			for a in pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
+			for a in paths
 		]
 
 		if Settings.PRINTRESULT:
@@ -581,10 +597,16 @@ class AlienSnapMatcher:
 				if match:
 					print(match.to_json(indent=2))
 		if not results:
-			logger.info(
-				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-				f"Have you executed 'add' for these packages?"
-			)
+			if session_id:
+				logger.info(
+					f"Nothing found for packages in session '{session_id}'. "
+					f"Have you executed 'add -s {session_id}' for these packages?"
+				)
+			else:
+				logger.info(
+					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+					f"Have you executed 'add' for these packages?"
+				)
 
 	@staticmethod
 	def _execute(path: Union[str, Path]) -> Optional[AlienSnapMatcherModel]:
