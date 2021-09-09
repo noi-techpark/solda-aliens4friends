@@ -13,7 +13,7 @@ include:
  - project: 'OSTC/infrastructure/pipelines'
    file: 'reuse.yaml'
 
-pytype:
+.pythonreq:
   stage: test
   tags: [ soldademo, docker ]
   image: python:3.8
@@ -21,16 +21,17 @@ pytype:
     - pip install python-dotenv pytype setuptools wheel
     - pip install .
     - python -c "from flanker.addresslib import address" >/dev/null 2>&1
+
+pytype:
+  extends: .pythonreq
+  script:
+    - !reference [ .pythonreq, script ]
     - pytype --config pytype.cfg aliens4friends
 
 unittests:
-  stage: test
-  tags: [ soldademo, docker ]
-  image: python:3.8
+  extends: .pythonreq
   script:
-    - pip install python-dotenv pytype setuptools wheel
-    - pip install .
-    - python -c "from flanker.addresslib import address" >/dev/null 2>&1
+    - !reference [ .pythonreq, script ]
     - python -m unittest discover aliens4friends/tests/
 
 reuse:
