@@ -3,7 +3,7 @@
 
 import os
 import logging
-from enum import IntEnum
+from enum import IntEnum, Enum
 from json import dump as jsondump, load as jsonload
 from pathlib import Path
 from shutil import rmtree
@@ -32,6 +32,11 @@ class OVERWRITE(IntEnum):
 	ALWAYS = 1
 	RAISE = 2
 
+class FILETYPE(str, Enum):
+	ALIENMATCHER = "alienmatcher.json"
+	ALIENSRC = "aliensrc"
+	# TODO Extend when needed, use it everywhere
+
 class PoolError(Exception):
 	pass
 class PoolErrorFileExists(PoolError):
@@ -47,6 +52,44 @@ class Pool:
 			raise NotADirectoryError(
 				f"Unable to create the POOL at path '{self.basepath}'."
 			)
+
+	def relpath_typed(
+		self,
+		type: FILETYPE,
+		name: str,
+		version: str,
+		variant: str = ""
+	) -> str:
+		"""Get a relative path to the corresponding file of a certain type"""
+
+		if variant:
+			variant = f"-{variant}"
+
+		if type == FILETYPE.ALIENMATCHER:
+			return self.relpath(
+				Settings.PATH_USR,
+				name,
+				version,
+				f"{name}-{version}.{type}"
+			)
+
+		if type == FILETYPE.ALIENSRC:
+			return self.relpath(
+				Settings.PATH_USR,
+				name,
+				version,
+				f"{name}-{version}{variant}.{type}"
+			)
+
+
+	def abspath_typed(
+		self,
+		type: FILETYPE,
+		name: str,
+		version: str,
+		variant: str = ""
+	) -> str:
+		return self.abspath(self.relpath_typed(type, name, version, variant))
 
 	def clnpath(self, path: Union[Path, str]) -> str:
 		if isinstance(path, Path):

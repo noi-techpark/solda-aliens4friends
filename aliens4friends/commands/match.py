@@ -18,7 +18,7 @@ from aliens4friends.commons.session import Session, SessionError
 from aliens4friends.commons.calc import Calc
 from aliens4friends.commons.package import AlienPackage, Package, PackageError, DebianPackage
 from aliens4friends.commons.version import Version
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import Pool, FILETYPE
 from aliens4friends.commons.settings import Settings
 from aliens4friends.models.alienmatcher import (
 	AlienMatcherModel,
@@ -320,12 +320,7 @@ class AlienMatcher:
 				 " no internal archive, nothing to compare!"
 			)
 			errors.append("no internal archive")
-		resultpath = self.pool.relpath(
-			Settings.PATH_USR,
-			apkg.name,
-			apkg.version.str,
-			f"{apkg.name}-{apkg.version.str}.alienmatcher.json"
-		)
+		resultpath = self.pool.relpath_typed(FILETYPE.MATCH, apkg.name, apkg.version.str)
 		try:
 			if not Settings.POOLCACHED:
 				raise FileNotFoundError()

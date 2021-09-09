@@ -1,25 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
-from aliens4friends.commons.settings import Settings
 import logging
 
 from aliens4friends.commons.session import Session, SessionError
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import Pool, FILETYPE
 from aliens4friends.models.session import PackageListModel
 from aliens4friends.models.alienmatcher import AlienMatcherModel
 
 logger = logging.getLogger(__name__)
 
 def match_score_gt_80(pool: Pool, package: PackageListModel) -> str:
-	file_path = pool.abspath(
-		Settings.PATH_USR,
-		package.name,
-		package.version,
-		f"{package.name}-{package.version}.alienmatcher.json"
-	)
-
 	try:
+		file_path = pool.abspath_typed(FILETYPE.ALIENMATCHER, package.name, package.version)
 		amm = AlienMatcherModel.from_file(file_path)
 	except FileNotFoundError:
 		reason = "No alienmatcher.json file found"

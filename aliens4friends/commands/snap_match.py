@@ -10,7 +10,7 @@ import time
 
 from pathlib import Path
 
-from aliens4friends.commons.pool import Pool, PoolError
+from aliens4friends.commons.pool import FILETYPE, Pool, PoolError
 from aliens4friends.models.base import ModelError
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.calc import Calc
@@ -96,11 +96,10 @@ class AlienSnapMatcher:
 		main_match = False
 		snap_match = False
 
-		main_match_path = pool.relpath(
-			Settings.PATH_USR,
+		main_match_path = pool.relpath_typed(
+			FILETYPE.ALIENMATCHER,
 			apkg.name,
-			apkg.version.str,
-			f"{apkg.name}-{apkg.version.str}.alienmatcher.json"
+			apkg.version.str
 		)
 
 		try:
