@@ -42,8 +42,15 @@ reuse:
   tags: [ soldademo, docker ]
   stage: dockerize
   image: docker:20.10
-  only:
-    - master
+
+  # Run this job automatically, when we are on the main branch
+  # or manual, when triggered on any other branch...
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: always
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+      when: manual
+
   variables:
     CI_REGISTRY_BASE: $CI_REGISTRY/oss-compliance/toolchain/aliens4friends
   script:
