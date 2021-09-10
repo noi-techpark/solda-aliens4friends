@@ -126,6 +126,7 @@ class Aliens4Friends:
 		basepath_usr = self.pool.mkdir(Settings.PATH_USR)
 		basepath_tmp = self.pool.mkdir(Settings.PATH_TMP)
 		basepath_stt = self.pool.mkdir(Settings.PATH_STT)
+		basepath_ses = self.pool.mkdir(Settings.PATH_SES)
 
 		if self.args.command != "help":
 			logger.info(f"# ALIENS4FRIENDS v{Settings.VERSION} with cache pool {Settings.POOLPATH}")
@@ -134,6 +135,7 @@ class Aliens4Friends:
 			logger.debug(f"    - Userland Path        : {basepath_usr}")
 			logger.debug(f"    - Temporary Files Path : {basepath_tmp}")
 			logger.debug(f"    - Statistics Path      : {basepath_stt}")
+			logger.debug(f"    - Sessions Path        : {basepath_ses}")
 
 		logger = logging.getLogger()
 		logger.setLevel(Settings.LOGLEVEL)

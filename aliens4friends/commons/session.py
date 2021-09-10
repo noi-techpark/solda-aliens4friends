@@ -39,13 +39,22 @@ class Session:
 			self.file_path = file_path
 			self.session_id = session_id
 
+	def write_session(self) -> None:
+		self.pool._add(
+			self.session_model,
+			Settings.PATH_SES,
+			f"{self.session_id}.json",
+			SRCTYPE.JSON,
+			OVERWRITE.ALWAYS
+		)
+		logger.debug(f"Session data written to '{self.file_path}'.")
+
 	def create(self) -> SessionModel:
 		self.session_model = SessionModel(
 			Tool(__name__, Settings.VERSION),
 			self.session_id
 		)
-		self.pool.write_json(self.session_model, self.file_path)
-		logger.debug(f"Session data written to '{self.file_path}'.")
+		self.write_session()
 		return self.session_model
 
 	def load(self, create: bool = False) -> SessionModel:
@@ -95,13 +104,7 @@ class Session:
 		if package_list:
 			self.session_model.package_list = package_list
 
-		self.pool._add(
-			self.session_model,
-			Settings.PATH_SES,
-			f"{self.session_id}.json",
-			SRCTYPE.JSON,
-			OVERWRITE.ALWAYS
-		)
+		self.write_session()
 
 	@staticmethod
 	def _random_string(length: int = 16):

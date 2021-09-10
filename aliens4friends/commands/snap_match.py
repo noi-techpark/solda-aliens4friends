@@ -525,14 +525,13 @@ class AlienSnapMatcher:
 
 				logger.debug(f"[{needle}]  { apkg.version } vs { itemVersion }")
 
-				# FIXME should we use distance == 0 here?
-				if apkg.version.str == item["version"]:
+				if distance == 0:
 					logger.debug(f"[{self.curpkg}] {needle}: Exact version match (ident) { apkg.version.str } vs { item['version'] } is 0")
 					res['score'] = 100
 					res['slug'] = item['version']
 					return res
 
-				elif distance <= 10:
+				if distance <= 10:
 					logger.debug(f"[{self.curpkg}] {needle}: Exact version match (distance) { apkg.version.str } vs { item['version'] } is { distance }")
 					res['score'] = 99
 					res['slug'] = item['version']
@@ -546,7 +545,8 @@ class AlienSnapMatcher:
 		else:
 			# should not be the case, cause if we find a package by name there should be at least 1 available version
 			res['score'] = -99
-			logger.debug(f"[{self.curpkg}] {needle}: Can not find any version for {apkg.version.str}")
+			res['distance'] = Version.MAX_DISTANCE
+			logger.debug(f"[{self.curpkg}] {needle}: Cannot find any version for {apkg.version.str}")
 
 		if bestVersion["distance"] < Version.MAX_DISTANCE:
 			logger.debug(f"[{self.curpkg}] {needle}:  Fuzzy version match { apkg.version.str } vs { bestVersion['version'] }: { bestVersion['distance'] }")

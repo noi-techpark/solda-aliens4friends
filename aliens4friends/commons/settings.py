@@ -84,4 +84,3 @@ class Settings:
 		SESSION_ID = DOTENV["A4F_SESSION_ID"]
 	except KeyError:
 		SESSION_ID = ""
-

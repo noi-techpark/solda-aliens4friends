@@ -59,7 +59,7 @@ class Add:
 			alienpackage.version.str,
 			alienpackage.variant,
 		)
-		logger.info(f"[{alienpackage.name}-{alienpackage.version.str}] Position in pool will be: {filepath}/{filename}")
+		logger.debug(f"[{alienpackage.name}-{alienpackage.version.str}] Position in pool will be: {filepath}/{filename}")
 
 		try:
 			self.pool._add(
@@ -71,7 +71,7 @@ class Add:
 			)
 
 		except PoolErrorFileExists as ex:
-			logger.info(f"[{alienpackage.name}-{alienpackage.version.str}] Skipping... {ex}")
+			logger.debug(f"[{alienpackage.name}-{alienpackage.version.str}] Skipping... {ex}")
 
 		# Even if the file exists, we need to have it in the session list
 		self.session_list_aliensrc.append(
@@ -94,7 +94,7 @@ class Add:
 			package_version = f'{metadata.version}-{metadata.revision}'
 			filename = self.pool.filename(FILETYPE.TINFOILHAT, package_name, package_version, metadata.variant)
 			filepath = self.pool.relpath_typed(FILETYPE.TINFOILHAT, package_name, package_version, with_filename=False)
-			logger.info(f"Position in pool will be: {filepath}/{filename}")
+			logger.debug(f"[{package_name}-{package_version}] Position in pool will be: {filepath}/{filename}")
 
 			self.pool.merge_json_with_history(
 				TinfoilHatModel({recipe_name: container}),
@@ -159,10 +159,11 @@ class Add:
 	@staticmethod
 	def execute(file_list, pool: Pool, force: bool, session_id: str) -> None:
 		adder = Add(pool, session_id)
+		logger.info(f"ADD started with session '{session_id}'.")
 
 		for path in file_list:
 			try:
-				logger.info(f"Add {path} to pool with session {session_id}")
+				logger.info(f"ADD {path}")
 				if path.endswith(".aliensrc"):
 					adder.alienpackage(path, force)
 				elif path.endswith(".tinfoilhat.json"):

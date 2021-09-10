@@ -81,26 +81,25 @@ class SessionCommand:
 		if create:
 			session.create()
 			print(session.session_id)
+			return
 
-		filters = []
-		for filter in filter_str.split(","):
-			f = filter.split("=", 1)
-			try:
-				filters.append(
-					{
-						"name": f[0],
-						"param": f[1] if len(f) == 2 else "",
-						"method": FILTERS[f[0]]
-					}
-				)
-			except KeyError:
-				logger.error(
-					f"Filter with name '{f[0]}' does not exist. Filters are: {', '.join(FILTERS.keys())}"
-				)
-				return
-
-
-		if filters:
+		if filter_str:
+			filters = []
+			for filter in filter_str.split(","):
+				f = filter.split("=", 1)
+				try:
+					filters.append(
+						{
+							"name": f[0],
+							"param": f[1] if len(f) == 2 else "",
+							"method": FILTERS[f[0]]
+						}
+					)
+				except KeyError:
+					logger.error(
+						f"Filter with name '{f[0]}' does not exist. Filters are: {', '.join(FILTERS.keys())}"
+					)
+					return
 
 			try:
 				session_model = session.load()
