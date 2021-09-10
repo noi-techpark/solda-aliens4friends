@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
+from aliens4friends.commons.session import Session, SessionError
 import os
 import json
 import tempfile
 import logging
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.utils import bash, copy, log_minimal_error
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
@@ -174,10 +175,31 @@ class UploadAliens2Fossy:
 		}
 
 	@staticmethod
-	def execute(pool: Pool, folder: str, glob_name: str = "*", glob_version: str = "*"):
+	def execute(
+		pool: Pool,
+		folder: str,
+		glob_name: str = "*",
+		glob_version: str = "*",
+		session_id: str = ""
+	) -> None:
 		fossy = FossyWrapper()
+
+		# Just take packages from the current session list
+		# On error just return, error messages are inside load()
+		if session_id:
+			try:
+				session = Session(pool, session_id)
+				session.load()
+				paths = session.package_list_paths(FILETYPE.ALIENSRC)
+			except SessionError:
+				return
+
+		# ...without a session_id, take information directly from the pool
+		else:
+			paths = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
+
 		found = False
-		for path in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.aliensrc"):
+		for path in paths:
 			found = True
 
 			name, version = pool.packageinfo_from_path(path)

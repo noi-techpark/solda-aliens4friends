@@ -9,6 +9,7 @@
 # https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 # https://spdx.github.io/spdx-spec/
 
+from aliens4friends.commons.session import Session, SessionError
 import os
 import re
 import json
@@ -42,7 +43,7 @@ from flanker.addresslib import address as email_address
 from aliens4friends.commons.utils import bash, md5, log_minimal_error, debug_with_stacktrace
 from aliens4friends.commons.archive import Archive
 
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.settings import Settings
 
 from aliens4friends.models.alienmatcher import AlienMatcherModel
@@ -456,26 +457,44 @@ class Debian2SPDX:
 
 
 	@staticmethod
-	def execute(glob_name: str = "*", glob_version: str = "*") -> None:
-		pool = Pool(Settings.POOLPATH)
+	def execute(
+		pool: Pool,
+		glob_name: str = "*",
+		glob_version: str = "*",
+		session_id: str = ""
+	) -> None:
+
+		# Just take packages from the current session list
+		# On error just return, error messages are inside load()
+		if session_id:
+			try:
+				session = Session(pool, session_id)
+				session.load()
+				paths = session.package_list_paths(FILETYPE.ALIENMATCHER)
+			except SessionError:
+				return
+
+		# ...without a session_id, take information directly from the pool
+		else:
+			paths = pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json")
+
 		multiprocessing_pool = MultiProcessingPool()
 		multiprocessing_pool.map(
 			Debian2SPDX._execute,
-			pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.alienmatcher.json")
+			paths
 		)
 
 	@staticmethod
 	def _execute(path) -> None:
 		pool = Pool(Settings.POOLPATH)
 
-		name, version = pool.package_from_path(path)
+		name, version = pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
 		relpath = pool.clnpath(path)
 
 		try:
-			with open(path, "r") as jsonfile:
-				j = pool.get_json(relpath)
-				am = AlienMatcherModel.decode(j)
+			j = pool.get_json(relpath)
+			am = AlienMatcherModel.decode(j)
 		except Exception as ex:
 			logger.error(f"[{package}] Unable to load json from {relpath}.")
 			debug_with_stacktrace(logger)

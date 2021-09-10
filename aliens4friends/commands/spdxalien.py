@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
+from aliens4friends.commons.session import Session, SessionError
 import os
 import json
 import logging
@@ -18,7 +19,7 @@ from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.utils import md5, log_minimal_error
 from aliens4friends.commons.spdxutils import parse_spdx_tv, write_spdx_tv, fix_spdxtv, EMPTY_FILE_SHA1
 
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.settings import Settings
 
 from aliens4friends.models.alienmatcher import AlienMatcherModel
@@ -195,18 +196,37 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 class MakeAlienSPDX:
 
 	@staticmethod
-	def execute(glob_name: str = "*", glob_version: str = "*"):
-		pool = Pool(Settings.POOLPATH)
+	def execute(
+		pool: Pool,
+		glob_name: str = "*",
+		glob_version: str = "*",
+		session_id: str = ""
+	) -> None:
+
+		# Just take packages from the current session list
+		# On error just return, error messages are inside load()
+		if session_id:
+			try:
+				session = Session(pool, session_id)
+				session.load()
+				paths = session.package_list_paths(FILETYPE.ALIENMATCHER)
+			except SessionError:
+				return
+
+		# ...without a session_id, take information directly from the pool
+		else:
+			paths = pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json")
+
 		multiprocessing_pool = MultiProcessingPool()
 		multiprocessing_pool.map(
 			MakeAlienSPDX._execute,
-			pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.alienmatcher.json")
+			paths
 		)
 
 	@staticmethod
 	def _execute(path):
 		pool = Pool(Settings.POOLPATH)
-		name, version = pool.package_from_path(path)
+		name, version = pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
 		relpath = pool.clnpath(path)
 

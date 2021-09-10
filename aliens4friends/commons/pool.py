@@ -82,8 +82,8 @@ class Pool:
 
 		raise PoolError(f"Unable to find a path for the file type '{type}'")
 
-	def package_from_path(self, path: Union[str, Path]) -> Tuple[str, str]:
-		"""Return (name,version) of a given path"""
+	def packageinfo_from_path(self, path: Union[str, Path]) -> Tuple[str, str]:
+		"""Return (name,version) of a given path containing inside the pool"""
 		if isinstance(path, str):
 			path = Path(path)
 		return path.parts[-3], path.parts[-2]

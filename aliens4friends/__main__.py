@@ -187,7 +187,7 @@ class Aliens4Friends:
 			help = "Show only warnings and errors. This overrides the A4F_LOGLEVEL env var."
 		)
 
-	def _args_glob(self, parser):
+	def _args_glob(self, parser: argparse.ArgumentParser):
 		parser.add_argument(
 			"glob_name",
 			help="Wildcard pattern to filter by package names. Do not forget to quote it!",
@@ -355,6 +355,7 @@ class Aliens4Friends:
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
+		self._args_session(self.parsers[cmd])
 
 	def parser_spdxdebian(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -364,6 +365,7 @@ class Aliens4Friends:
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
+		self._args_session(self.parsers[cmd])
 
 	def parser_spdxalien(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -373,6 +375,7 @@ class Aliens4Friends:
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
+		self._args_session(self.parsers[cmd])
 
 	def parser_upload(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -387,6 +390,7 @@ class Aliens4Friends:
 			required = True,
 			help = "Fossology folder where to upload Alien Packages"
 		)
+		self._args_session(self.parsers[cmd])
 
 	def parser_fossy(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -395,7 +399,7 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
-
+		self._args_session(self.parsers[cmd])
 
 	def parser_harvest(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -434,6 +438,7 @@ class Aliens4Friends:
 
 	def match(self) -> None:
 		AlienMatcher.execute(
+			self.pool,
 			self.args.glob_name,
 			self.args.glob_version,
 			self.args.session
@@ -441,6 +446,7 @@ class Aliens4Friends:
 
 	def snapmatch(self) -> None:
 		AlienSnapMatcher.execute(
+			self.pool,
 			self.args.glob_name,
 			self.args.glob_version,
 			self.args.session
@@ -457,20 +463,26 @@ class Aliens4Friends:
 
 	def delta(self) -> None:
 		DeltaCodeNG.execute(
+			self.pool,
 			self.args.glob_name,
-			self.args.glob_version
+			self.args.glob_version,
+			self.args.session
 		)
 
 	def spdxdebian(self) -> None:
 		Debian2SPDX.execute(
+			self.pool,
 			self.args.glob_name,
-			self.args.glob_version
+			self.args.glob_version,
+			self.args.session
 		)
 
 	def spdxalien(self) -> None:
 		MakeAlienSPDX.execute(
+			self.pool,
 			self.args.glob_name,
-			self.args.glob_version
+			self.args.glob_version,
+			self.args.session
 		)
 
 	def upload(self) -> None:
@@ -478,14 +490,16 @@ class Aliens4Friends:
 			self.pool,
 			self.args.folder,
 			self.args.glob_name,
-			self.args.glob_version
+			self.args.glob_version,
+			self.args.session
 		)
 
 	def fossy(self) -> None:
 		GetFossyData.execute(
 			self.pool,
 			self.args.glob_name,
-			self.args.glob_version
+			self.args.glob_version,
+			self.args.session
 	)
 
 	def harvest(self) -> None:

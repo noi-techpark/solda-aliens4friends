@@ -567,11 +567,14 @@ class AlienSnapMatcher:
 			SNAP_ALL_SOURCES = AlienSnapMatcher.get_data(AlienSnapMatcher.API_URL_ALLSRC)
 
 	@staticmethod
-	def execute(glob_name: str = "*", glob_version: str = "*", session_id: str = "") -> None:
+	def execute(
+		pool: Pool,
+		glob_name: str = "*",
+		glob_version: str = "*",
+		session_id: str = ""
+	) -> None:
 		AlienSnapMatcher.loadSources()
 		AlienSnapMatcher.clearDiff()
-
-		pool = Pool(Settings.POOLPATH)
 
 		# Just take packages from the current session list
 		# On error just return, error messages are inside load()

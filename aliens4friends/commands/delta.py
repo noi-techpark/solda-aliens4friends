@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
+from aliens4friends.commons.session import Session, SessionError
 import json
 import re
 import logging
@@ -13,7 +14,7 @@ from pathlib import Path
 from deepdiff import DeepDiff
 
 from aliens4friends.commons.utils import log_minimal_error, debug_with_stacktrace
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.settings import Settings
 
 from aliens4friends.models.alienmatcher import AlienMatcherModel
@@ -237,12 +238,32 @@ class DeltaCodeNG:
 			f.write(self.res.to_json(indent=2))
 
 	@staticmethod
-	def execute(glob_name: str = "*", glob_version: str = "*") -> None:
-		pool = Pool(Settings.POOLPATH)
+	def execute(
+		pool: Pool,
+		glob_name: str = "*",
+		glob_version: str = "*",
+		session_id: str = ""
+	) -> None:
+
+		# Just take packages from the current session list
+		# On error just return, error messages are inside load()
+		if session_id:
+			try:
+				session = Session(pool, session_id)
+				session.load()
+				paths = session.package_list_paths(FILETYPE.ALIENMATCHER)
+			except SessionError:
+				return
+
+		# ...without a session_id, take information directly from the pool
+		else:
+			paths = pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json")
+
+
 		multiprocessing_pool = MultiProcessingPool()
 		results = multiprocessing_pool.map(  #pytype: disable=wrong-arg-types
 			DeltaCodeNG._execute,
-			pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.alienmatcher.json")
+			paths
 		)
 		if not results:
 			logger.info(
@@ -254,7 +275,7 @@ class DeltaCodeNG:
 	def _execute(path: Path) -> Optional[str]:
 		pool = Pool(Settings.POOLPATH)
 
-		name, version = pool.package_from_path(path)
+		name, version = pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
 		relpath = pool.clnpath(path)
 

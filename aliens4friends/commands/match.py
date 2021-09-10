@@ -412,11 +412,14 @@ class AlienMatcher:
 			return None
 
 	@staticmethod
-	def execute(glob_name: str = "*", glob_version: str = "*", session_id: str = "") -> None:
+	def execute(
+		pool: Pool,
+		glob_name: str = "*",
+		glob_version: str = "*",
+		session_id: str = ""
+	) -> None:
 		global DEB_ALL_SOURCES
 		DEB_ALL_SOURCES = AlienMatcher.get_deb_all_sources()
-
-		pool = Pool(Settings.POOLPATH)
 
 		# Just take packages from the current session list
 		# On error just return, error messages are inside load()
