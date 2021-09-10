@@ -204,7 +204,7 @@ class UploadAliens2Fossy:
 
 			name, version = pool.packageinfo_from_path(path)
 
-			cur_pckg = path.stem
+			cur_pckg = f"{name}-{version}"
 			cur_path = pool.relpath(
 				Settings.PATH_USR,
 				name,

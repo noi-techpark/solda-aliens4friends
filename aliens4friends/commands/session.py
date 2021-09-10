@@ -115,4 +115,4 @@ class SessionCommand:
 			except SessionError:
 				return  # we have all error messages inside load(), nothing to do...
 			except FilterError as e:
-				logger.error(f"Filter '{filter['name']}' failed with message: {e}")
+				logger.error(f"Filter '{filter['name']}' failed with message: {e}") #pytype: disable=unsupported-operands
