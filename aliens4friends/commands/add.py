@@ -9,7 +9,7 @@ from aliens4friends.commons.settings import Settings
 
 from aliens4friends.models.tinfoilhat import TinfoilHatModel
 from aliens4friends.commons.session import Session, SessionError
-from aliens4friends.models.session import PackageListModel
+from aliens4friends.models.session import SessionPackageModel
 
 from aliens4friends.commons.utils import get_prefix_formatted, log_minimal_error
 
@@ -75,7 +75,7 @@ class Add:
 
 		# Even if the file exists, we need to have it in the session list
 		self.session_list_aliensrc.append(
-			PackageListModel(
+			SessionPackageModel(
 				alienpackage.name,
 				alienpackage.version.str,
 				alienpackage.variant
@@ -104,7 +104,7 @@ class Add:
 			)
 
 			self.session_list_tinfoilhat.append(
-				PackageListModel(
+				SessionPackageModel(
 					package_name,
 					package_version,
 					metadata.variant

@@ -6,8 +6,8 @@ from .base import BaseModel
 from .common import Tool
 from typing import List, Optional, TypeVar
 
-_TPackageListModel = TypeVar('_TPackageListModel', bound='PackageListModel')
-class PackageListModel(BaseModel):
+_TSessionPackageModel = TypeVar('_TSessionPackageModel', bound='SessionPackageModel')
+class SessionPackageModel(BaseModel):
 	def __init__(
 		self,
 		name: str,
@@ -22,7 +22,7 @@ class PackageListModel(BaseModel):
 		self.selected = selected
 		self.reason = reason
 
-	def __eq__(self, o: _TPackageListModel) -> bool:
+	def __eq__(self, o: _TSessionPackageModel) -> bool:
 		return (
 			self.name == o.name
 			and self.version == o.version
@@ -34,8 +34,8 @@ class SessionModel(BaseModel):
 		self,
 		tool: Tool,
 		session_id: str,
-		package_list: Optional[List[PackageListModel]] = []
+		package_list: Optional[List[SessionPackageModel]] = []
 	) -> None:
 		self.tool = Tool.decode(tool)
 		self.session_id = session_id
-		self.package_list = PackageListModel.drilldown(package_list)
+		self.package_list = SessionPackageModel.drilldown(package_list)

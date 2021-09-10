@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from aliens4friends.commons.pool import FILETYPE, OVERWRITE, SRCTYPE, Pool
 from aliens4friends.commons.settings import Settings
-from aliens4friends.models.session import SessionModel, PackageListModel
+from aliens4friends.models.session import SessionModel, SessionPackageModel
 from aliens4friends.models.common import Tool
 
 logger = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ class Session:
 
 	def write_package_list(
 		self,
-		package_list: Optional[List[PackageListModel]] = None
+		package_list: Optional[List[SessionPackageModel]] = None
 	) -> bool:
 		if not self.session_model:
 			return False
