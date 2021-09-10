@@ -469,7 +469,7 @@ class AlienSnapMatcher:
 
 			# guessing packages
 			if fuzzy_score > 0:
-				logger.info(f"[{self.curpkg}] Fuzzy package match { name_needle } vs { pkg['package'] }: { fuzzy_score }")
+				logger.debug(f"[{self.curpkg}] Fuzzy package match { name_needle } vs { pkg['package'] }: { fuzzy_score }")
 				versionMatch = self._searchVersion(apkg, pkg['package'])
 				fuzzy_overall = Calc.overallScore(fuzzy_score, versionMatch["score"])
 

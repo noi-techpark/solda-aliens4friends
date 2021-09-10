@@ -4,7 +4,7 @@
 from dotenv import dotenv_values, find_dotenv # pip install -U python-dotenv
 
 class Settings:
-	VERSION = "0.4.0"
+	VERSION = "0.5.0"
 	PATH_TMP = "apiresponse"
 	PATH_DEB = "debian"
 	PATH_USR = "userland"
@@ -77,3 +77,11 @@ class Settings:
 		PACKAGE_ID_EXT = DOTENV["PACKAGE_ID_EXT"]
 	except KeyError:
 		PACKAGE_ID_EXT = "a4f"
+
+	# TODO write the session_id into the .env file, or use a current-link
+	#      to the actual created or chosen session_id.json
+	try:
+		SESSION_ID = DOTENV["A4F_SESSION_ID"]
+	except KeyError:
+		SESSION_ID = ""
+
