@@ -15,7 +15,7 @@ class SessionPackageModel(BaseModel):
 		variant: str = "",
 		selected: bool = True,
 		selected_reason: Optional[str] = "",
-		uploaded: bool = True,
+		uploaded: Optional[bool] = None,
 		uploaded_reason: Optional[str] = ""
 	) -> None:
 		self.name = name

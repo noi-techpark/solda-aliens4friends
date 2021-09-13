@@ -3,10 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import numpy
-import json
-import os
 
-from .aliases import ALIASES, EXCLUSIONS
+from .aliases import ALIASES
 
 class Calc:
 

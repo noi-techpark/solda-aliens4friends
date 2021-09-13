@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 # SPDX-License-Identifier: Apache-2.0
 
+import os
 from aliens4friends.commons.session import Session, SessionError
 from aliens4friends.commons.aliases import ALIASES, EXCLUSIONS
 import collections as col
@@ -363,6 +364,7 @@ class AlienSnapMatcher:
 			# Return model in any case, we need to keep also "no match" results
 			package = AlienPackage(package_path)
 			self.curpkg = f"{package.name}-{package.version.str}"
+			logger.info(f"[{self.curpkg}] Processing {os.path.basename(package_path)}...")
 			amm = AlienSnapMatcherModel(
 				tool=Tool(__name__, Settings.VERSION),
 				aliensrc=AlienSrc(

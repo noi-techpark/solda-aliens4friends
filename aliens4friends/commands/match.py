@@ -386,10 +386,9 @@ class AlienMatcher:
 
 	def run(self, package_path: str) -> Optional[AlienMatcherModel]:
 		try:
-			filename = os.path.basename(package_path)
 			package = AlienPackage(package_path)
 			self.curpkg = f"{package.name}-{package.version.str}"
-			logger.info(f"[{self.curpkg}] Processing {filename}...")
+			logger.info(f"[{self.curpkg}] Processing {os.path.basename(package_path)}...")
 			package.expand()
 			amm = self.match(package)
 
