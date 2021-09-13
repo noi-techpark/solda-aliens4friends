@@ -46,7 +46,7 @@ from aliens4friends.commons.archive import Archive
 from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.settings import Settings
 
-from aliens4friends.models.alienmatcher import AlienMatcherModel
+from aliens4friends.models.alienmatcher import AlienMatcherModel, AlienSnapMatcherModel
 
 logger = logging.getLogger(__name__)
 
@@ -461,8 +461,11 @@ class Debian2SPDX:
 		pool: Pool,
 		glob_name: str = "*",
 		glob_version: str = "*",
+		use_oldmatcher: bool = False,
 		session_id: str = ""
 	) -> None:
+
+		filetype = FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH
 
 		# Just take packages from the current session list
 		# On error just return, error messages are inside load()
@@ -470,67 +473,71 @@ class Debian2SPDX:
 			try:
 				session = Session(pool, session_id)
 				session.load()
-				paths = session.package_list_paths(FILETYPE.ALIENMATCHER)
+				paths = session.package_list_paths(filetype)
 			except SessionError:
 				return
 
 		# ...without a session_id, take information directly from the pool
 		else:
-			paths = pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json")
+			paths = pool.absglob(f"{glob_name}/{glob_version}/*.{filetype}")
 
 		multiprocessing_pool = MultiProcessingPool()
 		multiprocessing_pool.map(
 			Debian2SPDX._execute,
-			paths
+			[
+				[path, use_oldmatcher, pool] for path in paths
+			]
 		)
 
 	@staticmethod
-	def _execute(path) -> None:
-		pool = Pool(Settings.POOLPATH)
+	def _execute(args) -> None:
+
+		path, use_oldmatcher, pool = args
 
 		name, version = pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
-		relpath = pool.clnpath(path)
 
 		try:
-			j = pool.get_json(relpath)
-			am = AlienMatcherModel.decode(j)
+			if use_oldmatcher:
+				model = AlienMatcherModel.from_file(path)
+			else:
+				model = AlienSnapMatcherModel.from_file(path)
 		except Exception as ex:
-			logger.error(f"[{package}] Unable to load json from {relpath}.")
+			logger.error(f"[{package}] Unable to load json from {pool.clnpath(path)}.")
 			debug_with_stacktrace(logger)
 			return
 
+		logger.debug(f"[{package}] Files determined through {pool.clnpath(path)}")
+
 		try:
-			m = am.debian.match
-			if not m.name:
+			match = model.match
+			if not match.name:
 				logger.warning(f"[{package}] no debian match to compare here")
 				return
-			if not m.debsrc_orig:
+			if not match.debsrc_orig:
 				logger.warning(f"[{package}] no debian orig archive to scan here")
 				return
-			debian_spdx_filename = pool.abspath(
-				Settings.PATH_DEB,
-				m.name,
-				m.version,
-				f'{m.name}-{m.version}.debian.spdx'
-			)
-			if os.path.isfile(debian_spdx_filename) and Settings.POOLCACHED:
-				logger.debug(f"[{package}] {debian_spdx_filename} already existing, skipping")
+
+			debian_spdx_filename = pool.abspath_typed(FILETYPE.DEBIAN_SPDX, match.name, match.version)
+
+			if pool.cached(debian_spdx_filename, debug_prefix=f"[{package}] "):
 				return
-			if not m.debsrc_orig and m.debsrc_debian:
+
+			# FIXME Shouldn't this already has been done before?
+			if not match.debsrc_orig and match.debsrc_debian:
 				# support for debian format 1.0 native
-				m.debsrc_orig = m.debsrc_debian
-				m.debsrc_debian = None
-			debsrc_orig = pool.abspath(m.debsrc_orig)
+				match.debsrc_orig = match.debsrc_debian
+				match.debsrc_debian = None
+
+			debsrc_orig = pool.abspath(match.debsrc_orig)
 			debsrc_debian = (
-				pool.abspath(m.debsrc_debian)
-				if m.debsrc_debian
+				pool.abspath(match.debsrc_debian)
+				if match.debsrc_debian
 				else None # native format, only 1 archive
 			)
 			if debsrc_debian and '.diff.' in debsrc_debian:
 				logger.debug(
-					f"[{package}] Debian source format 1.0 (non-native)"
-					 " processing patch"
+					f"[{package}] Debian source format 1.0 (non-native) processing patch"
 				)
 				tmpdir_obj = tempfile.TemporaryDirectory()
 				tmpdir = tmpdir_obj.name
@@ -559,16 +566,16 @@ class Debian2SPDX:
 
 			dorig = debsrc_orig or ""
 			ddeb = debsrc_debian or ""
-			logger.info(f"[{package}] generating spdx from {dorig} {ddeb}")
+			logger.info(f"[{package}] generating spdx from {pool.clnpath(dorig)} and {pool.clnpath(ddeb)}")
 			d2s = Debian2SPDX(debsrc_orig, debsrc_debian)
 			d2s.generate_SPDX()
-			logger.info(f"[{package}] writing spdx to {debian_spdx_filename}")
+			logger.info(f"[{package}] writing spdx to {pool.clnpath(debian_spdx_filename)}")
 			d2s.write_SPDX(debian_spdx_filename)
 			debian_copyright_filename = pool.abspath(
 				Settings.PATH_DEB,
-				m.name,
-				m.version,
-				f'{m.name}-{m.version}_debian_copyright'
+				match.name,
+				match.version,
+				f'{match.name}-{match.version}_debian_copyright'
 			)
 			if os.path.isfile(debian_copyright_filename) and Settings.POOLCACHED:
 				logger.debug(f"[{package}] debian/copyright already extracted, skipping")

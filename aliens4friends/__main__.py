@@ -371,6 +371,7 @@ class Aliens4Friends:
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
+		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
 	def parser_spdxalien(self, cmd: str) -> None:
@@ -381,6 +382,7 @@ class Aliens4Friends:
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
+		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
 	def parser_upload(self, cmd: str) -> None:
@@ -481,6 +483,7 @@ class Aliens4Friends:
 			self.pool,
 			self.args.glob_name,
 			self.args.glob_version,
+			self.args.use_oldmatcher,
 			self.args.session
 		)
 
@@ -489,6 +492,7 @@ class Aliens4Friends:
 			self.pool,
 			self.args.glob_name,
 			self.args.glob_version,
+			self.args.use_oldmatcher,
 			self.args.session
 		)
 

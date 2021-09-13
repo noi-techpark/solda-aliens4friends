@@ -127,8 +127,10 @@ class Scancode:
 				else:
 					model = AlienSnapMatcherModel.from_file(path)
 			except Exception as ex:
-				logger.error(f"[{package}] Unable to load json from {path}.")
+				logger.error(f"[{package}] Unable to load json from {pool.clnpath(path)}.")
 				continue
+
+			logger.debug(f"[{package}] Files determined through {pool.clnpath(path)}")
 
 			try:
 				to_scan = model.match.debsrc_orig or model.match.debsrc_debian # support for Debian Format 1.0 native

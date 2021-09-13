@@ -291,7 +291,7 @@ class DeltaCodeNG:
 			else:
 				model = AlienSnapMatcherModel.from_file(path)
 		except Exception as ex:
-			logger.error(f"[{package}] Unable to load json from {path}.")
+			logger.error(f"[{package}] Unable to load json from {pool.clnpath(path)}.")
 			debug_with_stacktrace(logger)
 			return
 

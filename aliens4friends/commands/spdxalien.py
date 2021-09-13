@@ -200,6 +200,7 @@ class MakeAlienSPDX:
 		pool: Pool,
 		glob_name: str = "*",
 		glob_version: str = "*",
+		use_oldmatcher: bool = False,
 		session_id: str = ""
 	) -> None:
 

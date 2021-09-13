@@ -39,6 +39,7 @@ class FILETYPE(str, Enum):
 	SNAPMATCH = "snapmatch.json"
 	DELTACODE = "deltacode.json"
 	SCANCODE = "scancode.json"
+	DEBIAN_SPDX = "debian.spdx"
 	# TODO Extend when needed, use it everywhere
 
 class PoolError(Exception):
@@ -72,6 +73,7 @@ class Pool:
 			FILETYPE.SNAPMATCH,
 			FILETYPE.DELTACODE,
 			FILETYPE.SCANCODE,
+			FILETYPE.DEBIAN_SPDX
 		]:
 			return f"{name}-{version}.{type}"
 
@@ -103,7 +105,7 @@ class Pool:
 	) -> str:
 		"""Get a relative path to the corresponding file of a certain type"""
 
-		# Files that are located inside <PATH_USR>/<name>/<version>
+		# Files that are located only inside <PATH_USR>/<name>/<version>
 		if type in [
 			FILETYPE.SNAPMATCH,
 			FILETYPE.ALIENMATCHER,
@@ -112,6 +114,12 @@ class Pool:
 			FILETYPE.DELTACODE
 		]:
 			relpath = self.relpath(Settings.PATH_USR, name, version)
+
+		# Files that are located only in <PATH_DEB>/<name>/<version>
+		elif type in [
+			FILETYPE.DEBIAN_SPDX
+		]:
+			relpath = self.relpath(Settings.PATH_DEB, name, version)
 
 		# Files that are located inside <PATH_USR or PATH_DEB>/<name>/<version>
 		elif type in [
