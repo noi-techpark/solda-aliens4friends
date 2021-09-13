@@ -295,6 +295,8 @@ class DeltaCodeNG:
 			debug_with_stacktrace(logger)
 			return
 
+		logger.debug(f"[{package}] Files determined through {pool.clnpath(path)}")
+
 		try:
 			alien = model.aliensrc
 			match = model.match
