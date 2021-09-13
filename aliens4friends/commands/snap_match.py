@@ -92,19 +92,17 @@ class AlienSnapMatcher:
 
 		logger.debug(f"[{self.curpkg}] Find a matching package through Debian Snapshot API.")
 
-		pool = Pool(Settings.POOLPATH)
-
 		main_match = False
 		snap_match = False
 
-		main_match_path = pool.relpath_typed(
+		main_match_path = self.pool.relpath_typed(
 			FILETYPE.ALIENMATCHER,
 			apkg.name,
 			apkg.version.str
 		)
 
 		try:
-			main_match = pool.get_json(main_match_path)
+			main_match = self.pool.get_json(main_match_path)
 			main_match = main_match['debian']['match']
 			results.append(main_match['name'] or '-')
 			results.append(main_match['version'] or '-')
@@ -121,47 +119,6 @@ class AlienSnapMatcher:
 			results.append('-')
 			logger.warning(
 				f"[{self.curpkg}] Unable to load current alienmatch from {main_match_path}."
-			)
-
-		resultpath = pool.relpath(
-			Settings.PATH_USR,
-			apkg.name,
-			apkg.version.str,
-			f"{apkg.name}-{apkg.version.str}.snapmatch.json"
-		)
-
-		try:
-			if not Settings.POOLCACHED:
-				raise FileNotFoundError()
-			amm = AlienSnapMatcherModel.from_file(pool.abspath(resultpath))
-			if amm.match.score > 0:
-				results.append(amm.match.name)
-				results.append(amm.match.version)
-				results.append('found')
-				v1 = Version(amm.match.version)
-				distance = apkg.version.distance(v1)
-				results.append(distance)
-				results.append(amm.match.score)
-				results.append(amm.match.package_score)
-				results.append(amm.match.version_score)
-				outcome = "MATCH"
-			else:
-				results.append('-')
-				results.append('-')
-				results.append('missing')
-				results.append('-')
-				results.append(amm.match.score)
-				results.append('-')
-				results.append('-')
-				amm.errors.append("NO MATCH without errors")
-				outcome = "NO MATCH"
-			logger.debug(f"[{self.curpkg}] Result already exists ({outcome}), skipping.")
-			return
-		except FileNotFoundError:
-			pass
-		except (PoolError, ModelError) as ex:
-			logger.warning(
-				f"[{self.curpkg}] Result file already exists but it is not readable: {ex}"
 			)
 
 		int_arch_count = apkg.internal_archive_count()
@@ -213,8 +170,6 @@ class AlienSnapMatcher:
 			results.append(amm.match.version)
 
 			results.append('found')
-
-			pool.write_json(amm, resultpath)
 
 			# snapmatcher distance
 			v1 = Version(amm.match.version)
@@ -423,23 +378,56 @@ class AlienSnapMatcher:
 			results.append(package.name)
 			results.append(package.version.str)
 
-			if package.name in EXCLUSIONS:
-				logger.warning(f"[{self.curpkg}] IGNORED: Known non-debian")
-				amm.errors.append("IGNORED: Known non-debian")
-			else:
-				package.expand()
-				amm.aliensrc.internal_archive_name = package.internal_archive_name
+			resultpath = self.pool.relpath_typed(FILETYPE.SNAPMATCH, package.name, package.version.str)		
+					
+			try:
+				if not Settings.POOLCACHED:
+					raise FileNotFoundError()
+				amm = AlienSnapMatcherModel.from_file(self.pool.abspath(resultpath))
+				if amm.match.score > 0:
+					results.append(amm.match.name)
+					results.append(amm.match.version)
+					results.append('found')
+					v1 = Version(amm.match.version)
+					distance = apkg.version.distance(v1)
+					results.append(distance)
+					results.append(amm.match.score)
+					results.append(amm.match.package_score)
+					results.append(amm.match.version_score)
+					outcome = "MATCH"
+				else:
+					results.append('-')
+					results.append('-')
+					results.append('missing')
+					results.append('-')
+					results.append(amm.match.score)
+					results.append('-')
+					results.append('-')
+					amm.errors.append("NO MATCH without errors")
+					outcome = "NO MATCH"
+				logger.debug(f"[{self.curpkg}] Result already exists ({outcome}), skipping.")
+			except (PoolError, ModelError, FileNotFoundError) as ex:
+				if type(ex) == PoolError or type(ex) == ModelError:
+					logger.warning(
+						f"[{self.curpkg}] Result file already exists but it is not readable: {ex}"
+					)
+				if package.name in EXCLUSIONS:
+					logger.warning(f"[{self.curpkg}] IGNORED: Known non-debian")
+					amm.errors.append("IGNORED: Known non-debian")
+				else:
+					package.expand()
+					amm.aliensrc.internal_archive_name = package.internal_archive_name
+					self.match(package, amm, results) # pass amm and results by reference
+				self.pool.write_json(amm, resultpath)
 
-				self.match(package, amm, results) # pass amm and results by reference
+			compare_csv = self.pool.abspath(
+				Settings.PATH_USR,
+				f"match_vs_snapmatch.csv"
+			)
 
-				compare_csv = self.pool.abspath(
-					Settings.PATH_USR,
-					f"match_vs_snapmatch.csv"
-				)
-
-				with open(compare_csv, 'a+') as csvfile:
-					csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-					csvwriter.writerow(results)
+			with open(compare_csv, 'a+') as csvfile:
+				csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+				csvwriter.writerow(results)
 
 		except (AlienSnapMatcherError, PackageError) as ex:
 				logger.error(f"[{self.curpkg}] ERROR: {ex}")
