@@ -237,7 +237,7 @@ class FossyWrapper:
 		logger.info("monitoring reportImport job status...")
 		self._wait_for_jobs_completion(upload)
 
-	def get_upload(self, uploadname: str) -> Upload:
+	def get_upload(self, uploadname: str) -> Optional[Upload]:
 		"""Get Fossology Upload object from pakage name and version,
 		assuming that uploadname follows the scheme <name>@<version>, and
 		assuming that uploadnames are unique in queried Fossology instance"""

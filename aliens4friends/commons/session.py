@@ -3,7 +3,7 @@
 
 import logging
 import random
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 from aliens4friends.commons.pool import FILETYPE, OVERWRITE, SRCTYPE, Pool
 from aliens4friends.commons.settings import Settings
@@ -91,6 +91,38 @@ class Session:
 				or not only_selected
 			)
 		]
+
+	def package_list_set(
+		self,
+		values: Dict[str, Any],
+		name: str,
+		version: str,
+		variant: str
+	) -> bool:
+		"""
+		Update the package list and set all values in a specific package
+		identified by name, version, and variant.
+
+		Args:
+			values (Dict[str, Any]):
+				A mapping defined in <models.session.SessionPackageModel>
+			name (str):
+				Name of the package
+		    version (str):
+				Version of the package variant (str): Variant of the package
+
+		Returns:
+			bool: True, if a package could be found and updated
+		"""
+		for pckg in self.session_model.package_list:
+			if (
+				pckg.name == name
+				and pckg.version == version
+				and pckg.variant == variant
+			):
+				pckg.__dict__.update(values)
+				return True
+		return False
 
 	def write_package_list(
 		self,

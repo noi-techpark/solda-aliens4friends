@@ -14,13 +14,17 @@ class SessionPackageModel(BaseModel):
 		version: str,
 		variant: str = "",
 		selected: bool = True,
-		reason: Optional[str] = ""
+		selected_reason: Optional[str] = "",
+		uploaded: bool = True,
+		uploaded_reason: Optional[str] = ""
 	) -> None:
 		self.name = name
 		self.version = version
 		self.variant = variant
 		self.selected = selected
-		self.reason = reason
+		self.selected_reason = selected_reason
+		self.uploaded = uploaded
+		self.uploaded_reason = uploaded_reason
 
 	def __eq__(self, o: _TSessionPackageModel) -> bool:
 		return (

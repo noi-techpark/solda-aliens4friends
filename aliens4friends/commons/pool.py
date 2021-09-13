@@ -7,7 +7,7 @@ from enum import IntEnum, Enum
 from json import dump as jsondump, load as jsonload
 from pathlib import Path
 from shutil import rmtree
-from typing import Generator, Any, Union, List, Type, Tuple
+from typing import Generator, Any, Union, Tuple
 from datetime import datetime
 
 from spdx.document import Document as SPDXDocument
