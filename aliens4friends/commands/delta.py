@@ -10,6 +10,7 @@ import difflib
 from multiprocessing import Pool as MultiProcessingPool
 from typing import List, Dict, Any, Generator, Optional
 from pathlib import Path
+from itertools import product, repeat
 
 from deepdiff import DeepDiff
 
@@ -17,7 +18,7 @@ from aliens4friends.commons.utils import log_minimal_error, debug_with_stacktrac
 from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.settings import Settings
 
-from aliens4friends.models.alienmatcher import AlienMatcherModel
+from aliens4friends.models.alienmatcher import AlienMatcherModel, AlienSnapMatcherModel
 from aliens4friends.models.deltacode import Tool, Compared, Header, DeltaCodeModel, MovedFile
 
 logger = logging.getLogger(__name__)
@@ -242,8 +243,11 @@ class DeltaCodeNG:
 		pool: Pool,
 		glob_name: str = "*",
 		glob_version: str = "*",
+		use_oldmatcher: bool = False,
 		session_id: str = ""
 	) -> None:
+
+		filetype = FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH
 
 		# Just take packages from the current session list
 		# On error just return, error messages are inside load()
@@ -251,19 +255,21 @@ class DeltaCodeNG:
 			try:
 				session = Session(pool, session_id)
 				session.load()
-				paths = session.package_list_paths(FILETYPE.ALIENMATCHER)
+				paths = session.package_list_paths(filetype)
 			except SessionError:
 				return
 
 		# ...without a session_id, take information directly from the pool
 		else:
-			paths = pool.absglob(f"{glob_name}/{glob_version}/*.alienmatcher.json")
+			paths = pool.absglob(f"{glob_name}/{glob_version}/*.{filetype}")
 
 
 		multiprocessing_pool = MultiProcessingPool()
 		results = multiprocessing_pool.map(  #pytype: disable=wrong-arg-types
 			DeltaCodeNG._execute,
-			paths
+			[
+				[path, use_oldmatcher, pool] for path in paths
+			]
 		)
 		if not results:
 			logger.info(
@@ -272,54 +278,41 @@ class DeltaCodeNG:
 			)
 
 	@staticmethod
-	def _execute(path: Path) -> Optional[str]:
-		pool = Pool(Settings.POOLPATH)
+	def _execute(args) -> Optional[str]:
+
+		path, use_oldmatcher, pool = args
 
 		name, version = pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
-		relpath = pool.clnpath(path)
 
 		try:
-			j = pool.get_json(relpath)
-			am = AlienMatcherModel.decode(j)
+			if use_oldmatcher:
+				model = AlienMatcherModel.from_file(path)
+			else:
+				model = AlienSnapMatcherModel.from_file(path)
 		except Exception as ex:
-			logger.error(f"[{package}] Unable to load json from {relpath}.")
+			logger.error(f"[{package}] Unable to load json from {path}.")
 			debug_with_stacktrace(logger)
 			return
 
 		try:
-			m = am.debian.match
-			if not m.name:
+			alien = model.aliensrc
+			match = model.match
+			if not match.name:
 				logger.warning(f"[{package}] no debian match to compare here")
 				return
-			a = am.aliensrc
-			result_path = pool.abspath(
-				Settings.PATH_USR,
-				a.name,
-				a.version,
-				f'{a.name}-{a.version}.deltacode.json'
-			)
+			result_path = pool.relpath_typed(FILETYPE.DELTACODE, alien.name, alien.version)
 			if pool.cached(result_path, debug_prefix=f"[{package}] "):
 				return result_path
 			logger.info(
 				f"[{package}] calculating delta between debian package"
-				f" {m.name}-{m.version} and alien package"
-				f" {a.name}-{a.version}"
+				f" {match.name}-{match.version} and alien package"
+				f" {alien.name}-{alien.version}"
 			)
 			deltacode = DeltaCodeNG(
-				pool.abspath(
-					Settings.PATH_DEB,
-					m.name,
-					m.version,
-					f'{m.name}-{m.version}.scancode.json'
-				),
-				pool.abspath(
-					Settings.PATH_USR,
-					a.name,
-					a.version,
-					f'{a.name}-{a.version}.scancode.json'
-				),
-				result_path
+				pool.abspath_typed(FILETYPE.SCANCODE, match.name, match.version, in_userland=False),
+				pool.abspath_typed(FILETYPE.SCANCODE, alien.name, alien.version),
+				pool.abspath(result_path)
 			)
 			dcmodel = deltacode.compare()
 			deltacode.write_results()

@@ -37,6 +37,8 @@ class FILETYPE(str, Enum):
 	ALIENSRC = "aliensrc"
 	TINFOILHAT = "tinfoilhat.json"
 	SNAPMATCH = "snapmatch.json"
+	DELTACODE = "deltacode.json"
+	SCANCODE = "scancode.json"
 	# TODO Extend when needed, use it everywhere
 
 class PoolError(Exception):
@@ -67,7 +69,9 @@ class Pool:
 		# Types without variants
 		if type in [
 			FILETYPE.ALIENMATCHER,
-			FILETYPE.SNAPMATCH
+			FILETYPE.SNAPMATCH,
+			FILETYPE.DELTACODE,
+			FILETYPE.SCANCODE,
 		]:
 			return f"{name}-{version}.{type}"
 
@@ -94,7 +98,8 @@ class Pool:
 		name: str,
 		version: str,
 		variant: str = "",
-		with_filename: bool = True
+		with_filename: bool = True,
+		in_userland: bool = True
 	) -> str:
 		"""Get a relative path to the corresponding file of a certain type"""
 
@@ -103,17 +108,27 @@ class Pool:
 			FILETYPE.SNAPMATCH,
 			FILETYPE.ALIENMATCHER,
 			FILETYPE.ALIENSRC,
-			FILETYPE.TINFOILHAT
+			FILETYPE.TINFOILHAT,
+			FILETYPE.DELTACODE
 		]:
 			relpath = self.relpath(Settings.PATH_USR, name, version)
-			if with_filename:
-				relpath = os.path.join(
-					relpath,
-					self.filename(type, name, version, variant)
-				)
-			return relpath
 
-		raise PoolError(f"Unable to find a path for the file type '{type}'")
+		# Files that are located inside <PATH_USR or PATH_DEB>/<name>/<version>
+		elif type in [
+			FILETYPE.SCANCODE
+		]:
+			basepath = Settings.PATH_USR if in_userland else Settings.PATH_DEB
+			relpath = self.relpath(basepath, name, version)
+
+		else:
+			raise PoolError(f"Unable to find a path for the file type '{type}'")
+
+		if with_filename:
+			relpath = os.path.join(
+				relpath,
+				self.filename(type, name, version, variant)
+			)
+		return relpath
 
 
 	def abspath_typed(
@@ -121,9 +136,13 @@ class Pool:
 		type: FILETYPE,
 		name: str,
 		version: str,
-		variant: str = ""
+		variant: str = "",
+		with_filename: bool = True,
+		in_userland: bool = True
 	) -> str:
-		return self.abspath(self.relpath_typed(type, name, version, variant))
+		return self.abspath(
+			self.relpath_typed(type, name, version, variant, with_filename, in_userland)
+		)
 
 	def clnpath(self, path: Union[Path, str]) -> str:
 		if isinstance(path, Path):
@@ -327,7 +346,7 @@ class Pool:
 		return Path(path).rglob(glob)
 
 	def rm(self, *path_args: str) -> None:
-		path = self.relpath(*path_args)
+		path = self.abspath(*path_args)
 		if os.path.isdir(path):
 			rmtree(path)
 		elif os.path.isfile(path) or os.path.islink(path):

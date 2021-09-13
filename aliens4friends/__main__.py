@@ -220,6 +220,14 @@ class Aliens4Friends:
 			help = "Print result also to stdout."
 		)
 
+	def _args_use_oldmatcher(self, parser: argparse.ArgumentParser) -> None:
+		parser.add_argument(
+			"--use-oldmatcher",
+			action = "store_true",
+			default = False,
+			help = "Use the old alienmatcher.json input files, not snapmatch.json."
+		)
+
 	def config(self) -> None:
 		for k, v in Settings.DOTENV.items():
 			print(f"{k}={v}")
@@ -341,12 +349,7 @@ class Aliens4Friends:
 		)
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
-		self.parsers[cmd].add_argument(
-			"--use-oldmatcher",
-			action = "store_true",
-			default = False,
-			help = "Use the old alienmatcher.json input files, not snapmatch.json."
-		)
+		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
 	def parser_delta(self, cmd: str) -> None:
@@ -357,6 +360,7 @@ class Aliens4Friends:
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_glob(self.parsers[cmd])
+		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
 	def parser_spdxdebian(self, cmd: str) -> None:
@@ -468,6 +472,7 @@ class Aliens4Friends:
 			self.pool,
 			self.args.glob_name,
 			self.args.glob_version,
+			self.args.use_oldmatcher,
 			self.args.session
 		)
 
