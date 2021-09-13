@@ -65,7 +65,7 @@ def filter_include_exclude(
 				return False, f"Excluded manually with pattern '{pattern}'"
 
 	# Keep all packages as-is, if they are not inside the include/exclude lists
-	return package.selected, package.reason
+	return package.selected, package.selected_reason
 
 FILTERS = {
 	"score-gt": filter_score_gt,
@@ -108,7 +108,7 @@ class SessionCommand:
 				# or not selected if a filtering reason exists
 				for p in session_model.package_list:
 					for filter in filters:
-						p.selected, p.reason = filter["method"](session, pool, p, filter["param"])
+						p.selected, p.selected_reason = filter["method"](session, pool, p, filter["param"])
 
 				session.write_package_list()
 			except SessionError:

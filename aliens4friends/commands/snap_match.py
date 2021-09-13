@@ -378,8 +378,8 @@ class AlienSnapMatcher:
 			results.append(package.name)
 			results.append(package.version.str)
 
-			resultpath = self.pool.relpath_typed(FILETYPE.SNAPMATCH, package.name, package.version.str)		
-					
+			resultpath = self.pool.relpath_typed(FILETYPE.SNAPMATCH, package.name, package.version.str)
+
 			try:
 				if not Settings.POOLCACHED:
 					raise FileNotFoundError()
@@ -389,7 +389,7 @@ class AlienSnapMatcher:
 					results.append(amm.match.version)
 					results.append('found')
 					v1 = Version(amm.match.version)
-					distance = apkg.version.distance(v1)
+					distance = package.version.distance(v1)
 					results.append(distance)
 					results.append(amm.match.score)
 					results.append(amm.match.package_score)
