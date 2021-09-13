@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
+from aliens4friends.models.alienmatcher import AlienMatcherModel, AlienSnapMatcherModel
 from aliens4friends.commons.session import Session, SessionError
 import os
 import re
@@ -121,17 +122,18 @@ class Scancode:
 			package = f"{name}-{version}"
 
 			try:
-				with open(path, "r") as jsonfile:
-					j = json.load(jsonfile)
+				if use_oldmatcher:
+					model = AlienMatcherModel.from_file(path)
+				else:
+					model = AlienSnapMatcherModel.from_file(path)
 			except Exception as ex:
 				logger.error(f"[{package}] Unable to load json from {path}.")
 				continue
 
 			try:
-				m = j["debian"]["match"]
-				to_scan = m["debsrc_orig"] or m["debsrc_debian"] # support for Debian Format 1.0 native
-				a = Archive(pool.relpath(to_scan))
-				result = scancode.run(a, m["name"], m["version"])
+				to_scan = model.match.debsrc_orig or model.match.debsrc_debian # support for Debian Format 1.0 native
+				archive = Archive(pool.relpath(to_scan))
+				result = scancode.run(archive, model.match.name, model.match.version)
 				if result and Settings.PRINTRESULT:
 					print(result)
 			except KeyError:
@@ -145,26 +147,25 @@ class Scancode:
 				log_minimal_error(logger, ex, f"[{package}] ")
 
 			try:
-				m = j["aliensrc"]
-				a = Archive(
+				archive = Archive(
 					pool.relpath(
 						Settings.PATH_USR,
-						m["name"],
-						m["version"],
-						m["filename"]
+						model.aliensrc.name,
+						model.aliensrc.version,
+						model.aliensrc.filename
 					)
 				)
 				result = scancode.run(
-					a,
-					m["name"],
-					m["version"],
-					os.path.join("files", m["internal_archive_name"])
+					archive,
+					model.aliensrc.name,
+					model.aliensrc.version,
+					os.path.join("files", model.aliensrc.internal_archive_name)
 				)
 				if result and Settings.PRINTRESULT:
 					with open(result) as r:
 						print(json.dumps(json.load(r), indent=2))
 			except TypeError as ex:
-				if not m.get("internal_archive_name"):
+				if not model.aliensrc.internal_archive_name:
 					logger.warning(f"[{package}] no internal archive to scan here")
 				else:
 					log_minimal_error(logger, ex, f"[{package}] ")

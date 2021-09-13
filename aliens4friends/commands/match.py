@@ -327,11 +327,11 @@ class AlienMatcher:
 			json_data = self.pool.get_json(resultpath)
 			amm = AlienMatcherModel(**json_data)
 			debpkg = DebianPackage(
-				amm.debian.match.name,
-				amm.debian.match.version,
-				amm.debian.match.debsrc_orig,
-				amm.debian.match.debsrc_debian,
-				amm.debian.match.dsc_format
+				amm.match.name,
+				amm.match.version,
+				amm.match.debsrc_orig,
+				amm.match.debsrc_debian,
+				amm.match.dsc_format
 			)
 			logger.debug(f"[{self.curpkg}] Result already exists (MATCH), skipping.")
 
@@ -361,7 +361,7 @@ class AlienMatcher:
 					# SPDX was already generated from the Debian sources.
 					debpkg = self.fetch_debian_sources(match)
 
-					amm.debian.match = DebianMatch(
+					amm.match = DebianMatch(
 						debpkg.name,
 						debpkg.version.str,
 						Calc.overallScore(package_score, version_score),
@@ -392,10 +392,10 @@ class AlienMatcher:
 			package.expand()
 			amm = self.match(package)
 
-			debsrc_debian = amm.debian.match.debsrc_debian
+			debsrc_debian = amm.match.debsrc_debian
 			debsrc_debian = os.path.basename(debsrc_debian) if debsrc_debian else ''
 
-			debsrc_orig = amm.debian.match.debsrc_orig
+			debsrc_orig = amm.match.debsrc_orig
 			debsrc_orig = os.path.basename(debsrc_orig) if debsrc_orig else ''
 
 			outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'

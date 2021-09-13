@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-from re import S
 from .base import BaseModel
 from .common import Tool, SourceFile
 from typing import List, Optional
@@ -42,14 +41,6 @@ class DebianMatch(BaseModel):
 		self.dsc_format = dsc_format
 		self.version_candidates = VersionCandidate.drilldown(version_candidates)
 
-# FIXME Needed? It contains only the match itself, what else is on that json level?
-class DebianMatchContainer(BaseModel):
-	def __init__(
-		self,
-		match: Optional[DebianMatch] = None
-	):
-		self.match = DebianMatch.decode(match)
-
 class AlienSrc(BaseModel):
 	def __init__(
 		self,
@@ -74,12 +65,12 @@ class AlienMatcherModel(BaseModel):
 		self,
 		tool: Optional[Tool] = None,
 		aliensrc: Optional[AlienSrc] = None,
-		debian: Optional[DebianMatchContainer] = None,
+		match: Optional[DebianMatch] = None,
 		errors: Optional[List[str]] = None
 	):
 		self.tool = Tool.decode(tool)
 		self.aliensrc = AlienSrc.decode(aliensrc)
-		self.debian = DebianMatchContainer.decode(debian)
+		self.match = DebianMatch.decode(match)
 		self.errors = errors if errors else []
 
 class DebianSnapMatch(BaseModel):
