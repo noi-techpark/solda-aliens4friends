@@ -69,7 +69,7 @@ class Harvest:
 		add_missing : bool = False,
 		use_oldmatcher: bool = False,
 		package_id_ext : str = Settings.PACKAGE_ID_EXT,
-		session: Session = None
+		session: Optional[Session] = None
 	):
 		super().__init__()
 		self.pool = pool
