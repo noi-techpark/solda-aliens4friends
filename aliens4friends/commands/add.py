@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 import logging
+from posixpath import relpath
 
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.pool import FILETYPE, Pool, SRCTYPE, OVERWRITE, PoolErrorFileExists
@@ -33,13 +34,11 @@ class Add:
 		self.session = None
 
 		# Load a session if possible, or terminate otherwise
-		# Error messages are already inside load()
+		# Error messages are already inside load(), let the
+		# caller handle SessionError exceptions
 		if session_id:
 			self.session = Session(pool, session_id)
-			try:
-				self.session.load()
-			except SessionError:
-				return
+			self.session.load()
 
 	def alienpackage(self, path: str, force: bool) -> None:
 		alienpackage = AlienPackage(path)
@@ -132,27 +131,29 @@ class Add:
 			if (
 				candidate not in self.session_list_aliensrc
 				and not self.pool.exists(
-					Settings.PATH_USR,
-					candidate.name,
-					candidate.version,
-					f"{candidate.name}-{candidate.version}-{candidate.variant}.aliensrc"
+					self.pool.relpath_typed(FILETYPE.ALIENSRC,
+						candidate.name,
+						candidate.version,
+						candidate.variant
+					)
 				)
 			):
 				candidate.selected = False
-				candidate.reason = "No .aliensrc found"
+				candidate.reason = f"No {FILETYPE.ALIENSRC.value} found"
 				continue
 
 			if (
 				candidate not in self.session_list_tinfoilhat
 				and not self.pool.exists(
-					Settings.PATH_USR,
-					candidate.name,
-					candidate.version,
-					f"{candidate.name}-{candidate.version}-{candidate.variant}.tinfoilhat.json"
+					self.pool.relpath_typed(FILETYPE.TINFOILHAT,
+						candidate.name,
+						candidate.version,
+						candidate.variant
+					)
 				)
 			):
 				candidate.selected = False
-				candidate.reason = "No .tinfoilhat.json found"
+				candidate.reason = f"No {FILETYPE.TINFOILHAT.value} found"
 
 		self.session.write_package_list(candidates)
 
@@ -164,9 +165,9 @@ class Add:
 		for path in file_list:
 			try:
 				logger.info(f"ADD {path}")
-				if path.endswith(".aliensrc"):
+				if path.endswith(FILETYPE.ALIENSRC):
 					adder.alienpackage(path, force)
-				elif path.endswith(".tinfoilhat.json"):
+				elif path.endswith(FILETYPE.TINFOILHAT):
 					adder.tinfoilhat(path)
 				else:
 					raise AddError(f"File {path} is not supported for manual adding!")

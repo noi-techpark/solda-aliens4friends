@@ -52,18 +52,12 @@ class Harvest:
 		FILETYPE.DELTACODE,
 		FILETYPE.FOSSY,
 		FILETYPE.TINFOILHAT,
+		FILETYPE.SESSION,
 
 		# We use only one of these dipending on the given execution parameters
 		FILETYPE.ALIENMATCHER,
 		FILETYPE.SNAPMATCH
 	]
-
-	# martin: tell martin about the updates to the dashboard -> different colors for different session states per package
-	# take info from session and add that to harvest as well
-	# keep also non selected/non uploaded files and tell the reason and state
-	# use also session_id here
-	# use also use-oldmatcher and add snapmatch.json
-	# add null to all session related fields if no session is available
 
 	def __init__(
 		self,

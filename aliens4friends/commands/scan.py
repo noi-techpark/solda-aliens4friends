@@ -31,7 +31,7 @@ class Scancode:
 
 	def run(self, archive: Archive, package_name: str, package_version_str: str, archive_in_archive: Optional[str] = None) -> Optional[str]:
 		self.curpkg = f"{package_name}-{package_version_str}"
-		result_filename = f"{package_name}-{package_version_str}.scancode.json"
+		result_filename = f"{package_name}-{package_version_str}.{FILETYPE.SCANCODE}"
 		scancode_result = os.path.join(
 			self.pool.clnpath(os.path.dirname(archive.path)),
 			result_filename

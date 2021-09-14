@@ -26,13 +26,13 @@ class Session:
 		# files and folders from it. This overwrites existing files...
 		if session_id:
 			self.session_id = session_id
-			self.file_path = pool.relpath(Settings.PATH_SES, f"{session_id}.json")
+			self.file_path = pool.relpath_typed(FILETYPE.SESSION, session_id)
 		else:
 			# Create a new session with random ID. Repeat this until we find a
 			# session.json that has not already been taken by a former run.
 			while True:
 				session_id = Session._random_string()
-				file_path = pool.relpath(Settings.PATH_SES, f"{session_id}.json")
+				file_path = pool.relpath_typed(FILETYPE.SESSION, session_id)
 				if not pool.exists(file_path):
 					break
 
@@ -43,7 +43,7 @@ class Session:
 		self.pool._add(
 			self.session_model,
 			Settings.PATH_SES,
-			f"{self.session_id}.json",
+			self.pool.filename(FILETYPE.SESSION, self.session_id),
 			SRCTYPE.JSON,
 			OVERWRITE.ALWAYS
 		)
@@ -61,10 +61,7 @@ class Session:
 		# Test immediately if the session exist, to avoid misleading error messages
 		try:
 			self.session_model = SessionModel.from_file(
-				self.pool.abspath(
-					Settings.PATH_SES,
-					f"{self.session_id}.json"
-				)
+				self.pool.abspath_typed(FILETYPE.SESSION, self.session_id)
 			)
 			return self.session_model
 		except FileNotFoundError:

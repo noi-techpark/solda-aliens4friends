@@ -7,7 +7,7 @@ from enum import IntEnum, Enum
 from json import dump as jsondump, load as jsonload
 from pathlib import Path
 from shutil import rmtree
-from typing import Generator, Any, Union, Tuple
+from typing import Generator, Any, Set, Union, Tuple
 from datetime import datetime
 
 from spdx.document import Document as SPDXDocument
@@ -42,6 +42,7 @@ class FILETYPE(str, Enum):
 	DEBIAN_SPDX = "debian.spdx"
 	SCANCODE_SPDX = "scancode.spdx"
 	FOSSY = "fossy.json"
+	SESSION = "session.json"
 	# TODO Extend when needed, use it everywhere
 
 class PoolError(Exception):
@@ -64,10 +65,27 @@ class Pool:
 		self,
 		type: FILETYPE,
 		name: str,
-		version: str,
+		version: str = "",
 		variant: str = ""
 	) -> str:
-		"""Get the filename with extension of a certain file type"""
+		"""Get the filename with extension of a certain file type
+
+		Args:
+			`type` (FILETYPE): The file type defined in `Pool.FILETYPE`
+			`name` (str): The name of a package or any other name of a file
+			`version` (str, optional): The version of a package. Defaults to `""`.
+			`variant` (str, optional): The variant of a package. This might be ignored, dipending of the file type. Defaults to `""`.
+
+		Raises:
+			`PoolError`: if the `FILETYPE` is unknown to this method
+
+		Returns:
+			str: filename
+		"""
+
+		# Special type SESSION, name must be the session_id
+		if type == FILETYPE.SESSION:
+			return f"{name}.{type}"
 
 		# Types without variants
 		if type in [
@@ -102,15 +120,19 @@ class Pool:
 		self,
 		type: FILETYPE,
 		name: str,
-		version: str,
+		version: str = "",
 		variant: str = "",
 		with_filename: bool = True,
 		in_userland: bool = True
 	) -> str:
 		"""Get a relative path to the corresponding file of a certain type"""
 
+		# File that is located inside <PATH_SES>
+		if type == FILETYPE.SESSION:
+			relpath = self.relpath(Settings.PATH_SES)
+
 		# Files that are located only inside <PATH_USR>/<name>/<version>
-		if type in [
+		elif type in [
 			FILETYPE.SNAPMATCH,
 			FILETYPE.ALIENMATCHER,
 			FILETYPE.ALIENSRC,
@@ -149,7 +171,7 @@ class Pool:
 		self,
 		type: FILETYPE,
 		name: str,
-		version: str,
+		version: str = "",
 		variant: str = "",
 		with_filename: bool = True,
 		in_userland: bool = True

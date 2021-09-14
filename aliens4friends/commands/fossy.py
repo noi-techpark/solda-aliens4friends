@@ -260,7 +260,7 @@ class GetFossyData:
 						f"[{cur_pckg}] Something's wrong, more than one alien spdx"
 						f" file found in pool: {alien_spdx}"
 					)
-				alien_fossy_json_filename = pool.relpath(cur_path, f'{cur_pckg}.fossy.json')
+				alien_fossy_json_filename = pool.relpath(cur_path, f'{cur_pckg}.{FILETYPE.FOSSY}')
 				logger.info(f"[{cur_pckg}] Getting spdx and json data from Fossology")
 				gfd = GetFossyData(fossy, apkg, alien_spdx_filename)
 				doc = gfd.get_spdx()

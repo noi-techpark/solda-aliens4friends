@@ -33,7 +33,7 @@ def filter_score_gt(
 		file_path = pool.abspath_typed(FILETYPE.ALIENMATCHER, package.name, package.version)
 		amm = AlienMatcherModel.from_file(file_path)
 	except FileNotFoundError:
-		reason = "No alienmatcher.json file found"
+		reason = f"No {FILETYPE.ALIENMATCHER.value} file found"
 		logger.warning(f"[{package.name}] {reason}")
 		return False, reason
 
