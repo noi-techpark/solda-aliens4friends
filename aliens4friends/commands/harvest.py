@@ -65,8 +65,8 @@ class Harvest:
 		input_files,
 		result_file : str,
 		add_missing : bool = False,
-		package_id_ext : str = Settings.PACKAGE_ID_EXT,
-		use_oldmatcher: bool = False
+		use_oldmatcher: bool = False,
+		package_id_ext : str = Settings.PACKAGE_ID_EXT
 	):
 		super().__init__()
 		self.pool = pool
