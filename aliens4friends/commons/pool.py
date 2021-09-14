@@ -40,6 +40,7 @@ class FILETYPE(str, Enum):
 	DELTACODE = "deltacode.json"
 	SCANCODE = "scancode.json"
 	DEBIAN_SPDX = "debian.spdx"
+	SCANCODE_SPDX = "scancode.spdx"
 	# TODO Extend when needed, use it everywhere
 
 class PoolError(Exception):
@@ -73,7 +74,8 @@ class Pool:
 			FILETYPE.SNAPMATCH,
 			FILETYPE.DELTACODE,
 			FILETYPE.SCANCODE,
-			FILETYPE.DEBIAN_SPDX
+			FILETYPE.DEBIAN_SPDX,
+			FILETYPE.SCANCODE_SPDX
 		]:
 			return f"{name}-{version}.{type}"
 
@@ -123,7 +125,8 @@ class Pool:
 
 		# Files that are located inside <PATH_USR or PATH_DEB>/<name>/<version>
 		elif type in [
-			FILETYPE.SCANCODE
+			FILETYPE.SCANCODE,
+			FILETYPE.SCANCODE_SPDX
 		]:
 			basepath = Settings.PATH_USR if in_userland else Settings.PATH_DEB
 			relpath = self.relpath(basepath, name, version)

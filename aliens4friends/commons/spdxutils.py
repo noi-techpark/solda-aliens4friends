@@ -3,7 +3,6 @@
 
 import os
 import re
-import logging
 from uuid import uuid4
 from typing import Tuple
 
@@ -18,7 +17,7 @@ from aliens4friends.commons.settings import Settings
 EMPTY_FILE_SHA1 = "da39a3ee5e6b4b0d3255bfef95601890afd80709"
 
 class SPDXWriterLogger:
-	def log(self, msg):
+	def log(self, _):
 		pass # do not log errors, they are returned by parse method
 
 class SPDXUtilsException(Exception):

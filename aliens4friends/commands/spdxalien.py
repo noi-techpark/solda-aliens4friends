@@ -255,16 +255,17 @@ class MakeAlienSPDX:
 				alien.version,
 				f'{alien.internal_archive_name}.alien.spdx'
 			)
-			if os.path.isfile(alien_spdx_filename) and Settings.POOLCACHED:
-				logger.debug(f"[{package}] {pool.clnpath(alien_spdx_filename)} already found in cache, skipping")
+
+			if pool.cached(alien_spdx_filename, debug_prefix=f"[{package}] "):
 				return
+
 			alien_package_filename = pool.abspath(
 				Settings.PATH_USR,
 				alien.name,
 				alien.version,
 				alien.filename
 			)
-			scancode_spdx_filename = pool.abspath_typed(FILETYPE.SCANCODE, alien.name, alien.version)
+			scancode_spdx_filename = pool.abspath_typed(FILETYPE.SCANCODE_SPDX, alien.name, alien.version)
 			fix_spdxtv(scancode_spdx_filename)
 			scancode_spdx, _ = parse_spdx_tv(scancode_spdx_filename)
 			alien_package = AlienPackage(alien_package_filename)
