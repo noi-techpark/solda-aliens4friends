@@ -200,7 +200,7 @@ class Harvest:
 				else:
 					if variant not in self.package_groups[group_id]['variants']:
 						self.package_groups[group_id]['variants'][variant] = Harvest._create_variant()
-					self.package_groups[group_id]['variants'][variant]['list'].append(
+					self.package_groups[group_id]['variants'][variant]['list'].append( #pytype: disable=attribute-error
 						{
 							"ext": ext,
 							"path": path
