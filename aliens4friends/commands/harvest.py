@@ -124,7 +124,7 @@ class Harvest:
 			logger.debug(f'[{package.id}] Package does not miss any input files.')
 
 	@staticmethod
-	def _create_variant(p: Optional[SessionPackageModel] = None) -> Dict[str, Union[SessionState, List]]:
+	def _create_variant(p: Optional[SessionPackageModel] = None) -> Dict[str, Union[None, SessionState, List]]:
 		return {
 			"session_state": SessionState(
 				p.selected,
