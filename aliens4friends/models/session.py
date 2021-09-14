@@ -14,9 +14,9 @@ class SessionPackageModel(BaseModel):
 		version: str,
 		variant: str = "",
 		selected: bool = True,
-		selected_reason: Optional[str] = "",
+		selected_reason: Optional[str] = "Initial state",
 		uploaded: Optional[bool] = None,
-		uploaded_reason: Optional[str] = ""
+		uploaded_reason: Optional[str] = "Unknown upload status"
 	) -> None:
 		self.name = name
 		self.version = version

@@ -38,7 +38,7 @@ class Add:
 		# caller handle SessionError exceptions
 		if session_id:
 			self.session = Session(pool, session_id)
-			self.session.load()
+			self.session.load(create=True)
 
 	def alienpackage(self, path: str, force: bool) -> None:
 		alienpackage = AlienPackage(path)

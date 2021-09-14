@@ -112,6 +112,18 @@ def aggregate_tags(tags: List[str]) -> Dict[str, Any]:
 				pass
 	return res
 
+class SessionState(BaseModel):
+	def __init__(
+		self,
+		selected: bool = True,
+		selected_reason: Optional[str] = "",
+		uploaded: Optional[bool] = None,
+		uploaded_reason: Optional[str] = ""
+	) -> None:
+		self.selected = selected
+		self.selected_reason = selected_reason
+		self.uploaded = uploaded
+		self.uploaded_reason = uploaded_reason
 
 class SourcePackage(BaseModel):
 	def __init__(
@@ -122,6 +134,7 @@ class SourcePackage(BaseModel):
 		revision: Optional[str] = None,
 		variant: Optional[str] = None,
 		debian_matching: Optional[DebianMatchBasic] = None,
+		session_state: Optional[SessionState] = None,
 		source_files: Optional[List[SourceFile]] = None,
 		statistics: Optional[Statistics] = None,
 		binary_packages: Optional[List[BinaryPackage]] = None,
@@ -133,6 +146,7 @@ class SourcePackage(BaseModel):
 		self.revision = revision
 		self.variant = variant
 		self.debian_matching = DebianMatchBasic.decode(debian_matching)
+		self.session_state = SessionState.decode(session_state)
 		self.statistics = Statistics.decode(statistics)
 		self.source_files = SourceFile.drilldown(source_files)
 		self.binary_packages = BinaryPackage.drilldown(binary_packages)

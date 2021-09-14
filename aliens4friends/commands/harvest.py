@@ -1,13 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
+from aliens4friends.commands import session
+from aliens4friends.models.session import SessionPackageModel
 from aliens4friends.commons.session import Session, SessionError
 import json
 import logging
 import os
 import re
 import sys
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional, Tuple, Union
 
 from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.package import AlienPackage
@@ -17,6 +19,7 @@ from aliens4friends.commons.utils import get_prefix_formatted, log_minimal_error
 
 from aliens4friends.models.harvest import (
 	HarvestModel,
+	SessionState,
 	SourcePackage,
 	Statistics,
 	StatisticsLicenses,
@@ -52,7 +55,6 @@ class Harvest:
 		FILETYPE.DELTACODE,
 		FILETYPE.FOSSY,
 		FILETYPE.TINFOILHAT,
-		FILETYPE.SESSION,
 
 		# We use only one of these dipending on the given execution parameters
 		FILETYPE.ALIENMATCHER,
@@ -66,7 +68,8 @@ class Harvest:
 		result_file : str,
 		add_missing : bool = False,
 		use_oldmatcher: bool = False,
-		package_id_ext : str = Settings.PACKAGE_ID_EXT
+		package_id_ext : str = Settings.PACKAGE_ID_EXT,
+		session: Session = None
 	):
 		super().__init__()
 		self.pool = pool
@@ -76,6 +79,7 @@ class Harvest:
 		self.package_id_ext = package_id_ext
 		self.add_missing = add_missing
 		self.use_oldmatcher = use_oldmatcher
+		self.session = session
 
 	# FIXME Move this to Pool
 	@staticmethod
@@ -101,7 +105,7 @@ class Harvest:
 
 	def _warn_missing_input(self, package: SourcePackage, package_inputs):
 		missing = []
-		candidates = self.SUPPORTED_FILES
+		candidates = self.SUPPORTED_FILES.copy()
 		if self.use_oldmatcher:
 			candidates.remove(FILETYPE.SNAPMATCH)
 		else:
@@ -119,9 +123,41 @@ class Harvest:
 		else:
 			logger.debug(f'[{package.id}] Package does not miss any input files.')
 
+	@staticmethod
+	def _create_variant(p: Optional[SessionPackageModel] = None) -> Dict[str, Union[SessionState, List]]:
+		return {
+			"session_state": SessionState(
+				p.selected,
+				p.selected_reason,
+				p.uploaded,
+				p.uploaded_reason
+			) if p else None,
+			"list": []
+		}
+
 	def _create_groups(self):
 		self.package_groups = {}
+
+		if self.session:
+			for p in self.session.session_model.package_list:
+				group_id = f"{p.name}-{p.version}"
+				if group_id not in self.package_groups:
+					self.package_groups[group_id] = {
+						"variants": {},
+						"scancode": None,
+						"deltacode": None,
+						"matcher": None
+					}
+				if p.variant not in self.package_groups[group_id]['variants']:
+					self.package_groups[group_id]['variants'][p.variant] = Harvest._create_variant(p)
+
 		for path in self.input_files:
+
+			# We do not need to do much here, we get a missing file list at the end of the
+			# harvesting job...
+			if not self.pool.exists(path):
+				continue
+
 			try:
 				logger.debug(f"Parsing {self.pool.clnpath(path)}... ")
 				try:
@@ -163,8 +199,8 @@ class Harvest:
 					self.package_groups[group_id]['deltacode'] = dc.header.stats
 				else:
 					if variant not in self.package_groups[group_id]['variants']:
-						self.package_groups[group_id]['variants'][variant] = []
-					self.package_groups[group_id]['variants'][variant].append(
+						self.package_groups[group_id]['variants'][variant] = Harvest._create_variant()
+					self.package_groups[group_id]['variants'][variant]['list'].append(
 						{
 							"ext": ext,
 							"path": path
@@ -181,13 +217,20 @@ class Harvest:
 
 			for variant_id, variant in group['variants'].items():
 
-				logger.debug(f"[{group_id}][{variant_id}] Variant has {len(variant)} file infos")
+				logger.debug(f"[{group_id}][{variant_id}] Variant has {len(variant['list'])} file infos")
 
 				package_id = f"{group_id}-{variant_id}+{self.package_id_ext}"
 				cur_package_inputs = []
-				source_package = self._create_source_package(package_id, group, cur_package_inputs)
+
+				source_package = self._create_source_package(
+					package_id,
+					group,
+					cur_package_inputs,
+					variant['session_state']
+				)
+
 				self.result.source_packages.append(source_package)
-				for fileinfo in variant:
+				for fileinfo in variant['list']:
 					logger.debug(f"[{group_id}][{variant_id}] Processing {self.pool.clnpath(fileinfo['path'])}...")
 					cur_package_inputs.append(fileinfo['ext'])
 					if fileinfo['ext'] == FILETYPE.FOSSY:
@@ -210,9 +253,10 @@ class Harvest:
 		self,
 		package_id: str,
 		group: Dict[str, Any],
-		cur_package_inputs: List[str]
+		cur_package_inputs: List[str],
+		session_state: SessionState
 	) -> SourcePackage:
-		source_package = SourcePackage(package_id)
+		source_package = SourcePackage(package_id, session_state=session_state)
 
 		try:
 			upstream_source_total = group['scancode']['upstream_source_total']
@@ -413,7 +457,7 @@ class Harvest:
 				continue
 
 			if session_id:
-				files += session.package_list_paths(filetype)
+				files += session.package_list_paths(filetype, only_selected=False)
 			else:
 				for fn in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.{filetype}"):
 					files.append(str(fn))
@@ -423,7 +467,8 @@ class Harvest:
 			files,
 			output,
 			add_missing,
-			use_oldmatcher
+			use_oldmatcher,
+			session=session if session else None
 		)
 		harvest.readfile()
 
