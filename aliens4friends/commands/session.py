@@ -37,7 +37,7 @@ def filter_score_gt(
 		logger.warning(f"[{package.name}] {reason}")
 		return False, reason
 
-	if amm.debian.match.score > param:
+	if amm.match.score > param:
 		return False, f"score > {param}"
 
 	return True, f"score <= {param}"

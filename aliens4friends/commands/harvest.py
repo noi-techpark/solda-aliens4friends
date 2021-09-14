@@ -128,8 +128,8 @@ class Harvest:
 				if ext == ".alienmatcher.json":
 					amm = AlienMatcherModel.from_file(path)
 					self.package_groups[group_id]['alienmatcher'] = DebianMatchBasic(
-						amm.debian.match.name,
-						amm.debian.match.version
+						amm.match.name,
+						amm.match.version
 					)
 				elif ext == ".scancode.json":
 					with open(path) as f:
