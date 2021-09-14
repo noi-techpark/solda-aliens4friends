@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
+from aliens4friends.commons.session import Session, SessionError
 import json
 import logging
 import os
@@ -8,7 +9,7 @@ import re
 import sys
 from typing import List, Dict, Any
 
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.settings import Settings
 
@@ -28,7 +29,7 @@ from aliens4friends.models.harvest import (
 	aggregate_tags
 )
 from aliens4friends.models.fossy import FossyModel
-from aliens4friends.models.alienmatcher import AlienMatcherModel
+from aliens4friends.models.alienmatcher import AlienMatcherModel, AlienSnapMatcherModel
 from aliens4friends.models.deltacode import DeltaCodeModel
 from aliens4friends.models.tinfoilhat import TinfoilHatModel, PackageWithTags, PackageMetaData
 
@@ -46,13 +47,23 @@ class Harvest:
 	"""
 
 	SUPPORTED_FILES = [
-		".aliensrc",
-		".scancode.json",
-		".deltacode.json",
-		".fossy.json",
-		".tinfoilhat.json",
-		".alienmatcher.json",
+		FILETYPE.ALIENSRC,
+		FILETYPE.SCANCODE,
+		FILETYPE.DELTACODE,
+		FILETYPE.FOSSY,
+		FILETYPE.TINFOILHAT,
+
+		# We use only one of these dipending on the given execution parameters
+		FILETYPE.ALIENMATCHER,
+		FILETYPE.SNAPMATCH
 	]
+
+	# martin: tell martin about the updates to the dashboard -> different colors for different session states per package
+	# take info from session and add that to harvest as well
+	# keep also non selected/non uploaded files and tell the reason and state
+	# use also session_id here
+	# use also use-oldmatcher and add snapmatch.json
+	# add null to all session related fields if no session is available
 
 	def __init__(
 		self,
@@ -60,7 +71,8 @@ class Harvest:
 		input_files,
 		result_file : str,
 		add_missing : bool = False,
-		package_id_ext : str = Settings.PACKAGE_ID_EXT
+		package_id_ext : str = Settings.PACKAGE_ID_EXT,
+		use_oldmatcher: bool = False
 	):
 		super().__init__()
 		self.pool = pool
@@ -69,7 +81,9 @@ class Harvest:
 		self.result = None
 		self.package_id_ext = package_id_ext
 		self.add_missing = add_missing
+		self.use_oldmatcher = use_oldmatcher
 
+	# FIXME Move this to Pool
 	@staticmethod
 	def _filename_split(path):
 		p = str(path).split("/")
@@ -80,6 +94,8 @@ class Harvest:
 		else:
 			package_id, subext = os.path.splitext(package_id)
 			ext = f"{subext}{mainext}"
+
+		ext = ext.lstrip('.')
 		if ext not in Harvest.SUPPORTED_FILES:
 			raise HarvestException("Unsupported file extension")
 
@@ -91,9 +107,15 @@ class Harvest:
 
 	def _warn_missing_input(self, package: SourcePackage, package_inputs):
 		missing = []
-		for input_file_type in self.SUPPORTED_FILES:
+		candidates = self.SUPPORTED_FILES
+		if self.use_oldmatcher:
+			candidates.remove(FILETYPE.SNAPMATCH)
+		else:
+			candidates.remove(FILETYPE.ALIENMATCHER)
+
+		for input_file_type in candidates:
 			if input_file_type not in package_inputs:
-				missing.append(input_file_type)
+				missing.append(input_file_type.value)
 		if missing:
 			logger.warning(f'[{package.id}] Package misses the {missing} input files.')
 			if self.add_missing:
@@ -122,22 +144,27 @@ class Harvest:
 						"variants": {},
 						"scancode": None,
 						"deltacode": None,
-						"alienmatcher": None
+						"matcher": None
 					}
 
-				if ext == ".alienmatcher.json":
-					amm = AlienMatcherModel.from_file(path)
-					self.package_groups[group_id]['alienmatcher'] = DebianMatchBasic(
-						amm.match.name,
-						amm.match.version
+				# We already sort either ALIENMATCHER or SNAPMATCH files out,
+				# so we do not need to distinguish it here anymore.
+				if ext == FILETYPE.ALIENMATCHER or ext == FILETYPE.SNAPMATCH:
+					if self.use_oldmatcher:
+						model = AlienMatcherModel.from_file(path)
+					else:
+						model = AlienSnapMatcherModel.from_file(path)
+					self.package_groups[group_id]['matcher'] = DebianMatchBasic(
+						model.match.name,
+						model.match.version
 					)
-				elif ext == ".scancode.json":
+				elif ext == FILETYPE.SCANCODE:
 					with open(path) as f:
 						sc = json.load(f)
 					self.package_groups[group_id]['scancode'] = {
 						'upstream_source_total' : sum([1 for f in sc['files'] if f['type'] == 'file'])
 					}
-				elif ext == ".deltacode.json":
+				elif ext == FILETYPE.DELTACODE:
 					dc = DeltaCodeModel.from_file(path)
 					self.package_groups[group_id]['deltacode'] = dc.header.stats
 				else:
@@ -169,11 +196,11 @@ class Harvest:
 				for fileinfo in variant:
 					logger.debug(f"[{group_id}][{variant_id}] Processing {self.pool.clnpath(fileinfo['path'])}...")
 					cur_package_inputs.append(fileinfo['ext'])
-					if fileinfo['ext'] == ".fossy.json":
+					if fileinfo['ext'] == FILETYPE.FOSSY:
 						self._parse_fossy_main(fileinfo['path'], source_package)
-					elif fileinfo['ext'] == ".tinfoilhat.json":
+					elif fileinfo['ext'] == FILETYPE.TINFOILHAT:
 						self._parse_tinfoilhat_main(fileinfo['path'], source_package)
-					elif fileinfo['ext'] == ".aliensrc":
+					elif fileinfo['ext'] == FILETYPE.ALIENSRC:
 						self._parse_aliensrc_main(fileinfo['path'], source_package)
 
 				cur_package_stats.append(source_package.statistics)
@@ -185,10 +212,8 @@ class Harvest:
 		self._create_groups()
 		self._parse_groups()
 
-
-
-	@staticmethod
 	def _create_source_package(
+		self,
 		package_id: str,
 		group: Dict[str, Any],
 		cur_package_inputs: List[str]
@@ -197,19 +222,19 @@ class Harvest:
 
 		try:
 			upstream_source_total = group['scancode']['upstream_source_total']
-			cur_package_inputs.append(".scancode.json")
+			cur_package_inputs.append(FILETYPE.SCANCODE.value)
 		except TypeError:
 			upstream_source_total = 0
 		source_package.statistics.files.upstream_source_total = upstream_source_total
 
-		if group['alienmatcher']:
-			source_package.debian_matching = group['alienmatcher']
-			cur_package_inputs.append(".alienmatcher.json")
+		if group['matcher']:
+			source_package.debian_matching = group['matcher']
+			cur_package_inputs.append(FILETYPE.ALIENMATCHER.value if self.use_oldmatcher else FILETYPE.SNAPMATCH.value)
 		else:
 			source_package.debian_matching = None
 
 		if group['deltacode']:
-			cur_package_inputs.append(".deltacode.json")
+			cur_package_inputs.append(FILETYPE.DELTACODE.value)
 			source_package.debian_matching.ip_matching_files = (
 				group['deltacode'].same_files
 				+ group['deltacode'].changed_files_with_no_license_and_copyright
@@ -360,7 +385,14 @@ class Harvest:
 			source_package.metadata = container.recipe.metadata
 
 	@staticmethod
-	def execute(pool: Pool, add_missing, glob_name: str = "*", glob_version: str = "*") -> None:
+	def execute(
+		pool: Pool,
+		add_missing,
+		glob_name: str = "*",
+		glob_version: str = "*",
+		use_oldmatcher: bool = False,
+		session_id: str = ""
+	) -> None:
 
 		result_path = pool.relpath(Settings.PATH_STT)
 		pool.mkdir(result_path)
@@ -368,15 +400,36 @@ class Harvest:
 		output = os.path.join(result_path, result_file)
 
 		files = []
-		for supp in Harvest.SUPPORTED_FILES:
-			for fn in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*{supp}"):
-				files.append(str(fn))
+
+		# Just take packages from the current session list
+		# On error just return, error messages are inside load()
+		if session_id:
+			try:
+				session = Session(pool, session_id)
+				session.load()
+			except SessionError:
+				return
+
+		for filetype in Harvest.SUPPORTED_FILES:
+			if (
+				filetype == FILETYPE.ALIENMATCHER and not use_oldmatcher
+				or
+				filetype == FILETYPE.SNAPMATCH and use_oldmatcher
+			):
+				continue
+
+			if session_id:
+				files += session.package_list_paths(filetype)
+			else:
+				for fn in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.{filetype}"):
+					files.append(str(fn))
 
 		harvest = Harvest(
 			pool,
 			files,
 			output,
-			add_missing
+			add_missing,
+			use_oldmatcher
 		)
 		harvest.readfile()
 

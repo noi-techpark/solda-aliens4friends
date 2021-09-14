@@ -41,6 +41,7 @@ class FILETYPE(str, Enum):
 	SCANCODE = "scancode.json"
 	DEBIAN_SPDX = "debian.spdx"
 	SCANCODE_SPDX = "scancode.spdx"
+	FOSSY = "fossy.json"
 	# TODO Extend when needed, use it everywhere
 
 class PoolError(Exception):
@@ -82,7 +83,8 @@ class Pool:
 		# Types that have a variant in their filename
 		if type in [
 			FILETYPE.ALIENSRC,
-			FILETYPE.TINFOILHAT
+			FILETYPE.TINFOILHAT,
+			FILETYPE.FOSSY
 		]:
 			if variant:
 				variant = f"-{variant}"
@@ -113,7 +115,8 @@ class Pool:
 			FILETYPE.ALIENMATCHER,
 			FILETYPE.ALIENSRC,
 			FILETYPE.TINFOILHAT,
-			FILETYPE.DELTACODE
+			FILETYPE.DELTACODE,
+			FILETYPE.FOSSY
 		]:
 			relpath = self.relpath(Settings.PATH_USR, name, version)
 

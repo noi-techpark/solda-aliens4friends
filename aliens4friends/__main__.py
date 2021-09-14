@@ -426,6 +426,9 @@ class Aliens4Friends:
 			default = False,
 			help = "Add missing input files to the report while harvesting."
 		)
+		self._args_glob(self.parsers[cmd])
+		self._args_use_oldmatcher(self.parsers[cmd])
+		self._args_session(self.parsers[cmd])
 
 	def session(self) -> None:
 		SessionCommand.execute(
@@ -516,7 +519,11 @@ class Aliens4Friends:
 	def harvest(self) -> None:
 		Harvest.execute(
 			self.pool,
-			self.args.add_missing
+			self.args.add_missing,
+			self.args.glob_name,
+			self.args.glob_version,
+			self.args.use_oldmatcher,
+			self.args.session
 		)
 
 
