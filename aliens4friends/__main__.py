@@ -108,7 +108,8 @@ class Aliens4Friends:
 
 		self.setup()
 
-		getattr(self, self.args.command)()
+		success = getattr(self, self.args.command)()
+		sys.exit(0 if success else 1)
 
 	def setup(self) -> None:
 		try:
@@ -430,50 +431,41 @@ class Aliens4Friends:
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
-	def session(self) -> None:
-		SessionCommand.execute(
+	def session(self) -> bool:
+		return SessionCommand.execute(
 			self.pool,
 			self.args.session,
 			self.args.create,
 			self.args.filter
 		)
 
-	def add(self) -> None:
+	def add(self) -> bool:
 		file_list = [ f.name for f in self.args.FILES ]
-		Add.execute(
+		return Add.execute(
 			file_list,
 			self.pool,
 			self.args.force,
 			self.args.session
 		)
 
-	def match(self) -> None:
-		AlienMatcher.execute(
+	def match(self) -> bool:
+		return AlienMatcher.execute(
 			self.pool,
 			self.args.glob_name,
 			self.args.glob_version,
 			self.args.session
 		)
 
-	def snapmatch(self) -> None:
-		AlienSnapMatcher.execute(
+	def snapmatch(self) -> bool:
+		return AlienSnapMatcher.execute(
 			self.pool,
 			self.args.glob_name,
 			self.args.glob_version,
 			self.args.session
 		)
 
-	def scan(self) -> None:
-		Scancode.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
-			self.args.use_oldmatcher,
-			self.args.session
-		)
-
-	def delta(self) -> None:
-		DeltaCodeNG.execute(
+	def scan(self) -> bool:
+		return Scancode.execute(
 			self.pool,
 			self.args.glob_name,
 			self.args.glob_version,
@@ -481,8 +473,8 @@ class Aliens4Friends:
 			self.args.session
 		)
 
-	def spdxdebian(self) -> None:
-		Debian2SPDX.execute(
+	def delta(self) -> bool:
+		return DeltaCodeNG.execute(
 			self.pool,
 			self.args.glob_name,
 			self.args.glob_version,
@@ -490,8 +482,8 @@ class Aliens4Friends:
 			self.args.session
 		)
 
-	def spdxalien(self) -> None:
-		MakeAlienSPDX.execute(
+	def spdxdebian(self) -> bool:
+		return Debian2SPDX.execute(
 			self.pool,
 			self.args.glob_name,
 			self.args.glob_version,
@@ -499,8 +491,17 @@ class Aliens4Friends:
 			self.args.session
 		)
 
-	def upload(self) -> None:
-		UploadAliens2Fossy.execute(
+	def spdxalien(self) -> bool:
+		return MakeAlienSPDX.execute(
+			self.pool,
+			self.args.glob_name,
+			self.args.glob_version,
+			self.args.use_oldmatcher,
+			self.args.session
+		)
+
+	def upload(self) -> bool:
+		return UploadAliens2Fossy.execute(
 			self.pool,
 			self.args.folder,
 			self.args.glob_name,
@@ -508,16 +509,16 @@ class Aliens4Friends:
 			self.args.session
 		)
 
-	def fossy(self) -> None:
-		GetFossyData.execute(
+	def fossy(self) -> bool:
+		return GetFossyData.execute(
 			self.pool,
 			self.args.glob_name,
 			self.args.glob_version,
 			self.args.session
 	)
 
-	def harvest(self) -> None:
-		Harvest.execute(
+	def harvest(self) -> bool:
+		return Harvest.execute(
 			self.pool,
 			self.args.add_missing,
 			self.args.glob_name,

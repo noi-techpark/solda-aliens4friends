@@ -463,7 +463,7 @@ class Debian2SPDX:
 		glob_version: str = "*",
 		use_oldmatcher: bool = False,
 		session_id: str = ""
-	) -> None:
+	) -> bool:
 
 		filetype = FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH
 
@@ -475,22 +475,40 @@ class Debian2SPDX:
 				session.load()
 				paths = session.package_list_paths(filetype)
 			except SessionError:
-				return
+				return False
 
 		# ...without a session_id, take information directly from the pool
 		else:
 			paths = pool.absglob(f"{glob_name}/{glob_version}/*.{filetype}")
 
 		multiprocessing_pool = MultiProcessingPool()
-		multiprocessing_pool.map(
+		results = multiprocessing_pool.map(
 			Debian2SPDX._execute,
 			[
 				[path, use_oldmatcher, pool] for path in paths
 			]
 		)
 
+		if results:
+			for r in results:
+				if not r:
+					return False
+		else:
+			if session_id:
+				logger.info(
+					f"Nothing found for session with ID '{session_id}'. "
+					f"Have you executed 'match/snapmatch' for these packages?"
+				)
+			else:
+				logger.info(
+					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+					f"Have you executed 'match/snapmatch' for these packages?"
+				)
+
+		return True
+
 	@staticmethod
-	def _execute(args) -> None:
+	def _execute(args) -> bool:
 
 		path, use_oldmatcher, pool = args
 
@@ -505,7 +523,7 @@ class Debian2SPDX:
 		except Exception as ex:
 			logger.error(f"[{package}] Unable to load json from {pool.clnpath(path)}.")
 			debug_with_stacktrace(logger)
-			return
+			return False
 
 		logger.debug(f"[{package}] Files determined through {pool.clnpath(path)}")
 
@@ -513,15 +531,15 @@ class Debian2SPDX:
 			match = model.match
 			if not match.name:
 				logger.info(f"[{package}] no debian match to compare here")
-				return
+				return True
 			if not match.debsrc_orig:
 				logger.info(f"[{package}] no debian orig archive to scan here")
-				return
+				return True
 
 			debian_spdx_filename = pool.abspath_typed(FILETYPE.DEBIAN_SPDX, match.name, match.version)
 
 			if pool.cached(debian_spdx_filename, debug_prefix=f"[{package}] "):
-				return
+				return True
 
 			# FIXME Shouldn't this already has been done before?
 			if not match.debsrc_orig and match.debsrc_debian:
@@ -579,7 +597,7 @@ class Debian2SPDX:
 			)
 			if os.path.isfile(debian_copyright_filename) and Settings.POOLCACHED:
 				logger.debug(f"[{package}] debian/copyright already extracted, skipping")
-				return
+				return True
 			logger.info(f"[{package}] extracting debian/copyright")
 			d2s.write_debian_copyright(debian_copyright_filename)
 
@@ -587,3 +605,6 @@ class Debian2SPDX:
 			logger.warning(f"[{package}] {ex}")
 		except Exception as ex:
 			log_minimal_error(logger, ex, f"[{package}] ")
+			return False
+
+		return True

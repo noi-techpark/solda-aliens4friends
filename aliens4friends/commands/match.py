@@ -416,7 +416,7 @@ class AlienMatcher:
 		glob_name: str = "*",
 		glob_version: str = "*",
 		session_id: str = ""
-	) -> None:
+	) -> bool:
 		global DEB_ALL_SOURCES
 		DEB_ALL_SOURCES = AlienMatcher.get_deb_all_sources()
 
@@ -428,7 +428,7 @@ class AlienMatcher:
 				session.load()
 				paths = session.package_list_paths(FILETYPE.ALIENSRC)
 			except SessionError:
-				return
+				return False
 
 		# ...without a session_id, take information directly from the pool
 		else:
@@ -443,7 +443,12 @@ class AlienMatcher:
 			for match in results:
 				if match:
 					print(match.to_json())
-		if not results:
+
+		if results:
+			for r in results:
+				if not r:
+					return False
+		else:
 			if session_id:
 				logger.info(
 					f"Nothing found for packages in session '{session_id}'. "
@@ -454,6 +459,8 @@ class AlienMatcher:
 					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
 					f"Have you executed 'add' for these packages?"
 				)
+
+		return True
 
 	@staticmethod
 	def _execute(path: str) -> Optional[AlienMatcherModel]:

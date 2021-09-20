@@ -430,7 +430,7 @@ class Harvest:
 		glob_version: str = "*",
 		use_oldmatcher: bool = False,
 		session_id: str = ""
-	) -> None:
+	) -> bool:
 
 		result_path = pool.relpath(Settings.PATH_STT)
 		pool.mkdir(result_path)
@@ -446,7 +446,7 @@ class Harvest:
 				session = Session(pool, session_id)
 				session.load()
 			except SessionError:
-				return
+				return False
 
 		for filetype in Harvest.SUPPORTED_FILES:
 			if (
@@ -476,3 +476,5 @@ class Harvest:
 		logger.info(f'Results written to {pool.clnpath(output)}.')
 		if Settings.PRINTRESULT:
 			print(harvest.result.to_json())
+
+		return True

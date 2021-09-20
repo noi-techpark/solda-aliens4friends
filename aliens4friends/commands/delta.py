@@ -245,7 +245,7 @@ class DeltaCodeNG:
 		glob_version: str = "*",
 		use_oldmatcher: bool = False,
 		session_id: str = ""
-	) -> None:
+	) -> bool:
 
 		filetype = FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH
 
@@ -257,7 +257,7 @@ class DeltaCodeNG:
 				session.load()
 				paths = session.package_list_paths(filetype)
 			except SessionError:
-				return
+				return False
 
 		# ...without a session_id, take information directly from the pool
 		else:
@@ -271,14 +271,28 @@ class DeltaCodeNG:
 				[path, use_oldmatcher, pool] for path in paths
 			]
 		)
-		if not results:
-			logger.info(
-				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-				f"Have you executed 'match' for these packages?"
-			)
+
+		if results:
+			for r in results:
+				if not r:
+					return False
+		else:
+			if session_id:
+				logger.info(
+					f"Nothing found for session with ID '{session_id}'. "
+					f"Have you executed 'match/snapmatch' for these packages?"
+				)
+			else:
+				logger.info(
+					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+					f"Have you executed 'match/snapmatch' for these packages?"
+				)
+
+		return True
+
 
 	@staticmethod
-	def _execute(args) -> Optional[str]:
+	def _execute(args) -> bool:
 
 		path, use_oldmatcher, pool = args
 
@@ -293,7 +307,7 @@ class DeltaCodeNG:
 		except Exception as ex:
 			logger.error(f"[{package}] Unable to load json from {pool.clnpath(path)}.")
 			debug_with_stacktrace(logger)
-			return
+			return False
 
 		logger.debug(f"[{package}] Files determined through {pool.clnpath(path)}")
 
@@ -302,10 +316,12 @@ class DeltaCodeNG:
 			match = model.match
 			if not match.name:
 				logger.info(f"[{package}] no debian match to compare here")
-				return
+				return True
+
 			result_path = pool.relpath_typed(FILETYPE.DELTACODE, alien.name, alien.version)
 			if pool.cached(result_path, debug_prefix=f"[{package}] "):
-				return result_path
+				return True
+
 			logger.info(
 				f"[{package}] calculating delta between debian package"
 				f" {match.name}-{match.version} and alien package"
@@ -323,6 +339,7 @@ class DeltaCodeNG:
 				logger.debug(f'[{package}] Stats: {stat}')
 			if Settings.PRINTRESULT:
 				print(dcmodel.to_json())
-			return result_path
+			return True
 		except Exception as ex:
 			log_minimal_error(logger, ex, f"[{package}] ")
+			return False

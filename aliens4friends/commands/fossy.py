@@ -202,7 +202,7 @@ class GetFossyData:
 		glob_name: str = "*",
 		glob_version: str = "*",
 		session_id: str = ""
-	) -> None:
+	) -> bool:
 		fossy = FossyWrapper()
 
 		# Just take packages from the current session list
@@ -213,13 +213,14 @@ class GetFossyData:
 				session.load()
 				paths = session.package_list_paths(FILETYPE.ALIENSRC)
 			except SessionError:
-				return
+				return False
 
 		# ...without a session_id, take information directly from the pool
 		else:
 			paths = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
 
 		found = False
+		success = True
 		for path in paths:
 			found = True
 
@@ -241,6 +242,7 @@ class GetFossyData:
 				apkg = AlienPackage(path)
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"[{cur_pckg}] Unable to load aliensrc from {path} ")
+				success = False
 				continue
 			if not apkg.package_files:
 				logger.info(f"[{cur_pckg}] This is a metapackage with no files, skipping")
@@ -281,9 +283,18 @@ class GetFossyData:
 
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"[{cur_pckg}] ")
+				success = False
 
 		if not found:
-			logger.info(
-				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-				f"Have you executed 'add' for these packages?"
-			)
+			if session_id:
+				logger.info(
+					f"Nothing found for session with ID '{session_id}'. "
+					f"Have you executed 'match' for these packages?"
+				)
+			else:
+				logger.info(
+					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+					f"Have you executed 'add' for these packages?"
+				)
+
+		return success

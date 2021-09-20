@@ -158,10 +158,11 @@ class Add:
 		self.session.write_package_list(candidates)
 
 	@staticmethod
-	def execute(file_list, pool: Pool, force: bool, session_id: str) -> None:
+	def execute(file_list, pool: Pool, force: bool, session_id: str) -> bool:
 		adder = Add(pool, session_id)
 		logger.info(f"ADD started with session '{session_id}'.")
 
+		success = True
 		for path in file_list:
 			try:
 				logger.info(f"ADD {path}")
@@ -173,5 +174,8 @@ class Add:
 					raise AddError(f"File {path} is not supported for manual adding!")
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"{path} --> ")
+				success = False
 
 		adder.write_session_list()
+
+		return success

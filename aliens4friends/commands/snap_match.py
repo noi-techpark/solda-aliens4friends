@@ -562,7 +562,7 @@ class AlienSnapMatcher:
 		glob_name: str = "*",
 		glob_version: str = "*",
 		session_id: str = ""
-	) -> None:
+	) -> bool:
 		AlienSnapMatcher.loadSources()
 		AlienSnapMatcher.clearDiff()
 
@@ -574,7 +574,7 @@ class AlienSnapMatcher:
 				session.load()
 				paths = session.package_list_paths(FILETYPE.ALIENSRC)
 			except SessionError:
-				return
+				return False
 
 		# ...without a session_id, take information directly from the pool
 		else:
@@ -590,7 +590,11 @@ class AlienSnapMatcher:
 				if match:
 					print(match.to_json(indent=2))
 
-		if not results:
+		if results:
+			for r in results:
+				if not r:
+					return False
+		else:
 			if session_id:
 				logger.info(
 					f"Nothing found for packages in session '{session_id}'. "
@@ -601,6 +605,8 @@ class AlienSnapMatcher:
 					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
 					f"Have you executed 'add' for these packages?"
 				)
+
+		return True
 
 	@staticmethod
 	def _execute(path: Union[str, Path]) -> Optional[AlienSnapMatcherModel]:

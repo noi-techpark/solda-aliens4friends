@@ -75,13 +75,18 @@ FILTERS = {
 class SessionCommand:
 
 	@staticmethod
-	def execute(pool: Pool, session_id: str = "", create: bool = False, filter_str: str = "") -> None:
+	def execute(
+		pool: Pool,
+		session_id: str = "",
+		create: bool = False,
+		filter_str: str = ""
+	) -> bool:
 		session = Session(pool, session_id)
 
 		if create:
 			session.create()
 			print(session.session_id)
-			return
+			return True
 
 		if filter_str:
 			filters = []
@@ -99,7 +104,7 @@ class SessionCommand:
 					logger.error(
 						f"Filter with name '{f[0]}' does not exist. Filters are: {', '.join(FILTERS.keys())}"
 					)
-					return
+					return False
 
 			try:
 				session_model = session.load()
@@ -112,6 +117,9 @@ class SessionCommand:
 
 				session.write_package_list()
 			except SessionError:
-				return  # we have all error messages inside load(), nothing to do...
+				return  False # we have all error messages inside load(), nothing to do...
 			except FilterError as e:
 				logger.error(f"Filter '{filter['name']}' failed with message: {e}") #pytype: disable=unsupported-operands
+				return False
+
+		return True

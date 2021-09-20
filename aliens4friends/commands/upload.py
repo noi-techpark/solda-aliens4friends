@@ -186,7 +186,7 @@ class UploadAliens2Fossy:
 		glob_name: str = "*",
 		glob_version: str = "*",
 		session_id: str = ""
-	) -> None:
+	) -> bool:
 		fossy = FossyWrapper()
 
 		# Just take packages from the current session list
@@ -197,13 +197,14 @@ class UploadAliens2Fossy:
 				session.load()
 				paths = session.package_list_paths(FILETYPE.ALIENSRC)
 			except SessionError:
-				return
+				return False
 
 		# ...without a session_id, take information directly from the pool
 		else:
 			paths = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
 
 		found = False
+		success = True
 		for path in paths:
 			found = True
 
@@ -231,6 +232,7 @@ class UploadAliens2Fossy:
 				apkg.expand(get_internal_archive_rootfolders=True)
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"[{cur_pckg}] Unable to load aliensrc from {path} ")
+				success = False
 				continue
 
 			try:
@@ -263,9 +265,18 @@ class UploadAliens2Fossy:
 
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"[{cur_pckg}] ")
+				success = False
 
 		if not found:
-			logger.info(
-				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-				f"Have you executed 'add' or 'spdxalien' for these packages?"
-			)
+			if session_id:
+				logger.info(
+					f"Nothing found for packages in session '{session_id}'. "
+					f"Have you executed 'add' or 'spdxalien' for these packages?"
+				)
+			else:
+				logger.info(
+					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+					f"Have you executed 'add' or 'spdxalien' for these packages?"
+				)
+
+		return success

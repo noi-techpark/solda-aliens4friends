@@ -200,7 +200,7 @@ class MakeAlienSPDX:
 		glob_version: str = "*",
 		use_oldmatcher: bool = False,
 		session_id: str = ""
-	) -> None:
+	) -> bool:
 
 		filetype = FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH
 
@@ -212,22 +212,40 @@ class MakeAlienSPDX:
 				session.load()
 				paths = session.package_list_paths(filetype)
 			except SessionError:
-				return
+				return False
 
 		# ...without a session_id, take information directly from the pool
 		else:
 			paths = pool.absglob(f"{glob_name}/{glob_version}/*.{filetype}")
 
 		multiprocessing_pool = MultiProcessingPool()
-		multiprocessing_pool.map(
+		results = multiprocessing_pool.map(
 			MakeAlienSPDX._execute,
 			[
 				[path, use_oldmatcher, pool] for path in paths
 			]
 		)
 
+		if results:
+			for r in results:
+				if not r:
+					return False
+		else:
+			if session_id:
+				logger.info(
+					f"Nothing found for session with ID '{session_id}'. "
+					f"Have you executed 'match/snapmatch' for these packages?"
+				)
+			else:
+				logger.info(
+					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+					f"Have you executed 'match/snapmatch' for these packages?"
+				)
+
+		return True
+
 	@staticmethod
-	def _execute(args):
+	def _execute(args) -> bool:
 
 		path, use_oldmatcher, pool = args
 
@@ -242,12 +260,12 @@ class MakeAlienSPDX:
 		except Exception as ex:
 			logger.error(f"[{package}] Unable to load json from {pool.clnpath(path)}.")
 			debug_with_stacktrace(logger)
-			return
+			return False
 
 		try:
 			if model.errors and 'No internal archive' in model.errors:
-				logger.warning(f"[{package}] No internal archive in aliensrc package, skipping")
-				return
+				logger.info(f"[{package}] No internal archive in aliensrc package, skipping")
+				return True
 			alien = model.aliensrc
 			alien_spdx_filename = pool.abspath(
 				Settings.PATH_USR,
@@ -257,7 +275,7 @@ class MakeAlienSPDX:
 			)
 
 			if pool.cached(alien_spdx_filename, debug_prefix=f"[{package}] "):
-				return
+				return True
 
 			alien_package_filename = pool.abspath(
 				Settings.PATH_USR,
@@ -297,9 +315,12 @@ class MakeAlienSPDX:
 				d2as.process()
 				write_spdx_tv(d2as.alien_spdx, alien_spdx_filename)
 			else:
-				logger.warning(f"[{package}] No debian spdx available, using scancode spdx for package {alien.name}-{alien.version}")
+				logger.info(f"[{package}] No debian spdx available, using scancode spdx for package {alien.name}-{alien.version}")
 				s2as = Scancode2AlienSPDX(scancode_spdx, alien_package)
 				s2as.process()
 				write_spdx_tv(s2as.alien_spdx, alien_spdx_filename)
 		except Exception as ex:
 			log_minimal_error(logger, ex, f"[{package}] ")
+			return False
+
+		return True

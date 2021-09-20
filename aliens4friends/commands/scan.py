@@ -95,7 +95,7 @@ class Scancode:
 		glob_version: str = "*",
 		use_oldmatcher: bool = False,
 		session_id: str = ""
-	) -> None:
+	) -> bool:
 		scancode = Scancode(pool)
 
 		filetype = FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH
@@ -108,13 +108,14 @@ class Scancode:
 				session.load()
 				paths = session.package_list_paths(filetype)
 			except SessionError:
-				return
+				return False
 
 		# ...without a session_id, take information directly from the pool
 		else:
 			paths = pool.absglob(f"{glob_name}/{glob_version}/*.{filetype}")
 
 		found = False
+		success = True
 		for path in paths:
 			found = True
 
@@ -128,6 +129,7 @@ class Scancode:
 					model = AlienSnapMatcherModel.from_file(path)
 			except Exception as ex:
 				logger.error(f"[{package}] Unable to load json from {pool.clnpath(path)}.")
+				success = False
 				continue
 
 			logger.debug(f"[{package}] Files determined through {pool.clnpath(path)}")
@@ -145,8 +147,10 @@ class Scancode:
 					logger.info(f"[{package}] no debian orig archive to scan here")
 				else:
 					log_minimal_error(logger, ex, f"[{package}] ")
+					success = False
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"[{package}] ")
+				success = False
 
 			try:
 				archive = Archive(
@@ -171,8 +175,10 @@ class Scancode:
 					logger.info(f"[{package}] no internal archive to scan here")
 				else:
 					log_minimal_error(logger, ex, f"[{package}] ")
+					success = False
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"[{package}] ")
+				success = False
 
 		if not found:
 			if session_id:
@@ -185,3 +191,5 @@ class Scancode:
 					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
 					f"Have you executed 'snapmatch/match' for these packages?"
 				)
+
+		return success
