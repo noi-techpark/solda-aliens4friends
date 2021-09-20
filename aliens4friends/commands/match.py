@@ -302,20 +302,20 @@ class AlienMatcher:
 		int_arch_count = apkg.internal_archive_count()
 		if int_arch_count > 1:
 			if apkg.internal_archive_name:
-				logger.warning(
+				logger.info(
 					f"[{self.curpkg}] Alien Package has more than one"
 					 " internal archive, using just primary archive"
 					f" '{apkg.internal_archive_name}' for comparison"
 				)
 			else:
-				logger.warning(
+				logger.info(
 					f"[{apkg.name}-{apkg.version.str}] IGNORED: Alien Package has"
 					f" {int_arch_count} internal archives and no primary archive."
 					 " We support comparison of one archive only at the moment!"
 				)
 				errors.append(f"{int_arch_count} internal archives and no primary archive")
 		elif int_arch_count == 0:
-			logger.warning(
+			logger.info(
 				f"[{apkg.name}-{apkg.version.str}] IGNORED: Alien Package has"
 				 " no internal archive, nothing to compare!"
 			)

@@ -139,10 +139,10 @@ class Scancode:
 				if result and Settings.PRINTRESULT:
 					print(result)
 			except KeyError:
-				logger.warning(f"[{package}] no debian match, no debian package to scan here")
+				logger.info(f"[{package}] no debian match, no debian package to scan here")
 			except TypeError as ex:
 				if not to_scan:  #pytype: disable=name-error
-					logger.warning(f"[{package}] no debian orig archive to scan here")
+					logger.info(f"[{package}] no debian orig archive to scan here")
 				else:
 					log_minimal_error(logger, ex, f"[{package}] ")
 			except Exception as ex:
@@ -168,7 +168,7 @@ class Scancode:
 						print(json.dumps(json.load(r), indent=2))
 			except TypeError as ex:
 				if not model.aliensrc.internal_archive_name:
-					logger.warning(f"[{package}] no internal archive to scan here")
+					logger.info(f"[{package}] no internal archive to scan here")
 				else:
 					log_minimal_error(logger, ex, f"[{package}] ")
 			except Exception as ex:

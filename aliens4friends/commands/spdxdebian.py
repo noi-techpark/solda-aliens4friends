@@ -512,10 +512,10 @@ class Debian2SPDX:
 		try:
 			match = model.match
 			if not match.name:
-				logger.warning(f"[{package}] no debian match to compare here")
+				logger.info(f"[{package}] no debian match to compare here")
 				return
 			if not match.debsrc_orig:
-				logger.warning(f"[{package}] no debian orig archive to scan here")
+				logger.info(f"[{package}] no debian orig archive to scan here")
 				return
 
 			debian_spdx_filename = pool.abspath_typed(FILETYPE.DEBIAN_SPDX, match.name, match.version)

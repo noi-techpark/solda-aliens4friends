@@ -49,7 +49,7 @@ class UploadAliens2Fossy:
 				"any files (is it a meta-package?), not uploading it"
 			)
 		if not alien_package.internal_archive_name:
-			logger.warning(
+			logger.info(
 				f"[{self.uploadname}] AlienPackage does not contain"
 				" any internal archive"
 			)
@@ -108,7 +108,7 @@ class UploadAliens2Fossy:
 
 	def import_spdx(self) -> None:
 		if not self.alien_package.internal_archive_name:
-			logger.warning(
+			logger.info(
 				f"[{self.upload.uploadname}] has no internal archive,"
 				" we don't have any alien spdx to upload"
 			)

@@ -301,7 +301,7 @@ class DeltaCodeNG:
 			alien = model.aliensrc
 			match = model.match
 			if not match.name:
-				logger.warning(f"[{package}] no debian match to compare here")
+				logger.info(f"[{package}] no debian match to compare here")
 				return
 			result_path = pool.relpath_typed(FILETYPE.DELTACODE, alien.name, alien.version)
 			if pool.cached(result_path, debug_prefix=f"[{package}] "):
