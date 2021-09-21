@@ -30,6 +30,8 @@ class SourceFile(BaseModel):
 		self.sha1_cksum = sha1_cksum
 		self.git_sha1 = git_sha1
 		self.tags = tags
+		# TODO: a specific class for tags should be added,
+		# like in tinfoilhat
 
 class FileWithSize(BaseModel):
 	def __init__(
@@ -328,17 +330,24 @@ class Container(BaseModel):
 					old[id],
 					new[id],
 					ignore_order=True,
+					# legend for paths excluded from diff:
+					# (M): expected diffs that we want to merge
+					# (I): expected diffs that we can safely ignore (we keep the newer value)
+					# (U): undesirable diffs that however "happen", even if the recipe version and revision stay the same;
+					#      we ignore them to avoid complications (we keep the newer value)
 					exclude_paths=[
-						"root.tags", # here we expect differences that we want
-						             # to merge
-						"root.packages", # same here
-						"root.recipe.chk_sum",
-						"root.recipe.metadata.description",
-						"root.recipe.metadata.homepage",
-						"root.recipe.metadata.summary",
-						"root.recipe.metadata.depends_provides", # same here
-						"root.recipe.source_files",
-						"root.recipe.cve_metadata"
+						"root.tags", # (M)
+						"root.packages", # (M)
+						"root.recipe.metadata.description", # (U)
+						"root.recipe.metadata.homepage", # (U)
+						"root.recipe.metadata.summary", # (U)
+						"root.recipe.metadata.depends_provides", # (I)
+						"root.recipe.cve_metadata", # (M)
+					],
+					exclude_regex_paths=[
+						r"root.recipe.source_files\[\d+\].tags", # (M)
+						r"root.recipe.source_files\[\d+\].src_uri", # (U)
+						r"root.recipe.source_files\[\d+\].rootpath", # (I)
 					]
 				)
 				if diff:
@@ -360,29 +369,21 @@ class Container(BaseModel):
 					old[id].recipe.cve_metadata,
 					new[id].recipe.cve_metadata
 				)
-				### FIXME This is a tinfoilhat merge hack!
-				# Merging source_files
-				old_files = { f'{s.src_uri}-{s.git_sha1 or s.sha1_cksum}': s for s in old[id].recipe.source_files }
-				new_files = { f'{s.src_uri}-{s.git_sha1 or s.sha1_cksum}': s for s in new[id].recipe.source_files }
-				for new_id in new_files:
-					if new_id in old_files:
-						for el in new_files[new_id].tags:
-							old_files[new_id].tags.append(el)
-					else:
-						res[id].recipe.source_files.append(new_files[new_id])
-
-				### FIXME This is a tinfoilhat merge hack!
-				# Updating chk_sum
-				if not res[id].recipe.source_files:
-					# meta-recipe with no source files but only dependencies
-					m = res[id].recipe.metadata
-					res[id].recipe.chk_sum = sha1sum_str(f'{m.name}{m.version}{m.revision}')
-				else:
-					sha1list = [ (f.git_sha1 or f.sha1_cksum) for f in res[id].recipe.source_files ]
-					sha1list.sort()
-					res[id].recipe.chk_sum = sha1sum_str(''.join(sha1list))
-					res[id].recipe.metadata.variant = res[id].recipe.chk_sum[:8]
-
+				old_files = { 
+					f'{s.relpath}-{s.git_sha1 or s.sha1_cksum}': s 
+					for s in old[id].recipe.source_files 
+				}
+				new_files = { 
+					f'{s.relpath}-{s.git_sha1 or s.sha1_cksum}': s 
+					for s in res[id].recipe.source_files 
+					# res[id] here is on purpose, we need to modify
+					# its contents by reference; 
+					# it has been deepcopied from new[id]
+				} 
+				for file_id in new_files:
+					new_files[file_id].tags = list(set(
+						old_files[file_id].tags + new_files[file_id].tags
+					))
 			elif id in new:
 				logger.debug(f"{id} found in new")
 				res[id] = new[id]
