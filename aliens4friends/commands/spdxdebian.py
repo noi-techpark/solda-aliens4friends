@@ -584,7 +584,7 @@ class Debian2SPDX:
 
 			dorig = debsrc_orig or ""
 			ddeb = debsrc_debian or ""
-			logger.info(f"[{package}] generating spdx from {pool.clnpath(dorig)} and {pool.clnpath(ddeb)}")
+			logger.info(f"[{package}] generating spdx from {pool.clnpath(dorig)} and {ddeb}")
 			d2s = Debian2SPDX(debsrc_orig, debsrc_debian)
 			d2s.generate_SPDX()
 			logger.info(f"[{package}] writing spdx to {pool.clnpath(debian_spdx_filename)}")
