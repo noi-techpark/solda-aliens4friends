@@ -109,7 +109,13 @@ class DeltaCodeNGException(Exception):
 
 class DeltaCodeNG:
 
-	def __init__(self, old_scan_out_file: str, new_scan_out_file: str, result_file: str) -> None:
+	def __init__(
+		self,
+		pool: Pool,
+		old_scan_out_file: str,
+		new_scan_out_file: str,
+		result_file: str
+	) -> None:
 		"""Class to compare two scancode json output files resulting from the
 		scan of two similar package versions, in order to assess their
 		similarity as to license and copyright statements.
@@ -133,6 +139,7 @@ class DeltaCodeNG:
 		print('Stats:')
 		d.print_stats()
 		"""
+		self.pool = pool
 		self.old = self._import(old_scan_out_file)
 		self.new = self._import(new_scan_out_file)
 		self.new_sha1_map = { v['sha1']: path for path, v in self.new.items() }
@@ -149,8 +156,14 @@ class DeltaCodeNG:
 		self.result_file = result_file
 
 	def _import(self, scan_out_file: str) -> dict:
-		with open(scan_out_file) as f:
-			scan_out = json.load(f)
+		try:
+			with open(scan_out_file) as f:
+				scan_out = json.load(f)
+		except FileNotFoundError:
+			raise DeltaCodeNGException(
+				f"File {self.pool.clnpath(scan_out_file)} not found. "
+				f"You need to run 'scan' first!"
+			)
 		if (
 			scan_out['headers'][0]['tool_name'] == "scancode-toolkit"
 			and scan_out['headers'][0]['tool_version'] == SCANCODE_VERSION
@@ -328,6 +341,7 @@ class DeltaCodeNG:
 				f" {alien.name}-{alien.version}"
 			)
 			deltacode = DeltaCodeNG(
+				pool,
 				pool.abspath_typed(FILETYPE.SCANCODE, match.name, match.version, in_userland=False),
 				pool.abspath_typed(FILETYPE.SCANCODE, alien.name, alien.version),
 				pool.abspath(result_path)
