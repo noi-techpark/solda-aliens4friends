@@ -1,13 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
+from aliens4friends.models.alienmatcher import AlienMatcherModel, AlienSnapMatcherModel
+from aliens4friends.commons.session import Session, SessionError
 import os
 import re
 import logging
 import json
 from typing import Optional
 
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.archive import Archive
 from aliens4friends.commons.utils import bash, bash_live
 from aliens4friends.commons.settings import Settings
@@ -29,7 +31,7 @@ class Scancode:
 
 	def run(self, archive: Archive, package_name: str, package_version_str: str, archive_in_archive: Optional[str] = None) -> Optional[str]:
 		self.curpkg = f"{package_name}-{package_version_str}"
-		result_filename = f"{package_name}-{package_version_str}.scancode.json"
+		result_filename = f"{package_name}-{package_version_str}.{FILETYPE.SCANCODE}"
 		scancode_result = os.path.join(
 			self.pool.clnpath(os.path.dirname(archive.path)),
 			result_filename
@@ -87,29 +89,53 @@ class Scancode:
 
 
 	@staticmethod
-	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*", use_oldmatcher: bool = False) -> None:
+	def execute(
+		pool: Pool,
+		glob_name: str = "*",
+		glob_version: str = "*",
+		use_oldmatcher: bool = False,
+		session_id: str = ""
+	) -> None:
 		scancode = Scancode(pool)
 
-		#FIXME Remove this, when removing the legacy debian matcher
-		fileext = "alienmatcher.json" if use_oldmatcher else "snapmatch.json"
+		filetype = FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH
+
+		# Just take packages from the current session list
+		# On error just return, error messages are inside load()
+		if session_id:
+			try:
+				session = Session(pool, session_id)
+				session.load()
+				paths = session.package_list_paths(filetype)
+			except SessionError:
+				return
+
+		# ...without a session_id, take information directly from the pool
+		else:
+			paths = pool.absglob(f"{glob_name}/{glob_version}/*.{filetype}")
 
 		found = False
-		for path in pool.absglob(f"{glob_name}/{glob_version}/*.{fileext}"):
+		for path in paths:
 			found = True
-			package = f"{path.parts[-3]}-{path.parts[-2]}"
+
+			name, version = pool.packageinfo_from_path(path)
+			package = f"{name}-{version}"
 
 			try:
-				with open(path, "r") as jsonfile:
-					j = json.load(jsonfile)
+				if use_oldmatcher:
+					model = AlienMatcherModel.from_file(path)
+				else:
+					model = AlienSnapMatcherModel.from_file(path)
 			except Exception as ex:
-				logger.error(f"[{package}] Unable to load json from {path}.")
+				logger.error(f"[{package}] Unable to load json from {pool.clnpath(path)}.")
 				continue
 
+			logger.debug(f"[{package}] Files determined through {pool.clnpath(path)}")
+
 			try:
-				m = j["debian"]["match"]
-				to_scan = m["debsrc_orig"] or m["debsrc_debian"] # support for Debian Format 1.0 native
-				a = Archive(pool.relpath(to_scan))
-				result = scancode.run(a, m["name"], m["version"])
+				to_scan = model.match.debsrc_orig or model.match.debsrc_debian # support for Debian Format 1.0 native
+				archive = Archive(pool.relpath(to_scan))
+				result = scancode.run(archive, model.match.name, model.match.version)
 				if result and Settings.PRINTRESULT:
 					print(result)
 			except KeyError:
@@ -123,26 +149,25 @@ class Scancode:
 				log_minimal_error(logger, ex, f"[{package}] ")
 
 			try:
-				m = j["aliensrc"]
-				a = Archive(
+				archive = Archive(
 					pool.relpath(
 						Settings.PATH_USR,
-						m["name"],
-						m["version"],
-						m["filename"]
+						model.aliensrc.name,
+						model.aliensrc.version,
+						model.aliensrc.filename
 					)
 				)
 				result = scancode.run(
-					a,
-					m["name"],
-					m["version"],
-					os.path.join("files", m["internal_archive_name"])
+					archive,
+					model.aliensrc.name,
+					model.aliensrc.version,
+					os.path.join("files", model.aliensrc.internal_archive_name)
 				)
 				if result and Settings.PRINTRESULT:
 					with open(result) as r:
 						print(json.dumps(json.load(r), indent=2))
 			except TypeError as ex:
-				if not m.get("internal_archive_name"):
+				if not model.aliensrc.internal_archive_name:
 					logger.warning(f"[{package}] no internal archive to scan here")
 				else:
 					log_minimal_error(logger, ex, f"[{package}] ")
@@ -150,7 +175,13 @@ class Scancode:
 				log_minimal_error(logger, ex, f"[{package}] ")
 
 		if not found:
-			logger.info(
-				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-				f"Have you executed 'match' for these packages?"
-			)
+			if session_id:
+				logger.info(
+					f"Nothing found for packages in session '{session_id}'. "
+					f"Have you executed 'snapmatch/match -s {session_id}' for these packages?"
+				)
+			else:
+				logger.info(
+					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+					f"Have you executed 'snapmatch/match' for these packages?"
+				)

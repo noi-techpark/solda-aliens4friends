@@ -6,12 +6,10 @@ import requests
 from uuid import uuid4
 from time import sleep
 from bs4 import BeautifulSoup
-from urllib.parse import urlencode
 from datetime import datetime, timedelta
-from typing import Dict, List, Union, Any
+from typing import Dict, List, Optional, Union, Any
 
 from fossology import Fossology, fossology_token
-from fossology import uploads, jobs, report
 from fossology.obj import ReportFormat, TokenScope, Upload
 from fossology.folders import Folder
 
@@ -116,7 +114,7 @@ class FossyWrapper:
 			parent = self.fossology.create_folder(parent, component)
 		return parent
 
-	def check_already_uploaded(self, uploadname: str) -> Upload:
+	def check_already_uploaded(self, uploadname: str) -> Optional[Upload]:
 		logger.info(f"[{uploadname}] Checking if it has already been uploaded")
 		# FIXME upstream: page_size missing in fossology-python 0.2.0, wait that
 		# fossology-python 1.x is made backwards compatibile with API 1.0.16 -
@@ -239,7 +237,7 @@ class FossyWrapper:
 		logger.info("monitoring reportImport job status...")
 		self._wait_for_jobs_completion(upload)
 
-	def get_upload(self, uploadname: str) -> Upload:
+	def get_upload(self, uploadname: str) -> Optional[Upload]:
 		"""Get Fossology Upload object from pakage name and version,
 		assuming that uploadname follows the scheme <name>@<version>, and
 		assuming that uploadnames are unique in queried Fossology instance"""
@@ -299,6 +297,6 @@ class FossyWrapper:
 		)
 		self._wait_for_jobs_completion(upload)
 		logger.info(f"[{upload.uploadname}] Downloading spdx report")
-		report_text, report_name = self.fossology.download_report(rep_id)
+		report_text, _ = self.fossology.download_report(rep_id)
 		doc, _ = parse_spdx_tv_str(report_text)
 		return doc

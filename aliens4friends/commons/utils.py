@@ -3,13 +3,11 @@
 
 import subprocess
 from datetime import datetime
-import sys
 import os
-import requests
 import hashlib
 import logging
 import traceback
-from typing import List, Tuple, Type, Dict, Union, NoReturn, Optional
+from typing import Tuple, Type, Optional
 
 def bash(
 	command: str,

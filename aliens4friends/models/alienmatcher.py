@@ -23,6 +23,9 @@ class DebianMatch(BaseModel):
 		self,
 		name: Optional[str] = None,
 		version: Optional[str] = None,
+		score: Optional[int] = 0,
+		package_score: Optional[int] = 0,
+		version_score: Optional[int] = 0,
 		debsrc_debian: Optional[str] = None,
 		debsrc_orig: Optional[str] = None,
 		dsc_format: Optional[str] = None,
@@ -30,18 +33,13 @@ class DebianMatch(BaseModel):
 	):
 		self.name = name
 		self.version = version
+		self.score = score
+		self.package_score = package_score
+		self.version_score = version_score
 		self.debsrc_debian = debsrc_debian
 		self.debsrc_orig = debsrc_orig
 		self.dsc_format = dsc_format
 		self.version_candidates = VersionCandidate.drilldown(version_candidates)
-
-# FIXME Needed? It contains only the match itself, what else is on that json level?
-class DebianMatchContainer(BaseModel):
-	def __init__(
-		self,
-		match: Optional[DebianMatch] = None
-	):
-		self.match = DebianMatch.decode(match)
 
 class AlienSrc(BaseModel):
 	def __init__(
@@ -67,12 +65,12 @@ class AlienMatcherModel(BaseModel):
 		self,
 		tool: Optional[Tool] = None,
 		aliensrc: Optional[AlienSrc] = None,
-		debian: Optional[DebianMatchContainer] = None,
+		match: Optional[DebianMatch] = None,
 		errors: Optional[List[str]] = None
 	):
 		self.tool = Tool.decode(tool)
 		self.aliensrc = AlienSrc.decode(aliensrc)
-		self.debian = DebianMatchContainer.decode(debian)
+		self.match = DebianMatch.decode(match)
 		self.errors = errors if errors else []
 
 class DebianSnapMatch(BaseModel):

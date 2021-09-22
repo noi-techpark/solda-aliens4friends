@@ -1,41 +1,30 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
-import collections as col
 import json
 import os
-import sys
 import logging
-from urllib.parse import quote as url_encode
 from multiprocessing import Pool as MultiProcessingPool
 
-from enum import Enum
-from typing import Union, Any, Optional
+from typing import Tuple, Any, Optional
 
 import requests
 from debian.deb822 import Deb822
-from spdx import utils
-from spdx.checksum import Algorithm as SPDXAlgorithm
-from spdx.document import License as SPDXLicense
-from spdx.file import File as SPDXFile
-from spdx.parsers.loggers import StandardLogger as SPDXWriterLogger
-from spdx.parsers.tagvalue import Parser as SPDXTagValueParser
-from spdx.parsers.tagvaluebuilders import Builder as SPDXTagValueBuilder
-from spdx.writers.tagvalue import write_document
+from aliens4friends.commons import package
 
 from aliens4friends.commons.archive import Archive, ArchiveError
-from aliens4friends.commons.utils import sha1sum, md5, copy
+from aliens4friends.commons.utils import sha1sum
+from aliens4friends.commons.session import Session, SessionError
 from aliens4friends.commons.calc import Calc
 from aliens4friends.commons.package import AlienPackage, Package, PackageError, DebianPackage
 from aliens4friends.commons.version import Version
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import Pool, FILETYPE
 from aliens4friends.commons.settings import Settings
 from aliens4friends.models.alienmatcher import (
 	AlienMatcherModel,
 	Tool,
 	AlienSrc,
 	DebianMatch,
-	DebianMatchContainer,
 	VersionCandidate
 )
 
@@ -65,29 +54,6 @@ class AlienMatcher:
 		"http://deb.debian.org/debian/pool/non-free",
 	]
 	API_URL_ALLSRC = "https://api.ftp-master.debian.org/all_sources"
-
-	KNOWN_PACKAGE_ALIASES = {
-		"gtk+3": "gtk+3.0",
-		"gmmlib": "intel-gmmlib",
-		"libpcre": "doesnotexistindebian",
-		"libpcre2": "pcre2",
-		"libusb1": "libusb-1.0",
-		"libva-intel": "libva",
-		"libxfont2": "libxfont",
-		"linux-firmware": "firmware-nonfree",
-		"linux-intel": "linux",
-		"linux-seco-fslc": "linux",
-		"linux-stm32mp": "linux",
-		"linux-yocto" : "linux",
-		"ltp": "doesnotexistindebian",
-		"systemd-boot": "systemd",
-		"tcl": "tcl8.6", # FIXME this name in debian depends on the version
-		"xserver-xorg": "doesnotexistindebian",
-		"xz": "xz-utils",
-		"which": "doesnotexistindebian",
-		"wpa-supplicant" : "wpa",
-		"zlib-intel": "zlib",
-	}
 
 	def __init__(self) -> None:
 		super().__init__()
@@ -123,7 +89,7 @@ class AlienMatcher:
 			response = response.text
 		return json.loads(response)
 
-	def search(self, package: Package) -> Package:
+	def search(self, package: Package) -> Tuple[Package, int, int]:
 		logger.debug(f"[{self.curpkg}] Search for similar packages with {self.API_URL_ALLSRC}.")
 		if not isinstance(package, Package):
 			raise TypeError("Parameter must be a Package.")
@@ -138,8 +104,7 @@ class AlienMatcher:
 		multi_names = False
 		for pkg in DEB_ALL_SOURCES:
 
-			# you can omit/remove KNOWN_PACKAGE_ALIASES if score calc does not need a dedicated list for match.py
-			similarity = Calc.fuzzy_package_score(package.name, pkg["source"], AlienMatcher.KNOWN_PACKAGE_ALIASES)
+			similarity = Calc.fuzzy_package_score(package.name, pkg["source"])
 
 			if similarity > 0:
 				candidates.append([similarity, pkg["source"], pkg["version"]])
@@ -154,6 +119,7 @@ class AlienMatcher:
 		candidates = sorted(candidates, reverse=True)
 
 		cur_package_name = candidates[0][1]
+		cur_package_score = candidates[0][0]
 		if package.name != cur_package_name:
 			logger.debug(f"[{self.curpkg}] Package with name {package.name} not found. Trying with {cur_package_name}.")
 		if multi_names:
@@ -193,17 +159,36 @@ class AlienMatcher:
 		except IndexError:
 			nn2 = [None, Version.MAX_DISTANCE]
 
-		best_version = nn1[0] if nn1[1] < nn2[1] else nn2[0]
+		best_candidate = nn1 if nn1[1] < nn2[1] else nn2
 
-		if best_version:
+		if best_candidate and best_candidate[0]:
 			logger.debug(
 				f"[{self.curpkg}] Nearest neighbor on Debian is"
-				f" {cur_package_name}/{best_version.str}."
+				f" {cur_package_name}/{best_candidate[0].str}."
 			)
 		else:
 			logger.debug(f"[{self.curpkg}] Found no neighbor on Debian.")
 
-		return Package(name = cur_package_name, version = best_version)
+		# FIXME This code has been partly extracted from snap_match.py, we should
+		# create a method to solve scoring for all occasions (put it inside version.py)
+		cur_version_score = -100
+		if best_candidate[1] == 0:
+			cur_version_score = 100
+
+		# Warning: snap_match sets this to 10 only, but we would have too small thresholds
+		# and therefore catch only packages with a very small micro-version distance
+		elif best_candidate[1] <= 100:
+			cur_version_score = 99
+		elif best_candidate[1] < Version.KO_DISTANCE:
+			cur_version_score = 50
+		else:
+			cur_version_score = 10
+
+		return (
+			Package(name = cur_package_name, version = best_candidate[0]),
+			cur_package_score,
+			cur_version_score
+		)
 
 	def download_to_debian(self, package_name: str, package_version: str, filename: str) -> bytes:
 		logger.debug(
@@ -335,23 +320,18 @@ class AlienMatcher:
 				 " no internal archive, nothing to compare!"
 			)
 			errors.append("no internal archive")
-		resultpath = self.pool.relpath(
-			Settings.PATH_USR,
-			apkg.name,
-			apkg.version.str,
-			f"{apkg.name}-{apkg.version.str}.alienmatcher.json"
-		)
+		resultpath = self.pool.relpath_typed(FILETYPE.ALIENMATCHER, apkg.name, apkg.version.str)
 		try:
 			if not Settings.POOLCACHED:
 				raise FileNotFoundError()
 			json_data = self.pool.get_json(resultpath)
 			amm = AlienMatcherModel(**json_data)
 			debpkg = DebianPackage(
-				amm.debian.match.name,
-				amm.debian.match.version,
-				amm.debian.match.debsrc_orig,
-				amm.debian.match.debsrc_debian,
-				amm.debian.match.dsc_format
+				amm.match.name,
+				amm.match.version,
+				amm.match.debsrc_orig,
+				amm.match.debsrc_debian,
+				amm.match.dsc_format
 			)
 			logger.debug(f"[{self.curpkg}] Result already exists (MATCH), skipping.")
 
@@ -375,15 +355,18 @@ class AlienMatcher:
 			try:
 				if apkg.has_internal_primary_archive():
 
-					match = self.search(apkg)
+					match, package_score, version_score = self.search(apkg)
 
 					# It will use the cache, but we need the package also if the
 					# SPDX was already generated from the Debian sources.
 					debpkg = self.fetch_debian_sources(match)
 
-					amm.debian.match = DebianMatch(
+					amm.match = DebianMatch(
 						debpkg.name,
 						debpkg.version.str,
+						Calc.overallScore(package_score, version_score),
+						package_score,
+						version_score,
 						debpkg.debsrc_debian,
 						debpkg.debsrc_orig,
 						debpkg.format,
@@ -403,17 +386,16 @@ class AlienMatcher:
 
 	def run(self, package_path: str) -> Optional[AlienMatcherModel]:
 		try:
-			filename = os.path.basename(package_path)
 			package = AlienPackage(package_path)
 			self.curpkg = f"{package.name}-{package.version.str}"
-			logger.info(f"[{self.curpkg}] Processing {filename}...")
+			logger.info(f"[{self.curpkg}] Processing {os.path.basename(package_path)}...")
 			package.expand()
 			amm = self.match(package)
 
-			debsrc_debian = amm.debian.match.debsrc_debian
+			debsrc_debian = amm.match.debsrc_debian
 			debsrc_debian = os.path.basename(debsrc_debian) if debsrc_debian else ''
 
-			debsrc_orig = amm.debian.match.debsrc_orig
+			debsrc_orig = amm.match.debsrc_orig
 			debsrc_orig = os.path.basename(debsrc_orig) if debsrc_orig else ''
 
 			outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'
@@ -429,24 +411,49 @@ class AlienMatcher:
 			return None
 
 	@staticmethod
-	def execute(glob_name: str = "*", glob_version: str = "*") -> None:
+	def execute(
+		pool: Pool,
+		glob_name: str = "*",
+		glob_version: str = "*",
+		session_id: str = ""
+	) -> None:
 		global DEB_ALL_SOURCES
 		DEB_ALL_SOURCES = AlienMatcher.get_deb_all_sources()
-		pool = Pool(Settings.POOLPATH)
+
+		# Just take packages from the current session list
+		# On error just return, error messages are inside load()
+		if session_id:
+			try:
+				session = Session(pool, session_id)
+				session.load()
+				paths = session.package_list_paths(FILETYPE.ALIENSRC)
+			except SessionError:
+				return
+
+		# ...without a session_id, take information directly from the pool
+		else:
+			paths = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
+
 		multiprocessing_pool = MultiProcessingPool()
 		results = multiprocessing_pool.map( # pytype: disable=wrong-arg-types
 			AlienMatcher._execute,
-			pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
+			paths
 		)
 		if Settings.PRINTRESULT:
 			for match in results:
 				if match:
 					print(match.to_json())
 		if not results:
-			logger.info(
-				f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-				f"Have you executed 'add' for these packages?"
-			)
+			if session_id:
+				logger.info(
+					f"Nothing found for packages in session '{session_id}'. "
+					f"Have you executed 'add -s {session_id}' for these packages?"
+				)
+			else:
+				logger.info(
+					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
+					f"Have you executed 'add' for these packages?"
+				)
 
 	@staticmethod
 	def _execute(path: str) -> Optional[AlienMatcherModel]:

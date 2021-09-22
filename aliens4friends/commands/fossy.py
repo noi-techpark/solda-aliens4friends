@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
+from aliens4friends.commons.session import Session, SessionError
 import os
 import re
 import json
@@ -16,7 +17,7 @@ from spdx.document import License as SPDXLicense
 
 from aliens4friends.models.fossy import FossyModel
 
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.utils import bash, get_prefix_formatted, log_minimal_error
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
@@ -196,17 +197,39 @@ class GetFossyData:
 		}
 
 	@staticmethod
-	def execute(pool: Pool, glob_name: str = "*", glob_version: str = "*"):
+	def execute(
+		pool: Pool,
+		glob_name: str = "*",
+		glob_version: str = "*",
+		session_id: str = ""
+	) -> None:
 		fossy = FossyWrapper()
+
+		# Just take packages from the current session list
+		# On error just return, error messages are inside load()
+		if session_id:
+			try:
+				session = Session(pool, session_id)
+				session.load()
+				paths = session.package_list_paths(FILETYPE.ALIENSRC)
+			except SessionError:
+				return
+
+		# ...without a session_id, take information directly from the pool
+		else:
+			paths = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
+
 		found = False
-		for path in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.aliensrc"):
+		for path in paths:
 			found = True
 
-			cur_pckg = path.stem
+			name, version = pool.packageinfo_from_path(path)
+
+			cur_pckg = f"{name}-{version}"
 			cur_path = os.path.join(
 				Settings.PATH_USR,
-				path.parts[-3],
-				path.parts[-2]
+				name,
+				version
 			)
 
 			out_spdx_filename = pool.relpath(cur_path, f'{cur_pckg}.final.spdx')
@@ -237,7 +260,7 @@ class GetFossyData:
 						f"[{cur_pckg}] Something's wrong, more than one alien spdx"
 						f" file found in pool: {alien_spdx}"
 					)
-				alien_fossy_json_filename = pool.relpath(cur_path, f'{cur_pckg}.fossy.json')
+				alien_fossy_json_filename = pool.relpath(cur_path, f'{cur_pckg}.{FILETYPE.FOSSY}')
 				logger.info(f"[{cur_pckg}] Getting spdx and json data from Fossology")
 				gfd = GetFossyData(fossy, apkg, alien_spdx_filename)
 				doc = gfd.get_spdx()

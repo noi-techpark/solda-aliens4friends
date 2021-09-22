@@ -39,11 +39,6 @@ setuptools.setup(
         'beautifulsoup4==4.9.3',
         'tenacity==8.0.1',
     ],
-	package_data={
-        'aliens4friends.commons': [
-            'aliases.json'
-        ]
-    },
     scripts=['bin/a4f', 'bin/aliens4friends'],
     license_files=['LICENSE',],
     zip_safe=False, # needed to make dotenv work

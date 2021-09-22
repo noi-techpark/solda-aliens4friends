@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
+from aliens4friends.commons.session import Session, SessionError
 import os
-import json
 import tempfile
 import logging
-from aliens4friends.commons.pool import Pool
-from aliens4friends.commons.utils import bash, copy, log_minimal_error
+from aliens4friends.commons.pool import FILETYPE, Pool
+from aliens4friends.commons.utils import bash, log_minimal_error
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.fossywrapper import FossyWrapper
@@ -32,7 +32,7 @@ class UploadAliens2Fossy:
 		alien_spdx_filename: str,
 		fossy: FossyWrapper,
 		fossy_folder: str
-	):
+	) -> None:
 
 		self.fossy = fossy
 		self.alien_package = alien_package
@@ -54,11 +54,13 @@ class UploadAliens2Fossy:
 				" any internal archive"
 			)
 
-	def get_or_do_upload(self):
+	def get_or_do_upload(self) -> None:
 		upload = self.fossy.get_upload(self.uploadname)
 		if upload:
-			logger.info(f"[{self.uploadname}] Package already uploaded")
 			self.upload = upload
+			self.uploaded = False
+			self.uploaded_reason = "Package already present in Fossology"
+			logger.info(f"[{self.uploadname}] {self.uploaded_reason}")
 			return
 		logger.info(f"[{self.uploadname}] Preparing package for upload")
 		tmpdir_obj = tempfile.TemporaryDirectory()
@@ -82,11 +84,15 @@ class UploadAliens2Fossy:
 		)
 		self.upload.uploadname = self.uploadname
 
-	def run_fossy_scanners(self):
+		self.uploaded = True
+		self.uploaded_reason = "Package uploaded"
+
+
+	def run_fossy_scanners(self) -> None:
 			logger.info(f"[{self.uploadname}] Run fossy scanners")
 			self.fossy.schedule_fossy_scanners(self.upload)
 
-	def _convert_and_upload_spdx(self, alien_spdx_fullpath):
+	def _convert_and_upload_spdx(self, alien_spdx_fullpath: str) -> None:
 		tmpdir_obj = tempfile.TemporaryDirectory()
 		tmpdir = tmpdir_obj.name
 		spdxrdf_basename = f'{os.path.basename(alien_spdx_fullpath)}.rdf'
@@ -100,7 +106,7 @@ class UploadAliens2Fossy:
 		self.fossy.report_import(self.upload, spdxrdf)
 
 
-	def import_spdx(self):
+	def import_spdx(self) -> None:
 		if not self.alien_package.internal_archive_name:
 			logger.warning(
 				f"[{self.upload.uploadname}] has no internal archive,"
@@ -174,17 +180,40 @@ class UploadAliens2Fossy:
 		}
 
 	@staticmethod
-	def execute(pool: Pool, folder: str, glob_name: str = "*", glob_version: str = "*"):
+	def execute(
+		pool: Pool,
+		folder: str,
+		glob_name: str = "*",
+		glob_version: str = "*",
+		session_id: str = ""
+	) -> None:
 		fossy = FossyWrapper()
+
+		# Just take packages from the current session list
+		# On error just return, error messages are inside load()
+		if session_id:
+			try:
+				session = Session(pool, session_id)
+				session.load()
+				paths = session.package_list_paths(FILETYPE.ALIENSRC)
+			except SessionError:
+				return
+
+		# ...without a session_id, take information directly from the pool
+		else:
+			paths = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
+
 		found = False
-		for path in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.aliensrc"):
+		for path in paths:
 			found = True
 
-			cur_pckg = path.stem
+			name, version = pool.packageinfo_from_path(path)
+
+			cur_pckg = f"{name}-{version}"
 			cur_path = pool.relpath(
 				Settings.PATH_USR,
-				path.parts[-3],
-				path.parts[-2]
+				name,
+				version
 			)
 
 			try:
@@ -220,6 +249,17 @@ class UploadAliens2Fossy:
 					cur_path,
 					f'{cur_pckg}.fossy.json'
 				)
+
+				if session_id:
+					session.package_list_set(
+						{
+							"uploaded": a2f.uploaded,
+							"uploaded_reason": a2f.uploaded_reason
+						},
+						apkg.name,
+						apkg.version.str,
+						apkg.variant
+					)
 
 			except Exception as ex:
 				log_minimal_error(logger, ex, f"[{cur_pckg}] ")

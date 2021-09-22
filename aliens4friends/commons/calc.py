@@ -3,8 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import numpy
-import json
-import os
+
+from .aliases import ALIASES
 
 class Calc:
 
@@ -98,21 +98,14 @@ class Calc:
 		return Calc.SCORES["s" + str(score)]
 
 	@staticmethod
-	def fuzzy_package_score(given: str, new: str, aliases = {}, clean_given = True) -> int:
-
-		if len(aliases) == 0:
-			dir_path = os.path.dirname(os.path.realpath(__file__))
-			with open(dir_path + '/aliases.json', 'r') as aliasfile:
-				data=aliasfile.read()
-			jsona = json.loads(data)
-			aliases = jsona["aliases"]
+	def fuzzy_package_score(given: str, new: str) -> int:
 
 		if given == new:
 			return 100
 
 		# Rename known packages to their Debian counterpart
-		if given in aliases:
-			given = aliases[given]
+		if given in ALIASES:
+			given = ALIASES[given]
 
 		if given == new:
 			return 95

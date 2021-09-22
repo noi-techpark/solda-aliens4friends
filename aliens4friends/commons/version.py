@@ -22,9 +22,9 @@ class Version:
 	FLAG_PKG_VERSION_SIMPLIFIED = 1<<4
 	FLAG_PKG_VERSION_ERROR = 1<<5
 
-	MAX_DISTANCE = 10000000
+	MAX_DISTANCE = 10000000000000
 	OK_DISTANCE = 0
-	KO_DISTANCE = 10000
+	KO_DISTANCE = 100000
 
 	def __init__(self, version_str: str, remove_epoc: bool = True) -> None:
 		super().__init__()

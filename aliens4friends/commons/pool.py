@@ -3,11 +3,11 @@
 
 import os
 import logging
-from enum import IntEnum
+from enum import IntEnum, Enum
 from json import dump as jsondump, load as jsonload
 from pathlib import Path
 from shutil import rmtree
-from typing import Generator, Any, Union, List, Type, Tuple
+from typing import Generator, Any, Set, Union, Tuple
 from datetime import datetime
 
 from spdx.document import Document as SPDXDocument
@@ -32,6 +32,19 @@ class OVERWRITE(IntEnum):
 	ALWAYS = 1
 	RAISE = 2
 
+class FILETYPE(str, Enum):
+	ALIENMATCHER = "alienmatcher.json"
+	ALIENSRC = "aliensrc"
+	TINFOILHAT = "tinfoilhat.json"
+	SNAPMATCH = "snapmatch.json"
+	DELTACODE = "deltacode.json"
+	SCANCODE = "scancode.json"
+	DEBIAN_SPDX = "debian.spdx"
+	SCANCODE_SPDX = "scancode.spdx"
+	FOSSY = "fossy.json"
+	SESSION = "session.json"
+	# TODO Extend when needed, use it everywhere
+
 class PoolError(Exception):
 	pass
 class PoolErrorFileExists(PoolError):
@@ -47,6 +60,125 @@ class Pool:
 			raise NotADirectoryError(
 				f"Unable to create the POOL at path '{self.basepath}'."
 			)
+
+	def filename(
+		self,
+		type: FILETYPE,
+		name: str,
+		version: str = "",
+		variant: str = ""
+	) -> str:
+		"""Get the filename with extension of a certain file type
+
+		Args:
+			`type` (FILETYPE): The file type defined in `Pool.FILETYPE`
+			`name` (str): The name of a package or any other name of a file
+			`version` (str, optional): The version of a package. Defaults to `""`.
+			`variant` (str, optional): The variant of a package. This might be ignored, dipending of the file type. Defaults to `""`.
+
+		Raises:
+			`PoolError`: if the `FILETYPE` is unknown to this method
+
+		Returns:
+			str: filename
+		"""
+
+		# Special type SESSION, name must be the session_id
+		if type == FILETYPE.SESSION:
+			return f"{name}.{type}"
+
+		# Types without variants
+		if type in [
+			FILETYPE.ALIENMATCHER,
+			FILETYPE.SNAPMATCH,
+			FILETYPE.DELTACODE,
+			FILETYPE.SCANCODE,
+			FILETYPE.DEBIAN_SPDX,
+			FILETYPE.SCANCODE_SPDX
+		]:
+			return f"{name}-{version}.{type}"
+
+		# Types that have a variant in their filename
+		if type in [
+			FILETYPE.ALIENSRC,
+			FILETYPE.TINFOILHAT,
+			FILETYPE.FOSSY
+		]:
+			if variant:
+				variant = f"-{variant}"
+			return f"{name}-{version}{variant}.{type}"
+
+		raise PoolError(f"Unable to find a path for the file type '{type}'")
+
+	def packageinfo_from_path(self, path: Union[str, Path]) -> Tuple[str, str]:
+		"""Return (name,version) of a given path containing inside the pool"""
+		if isinstance(path, str):
+			path = Path(path)
+		return path.parts[-3], path.parts[-2]
+
+	def relpath_typed(
+		self,
+		type: FILETYPE,
+		name: str,
+		version: str = "",
+		variant: str = "",
+		with_filename: bool = True,
+		in_userland: bool = True
+	) -> str:
+		"""Get a relative path to the corresponding file of a certain type"""
+
+		# File that is located inside <PATH_SES>
+		if type == FILETYPE.SESSION:
+			relpath = self.relpath(Settings.PATH_SES)
+
+		# Files that are located only inside <PATH_USR>/<name>/<version>
+		elif type in [
+			FILETYPE.SNAPMATCH,
+			FILETYPE.ALIENMATCHER,
+			FILETYPE.ALIENSRC,
+			FILETYPE.TINFOILHAT,
+			FILETYPE.DELTACODE,
+			FILETYPE.FOSSY
+		]:
+			relpath = self.relpath(Settings.PATH_USR, name, version)
+
+		# Files that are located only in <PATH_DEB>/<name>/<version>
+		elif type in [
+			FILETYPE.DEBIAN_SPDX
+		]:
+			relpath = self.relpath(Settings.PATH_DEB, name, version)
+
+		# Files that are located inside <PATH_USR or PATH_DEB>/<name>/<version>
+		elif type in [
+			FILETYPE.SCANCODE,
+			FILETYPE.SCANCODE_SPDX
+		]:
+			basepath = Settings.PATH_USR if in_userland else Settings.PATH_DEB
+			relpath = self.relpath(basepath, name, version)
+
+		else:
+			raise PoolError(f"Unable to find a path for the file type '{type}'")
+
+		if with_filename:
+			relpath = os.path.join(
+				relpath,
+				self.filename(type, name, version, variant)
+			)
+		return relpath
+
+
+	def abspath_typed(
+		self,
+		type: FILETYPE,
+		name: str,
+		version: str = "",
+		variant: str = "",
+		with_filename: bool = True,
+		in_userland: bool = True
+	) -> str:
+		return self.abspath(
+			self.relpath_typed(type, name, version, variant, with_filename, in_userland)
+		)
 
 	def clnpath(self, path: Union[Path, str]) -> str:
 		if isinstance(path, Path):
@@ -250,7 +382,7 @@ class Pool:
 		return Path(path).rglob(glob)
 
 	def rm(self, *path_args: str) -> None:
-		path = self.relpath(*path_args)
+		path = self.abspath(*path_args)
 		if os.path.isdir(path):
 			rmtree(path)
 		elif os.path.isfile(path) or os.path.islink(path):
