@@ -267,15 +267,22 @@ class AlienSnapMatcher:
 		uri = AlienSnapMatcher.API_URL_FILEINFO + filehash + "/info"
 		fileinfo = self.get_data(uri)
 		if fileinfo["result"] and len(fileinfo["result"]) > 0:
-			return fileinfo["result"][0]
+			return fileinfo["result"]
 		return False
 
+	@retry(wait=wait_exponential(multiplier=REQUEST_THROTTLE_MULTIPLIER, min=REQUEST_THROTTLE, max=REQUEST_THROTTLE_MAX), stop=stop_after_attempt(REQUEST_MAX_ATTEMPTS), retry=retry_if_exception_type(requests.exceptions.ConnectionError))
 	def download_all_to_debian(self, snap_match: DebianSnapMatch) -> None:
 		for srcfile in snap_match.srcfiles:
+			path = 'files';
+
 			logger.debug(
 				f"[{self.curpkg}] Retrieving file from Debian:"
 				f" '{srcfile.name}'."
 			)
+
+			if srcfile.name.endswith('.dsc'):
+				path = 'dscs/' + srcfile.paths[0]
+
 			try:
 				if not Settings.POOLCACHED:
 					raise FileNotFoundError
@@ -283,80 +290,149 @@ class AlienSnapMatcher:
 					Settings.PATH_DEB,
 					snap_match.name,
 					snap_match.version,
+					path,
 					srcfile.name
 				)
 				logger.debug(f"[{self.curpkg}] Found in Debian cache pool.")
 			except FileNotFoundError:
 				logger.debug(f"[{self.curpkg}] Not found in Debian cache pool.")
-				logger.debug(
-					f"[{self.curpkg}] Trying to download deb source {srcfile.name}"
-					f" from {srcfile.src_uri}."
-				)
-				r = requests.get(srcfile.src_uri)
-				if r.status_code != 200:
-					raise AlienSnapMatcherError(
-						f"Error {r.status_code} in downloading {srcfile.name}"
+				try:
+					logger.debug(
+						f"[{self.curpkg}] Trying to download deb source {srcfile.name}"
+						f" from {srcfile.src_uri}."
 					)
-				local_path = self.pool.write(
-					r.content,
-					Settings.PATH_DEB,
-					snap_match.name,
-					snap_match.version,
-					srcfile.name
-				)
-				logger.debug(f"[{self.curpkg}] Result cached in {local_path}.")
+					r = requests.get(srcfile.src_uri)
+					if r.status_code != 200:
+						raise AlienSnapMatcherError(
+							f"Error {r.status_code} in downloading {srcfile.name}"
+						)
+					local_path = self.pool.write(
+						r.content,
+						Settings.PATH_DEB,
+						snap_match.name,
+						snap_match.version,
+						path,
+						srcfile.name
+					)
+					logger.debug(f"[{self.curpkg}] Result cached in {local_path}.")
+				except requests.exceptions.RequestException as error:
+					logger.warning(f"Connection error, trying again...")
+					# reraise for tenacity, but do not catch it
+					raise error
+					return json.loads("{}")
 
 	def get_format_orig_debian(self, snap_match: DebianSnapMatch) -> None:
+
+		debian_controls = []
+		debian_control_files = []
+		all_control_files = []
+
+		# first iteration, get all dsc-files
 		for srcfile in snap_match.srcfiles:
+
+			path = 'files'
+			if srcfile.paths[0]:
+				path = 'dscs'+srcfile.paths[0]
+
 			if srcfile.name.endswith('.dsc'):
 				dsc_file = self.pool.abspath(
 					Settings.PATH_DEB,
 					snap_match.name,
 					snap_match.version,
+					path,
 					srcfile.name
 				)
 				with open(dsc_file) as f:
 					dsc_file_content = f.read()
 				debian_control = Deb822(dsc_file_content)
-				break
-		debian_control_files = []
 
-		if debian_control.get('Checksums-Sha1'):
-			dsc_chksums = debian_control['Checksums-Sha1'].split('\n')
-			sha1 = True
-		else:
-			dsc_chksums = debian_control['Files'].split('\n')
-			sha1 = False
+				if debian_control.get('Checksums-Sha1'):
+					dsc_chksums = debian_control['Checksums-Sha1'].split('\n')
+					sha1 = True
+				else:
+					dsc_chksums = debian_control['Files'].split('\n')
+					sha1 = False
 
-		for line in dsc_chksums:
-			elem = line.strip().split()
-			# Format is triple: "chksum size filename"
-			if len(elem) != 3:
-				continue
-			debian_control_files.append(f"{elem[0]} {elem[2]}")
+				for line in dsc_chksums:
+					elem = line.strip().split()
+					# Format is triple: "chksum size filename"
+					if len(elem) != 3:
+						continue
 
+					debian_control_files.append(f"{elem[0]} {elem[2]}")
+					all_control_files.append(f"{elem[0]} {elem[2]}")
+					logger.debug(f"{elem[0]} {elem[2]} FROM DSC")
+
+				debian_controls.append({"name": srcfile.name, "sha1" : sha1, "files" : debian_control_files, "srcfiles" : []})
+				debian_control_files = [];
+
+		# second iteration, get all hashes from sourcefiles (with duplicates)
+		dscnumber = 0
 		srcfiles = []
-		for srcfile in snap_match.srcfiles:
-			if srcfile.name.endswith('.dsc'):
-				continue
-			if sha1:
-				chksum = srcfile.sha1_cksum
-			else:
-				filepath = self.pool.abspath(
-					Settings.PATH_DEB,
-					snap_match.name,
-					snap_match.version,
-					srcfile.name
-				)
-				chksum = md5sum(filepath)
-			srcfiles.append(f"{chksum} {srcfile.name}")
 
-		if sorted(debian_control_files) != sorted(srcfiles):
+		for dsc in debian_controls:
+
+			dscnumber += 1
+			logger.debug(f"Checking DSC #{dscnumber}")
+
+			for srcfile in snap_match.srcfiles:
+				if srcfile.name.endswith('.dsc'):
+					continue
+				if dsc['sha1']:
+					chksum = srcfile.sha1_cksum
+				else:
+					filepath = self.pool.abspath(
+						Settings.PATH_DEB,
+						snap_match.name,
+						snap_match.version,
+						srcfile.name
+					)
+					chksum = md5sum(filepath)
+				srcfiles.append(f"{chksum} {srcfile.name}")
+				dsc['srcfiles'].append(f"{chksum} {srcfile.name}")
+				logger.debug(f"{chksum} {srcfile.name} FROM SRC")
+
+			diff = set(srcfiles) - set(dsc['srcfiles'])
+			diff2 = set(dsc['srcfiles']) - set(srcfiles)
+
+			# if we expect more files than we have, show error. exception should be raised later
+			if(len(diff2) != 0):
+				logger.error(
+					f"missing sourcefiles that are described in dsc #{dscnumber}: {dsc['name']}"
+				)
+
+			# if we get more files than expected, it could have different reasons: multiple dscs for specific package variants
+			# atm, no need to worry
+			if(len(diff) != 0):
+				logger.warning(
+					f"more srcfiles than described in dsc #{dscnumber}: {dsc['name']}"
+				)
+
+		logger.debug(
+			f"all control files {sorted(all_control_files)}"
+		)
+
+		logger.debug(
+			f"all src files {sorted(srcfiles)}"
+		)
+
+		diff = set(srcfiles) - set(all_control_files)
+		diff2 = set(all_control_files) - set(srcfiles)
+
+		# if we expect more files than we have, raise error & investigate further
+		if(len(diff2) != 0):
 			raise AlienSnapMatcherError(
-				f"checksum mismatch in debian package {snap_match.name} {snap_match.version}:"
-				f" debian control files are {debian_control_files} while snap match srcfiles"
-				f" are {srcfiles}"
+				f"{snap_match.name} {snap_match.version}: missing sourcefiles that are described in dscs {diff2}"
 			)
+
+		# additional files not described in any dsc. show error but ignore (?), example: 'perl'
+		if(len(diff) != 0):
+			logger.error(
+				f"{snap_match.name} {snap_match.version}: more srcfiles than described in dscs {diff}"
+			)
+
+		# third iteration, patch srcfiles with paths
+		# TODO: Check: this now assumes that all existing dsc files always have the same format (?)
 		for srcfile in snap_match.srcfiles:
 			if srcfile.name.endswith('.dsc'):
 				continue
@@ -366,7 +442,9 @@ class AlienSnapMatcher:
 				snap_match.version,
 				srcfile.name
 			)
+
 			snap_match.dsc_format = debian_control['Format']
+
 			if snap_match.dsc_format == "1.0":
 				if 'orig' in srcfile.name:
 					snap_match.debsrc_orig = debian_relpath
@@ -392,23 +470,25 @@ class AlienSnapMatcher:
 			for binary in hashes["result"]["binaries"]:
 				for file in binary["files"]:
 					info = self.get_file_info(file["hash"])
-					source = SourceFile(
-						name=info["name"],
-						sha1_cksum=file["hash"],
-						src_uri=AlienSnapMatcher.API_URL_FILES + file["hash"],
-						paths=[info["path"]]
-					)
-					snap_match.srcfiles.append(source)
+					for variant in info:
+						source = SourceFile(
+							name=info["name"],
+							sha1_cksum=file["hash"],
+							src_uri=AlienSnapMatcher.API_URL_FILES + file["hash"],
+							paths=[info["path"]]
+						)
+						snap_match.srcfiles.append(source)
 		else:
 			for file in hashes["result"]["source"]:
 				info = self.get_file_info(file["hash"])
-				source = SourceFile(
-					name=info["name"],
-					sha1_cksum=file["hash"],
-					src_uri=AlienSnapMatcher.API_URL_FILES + file["hash"],
-					paths=[info["path"]]
-				)
-				snap_match.srcfiles.append(source)
+				for variant in info:
+					source = SourceFile(
+						name=variant["name"],
+						sha1_cksum=file["hash"],
+						src_uri=AlienSnapMatcher.API_URL_FILES + file["hash"],
+						paths=[variant["path"]]
+					)
+					snap_match.srcfiles.append(source)
 
 
 	@staticmethod
