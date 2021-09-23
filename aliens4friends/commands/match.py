@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
+from aliens4friends.commands.command import Command
 import json
 import os
 import logging
@@ -10,11 +11,9 @@ from typing import Tuple, Any, Optional
 
 import requests
 from debian.deb822 import Deb822
-from aliens4friends.commons import package
 
 from aliens4friends.commons.archive import Archive, ArchiveError
 from aliens4friends.commons.utils import sha1sum
-from aliens4friends.commons.session import Session, SessionError
 from aliens4friends.commons.calc import Calc
 from aliens4friends.commons.package import AlienPackage, Package, PackageError, DebianPackage
 from aliens4friends.commons.version import Version
@@ -33,7 +32,7 @@ logger = logging.getLogger(__name__)
 class AlienMatcherError(Exception):
 	pass
 
-class AlienMatcher:
+class AlienMatcher(Command):
 
 	# Type hints for attributes not declared in __init__
 	curpkg: str
@@ -55,9 +54,9 @@ class AlienMatcher:
 	]
 	API_URL_ALLSRC = "https://api.ftp-master.debian.org/all_sources"
 
-	def __init__(self) -> None:
-		super().__init__()
-		self.pool = Pool(Settings.POOLPATH)
+	def __init__(self, session_id) -> None:
+		pool = Pool(Settings.POOLPATH)
+		super().__init__(session_id, multiprocessing=True)
 		if 'DEB_ALL_SOURCES' not in globals():
 			global DEB_ALL_SOURCES
 			DEB_ALL_SOURCES = AlienMatcher.get_deb_all_sources()
@@ -410,58 +409,21 @@ class AlienMatcher:
 			logger.error(f"[{self.curpkg}] ERROR: {ex}")
 			return None
 
+	def print_results(self, results: Any) -> None:
+		for match in results:
+			if match:
+				print(match.to_json())
+
+	def hint(self) -> str:
+		return "add"
+
 	@staticmethod
 	def execute(
-		pool: Pool,
-		glob_name: str = "*",
-		glob_version: str = "*",
 		session_id: str = ""
 	) -> bool:
-		global DEB_ALL_SOURCES
-		DEB_ALL_SOURCES = AlienMatcher.get_deb_all_sources()
 
-		# Just take packages from the current session list
-		# On error just return, error messages are inside load()
-		if session_id:
-			try:
-				session = Session(pool, session_id)
-				session.load()
-				paths = session.package_list_paths(FILETYPE.ALIENSRC)
-			except SessionError:
-				return False
-
-		# ...without a session_id, take information directly from the pool
-		else:
-			paths = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
-
-		multiprocessing_pool = MultiProcessingPool()
-		results = multiprocessing_pool.map( # pytype: disable=wrong-arg-types
-			AlienMatcher._execute,
-			paths
+		am = AlienMatcher(session_id)
+		return am.exec_with_paths(
+			FILETYPE.ALIENSRC,
+			ignore_variant=True
 		)
-		if Settings.PRINTRESULT:
-			for match in results:
-				if match:
-					print(match.to_json())
-
-		if results:
-			for r in results:
-				if not r:
-					return False
-		else:
-			if session_id:
-				logger.info(
-					f"Nothing found for packages in session '{session_id}'. "
-					f"Have you executed 'add -s {session_id}' for these packages?"
-				)
-			else:
-				logger.info(
-					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-					f"Have you executed 'add' for these packages?"
-				)
-
-		return True
-
-	@staticmethod
-	def _execute(path: str) -> Optional[AlienMatcherModel]:
-		return AlienMatcher().run(path)
