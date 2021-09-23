@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
+from aliens4friends.commands.command import Command, CommandError
 from aliens4friends.commons.session import Session, SessionError
 import json
 import re
@@ -8,9 +9,7 @@ import logging
 from datetime import datetime
 import difflib
 from multiprocessing import Pool as MultiProcessingPool
-from typing import List, Dict, Any, Generator, Optional
-from pathlib import Path
-from itertools import product, repeat
+from typing import List, Dict, Any, Generator
 
 from deepdiff import DeepDiff
 
@@ -169,11 +168,11 @@ class DeltaCodeNG:
 			and scan_out['headers'][0]['tool_version'] == SCANCODE_VERSION
 		):
 			return get_paths_and_relevant_findings(scan_out)
-		else:
-			raise DeltaCodeNGException(
-				f'wrong ScanCode version for {scan_out_file},'
-				f' must be {SCANCODE_VERSION}'
-			)
+
+		raise DeltaCodeNGException(
+			f'wrong ScanCode version for {scan_out_file},'
+			f' must be {SCANCODE_VERSION}'
+		)
 
 	def _fix_finding_diffs_for_json_serialization(self, findings_diff: dict) -> None:
 		if findings_diff.get("type_changes"):
@@ -251,109 +250,72 @@ class DeltaCodeNG:
 		with open(self.result_file, "w") as f:
 			f.write(self.res.to_json(indent=2))
 
+
+class Delta(Command):
+
+	def __init__(self, session_id: str, use_oldmatcher: bool):
+		super().__init__(session_id, multiprocessing=True)
+		self.use_oldmatcher = use_oldmatcher
+
+	def hint(self) -> str:
+		return "match/snapmatch"
+
+	def print_results(self, results: Any) -> None:
+		for res in results:
+			print(res.to_json())
+
 	@staticmethod
 	def execute(
-		pool: Pool,
-		glob_name: str = "*",
-		glob_version: str = "*",
 		use_oldmatcher: bool = False,
 		session_id: str = ""
 	) -> bool:
 
-		filetype = FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH
-
-		# Just take packages from the current session list
-		# On error just return, error messages are inside load()
-		if session_id:
-			try:
-				session = Session(pool, session_id)
-				session.load()
-				paths = session.package_list_paths(filetype)
-			except SessionError:
-				return False
-
-		# ...without a session_id, take information directly from the pool
-		else:
-			paths = pool.absglob(f"{glob_name}/{glob_version}/*.{filetype}")
-
-
-		multiprocessing_pool = MultiProcessingPool()
-		results = multiprocessing_pool.map(  #pytype: disable=wrong-arg-types
-			DeltaCodeNG._execute,
-			[
-				[path, use_oldmatcher, pool] for path in paths
-			]
+		cmd = Delta(session_id, use_oldmatcher)
+		return cmd.exec_with_paths(
+			FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH,
+			ignore_variant=True
 		)
 
-		if results:
-			for r in results:
-				if not r:
-					return False
-		else:
-			if session_id:
-				logger.info(
-					f"Nothing found for session with ID '{session_id}'. "
-					f"Have you executed 'match/snapmatch' for these packages?"
-				)
-			else:
-				logger.info(
-					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-					f"Have you executed 'match/snapmatch' for these packages?"
-				)
+	def run(self, args) -> Any:
+		path = args[0]
 
-		return True
-
-
-	@staticmethod
-	def _execute(args) -> bool:
-
-		path, use_oldmatcher, pool = args
-
-		name, version, _, _ = pool.packageinfo_from_path(path)
+		name, version, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
 
 		try:
-			if use_oldmatcher:
+			if self.use_oldmatcher:
 				model = AlienMatcherModel.from_file(path)
 			else:
 				model = AlienSnapMatcherModel.from_file(path)
-		except Exception as ex:
-			logger.error(f"[{package}] Unable to load json from {pool.clnpath(path)}.")
-			debug_with_stacktrace(logger)
-			return False
+		except Exception:
+			raise CommandError(f"[{package}] Unable to load json from {self.pool.clnpath(path)}.")
 
-		logger.debug(f"[{package}] Files determined through {pool.clnpath(path)}")
+		logger.debug(f"[{package}] Files determined through {self.pool.clnpath(path)}")
 
-		try:
-			alien = model.aliensrc
-			match = model.match
-			if not match.name:
-				logger.info(f"[{package}] no debian match to compare here")
-				return True
-
-			result_path = pool.relpath_typed(FILETYPE.DELTACODE, alien.name, alien.version)
-			if pool.cached(result_path, debug_prefix=f"[{package}] "):
-				return True
-
-			logger.info(
-				f"[{package}] calculating delta between debian package"
-				f" {match.name}-{match.version} and alien package"
-				f" {alien.name}-{alien.version}"
-			)
-			deltacode = DeltaCodeNG(
-				pool,
-				pool.abspath_typed(FILETYPE.SCANCODE, match.name, match.version, in_userland=False),
-				pool.abspath_typed(FILETYPE.SCANCODE, alien.name, alien.version),
-				pool.abspath(result_path)
-			)
-			dcmodel = deltacode.compare()
-			deltacode.write_results()
-			logger.debug(f'[{package}] Results written to {result_path}')
-			for stat in deltacode.get_stats():
-				logger.debug(f'[{package}] Stats: {stat}')
-			if Settings.PRINTRESULT:
-				print(dcmodel.to_json())
+		alien = model.aliensrc
+		match = model.match
+		if not match.name:
+			logger.info(f"[{package}] no debian match to compare here")
 			return True
-		except Exception as ex:
-			log_minimal_error(logger, ex, f"[{package}] ")
-			return False
+
+		result_path = self.pool.relpath_typed(FILETYPE.DELTACODE, alien.name, alien.version)
+		if self.pool.cached(result_path, debug_prefix=f"[{package}] "):
+			return True
+
+		logger.info(
+			f"[{package}] calculating delta between debian package"
+			f" {match.name}-{match.version} and alien package"
+			f" {alien.name}-{alien.version}"
+		)
+		deltacode = DeltaCodeNG(
+			self.pool,
+			self.pool.abspath_typed(FILETYPE.SCANCODE, match.name, match.version, in_userland=False),
+			self.pool.abspath_typed(FILETYPE.SCANCODE, alien.name, alien.version),
+			self.pool.abspath(result_path)
+		)
+		dcmodel = deltacode.compare()
+		deltacode.write_results()
+		logger.debug(f'[{package}] Results written to {result_path}')
+		for stat in deltacode.get_stats():
+			logger.debug(f'[{package}] Stats: {stat}')
+		return dcmodel

@@ -72,8 +72,11 @@ class Command:
 	def _run(self, *args: Any) -> Any:
 		try:
 			return self.run(*args)
-		except CommandError as ex:
-			log_minimal_error(logger, ex, ex.prefix)
+		except Exception as ex:
+			prefix = ""
+			if "prefix" in ex.__dict__.keys():
+				prefix = ex.prefix
+			log_minimal_error(logger, ex, prefix)
 			return False
 
 	@abstractclassmethod
@@ -82,10 +85,7 @@ class Command:
 			"Implement a run method, that handles each path"
 		)
 
-	def exec(
-		self,
-		*args: List[Any]
-	) -> bool:
+	def exec(self, *args) -> bool:
 
 		cleaned_args = []
 		for arg in args:
@@ -144,7 +144,8 @@ class Command:
 	def exec_with_paths(
 		self,
 		filetype: FILETYPE,
-		ignore_variant: bool = False
+		ignore_variant: bool = False,
+		*args: Any
 	) -> bool:
 
 		paths = self.get_paths(
@@ -153,7 +154,7 @@ class Command:
 			ignore_variant=ignore_variant
 		)
 
-		return self.exec(paths)
+		return self.exec(paths, *args)
 
 	def _hint(self) -> str:
 		if self.hint():

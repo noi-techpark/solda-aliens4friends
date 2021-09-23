@@ -381,30 +381,30 @@ class AlienMatcher(Command):
 		return amm
 
 	def run(self, args) -> Optional[AlienMatcherModel]:
-		package_path = args[0]
+		path = args[0]
 		try:
-			package = AlienPackage(package_path)
+			package = AlienPackage(path)
 			self.curpkg = f"{package.name}-{package.version.str}"
-			logger.info(f"[{self.curpkg}] Processing {os.path.basename(package_path)}...")
+			logger.info(f"[{self.curpkg}] Processing {os.path.basename(path)}...")
 			package.expand()
 			amm = self.match(package)
-
-			debsrc_debian = amm.match.debsrc_debian
-			debsrc_debian = os.path.basename(debsrc_debian) if debsrc_debian else ''
-
-			debsrc_orig = amm.match.debsrc_orig
-			debsrc_orig = os.path.basename(debsrc_orig) if debsrc_orig else ''
-
-			outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'
-			if not debsrc_debian and not debsrc_orig and not amm.errors:
-				amm.errors = 'NO MATCH without errors'
-			logger.info(
-				f"[{self.curpkg}] {outcome}:"
-				f" {debsrc_debian} {debsrc_orig} {'; '.join(amm.errors)}"
-			)
-			return amm
 		except PackageError as ex:
 			raise CommandError(f"[{self.curpkg}] ERROR: {ex}")
+
+		debsrc_debian = amm.match.debsrc_debian
+		debsrc_debian = os.path.basename(debsrc_debian) if debsrc_debian else ''
+
+		debsrc_orig = amm.match.debsrc_orig
+		debsrc_orig = os.path.basename(debsrc_orig) if debsrc_orig else ''
+
+		outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'
+		if not debsrc_debian and not debsrc_orig and not amm.errors:
+			amm.errors = 'NO MATCH without errors'
+		logger.info(
+			f"[{self.curpkg}] {outcome}:"
+			f" {debsrc_debian} {debsrc_orig} {'; '.join(amm.errors)}"
+		)
+		return amm
 
 	def print_results(self, results: Any) -> None:
 		for match in results:

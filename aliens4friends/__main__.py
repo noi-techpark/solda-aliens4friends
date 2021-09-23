@@ -36,7 +36,7 @@ from aliens4friends.commons.pool import Pool
 from aliens4friends.commands.match import AlienMatcher
 from aliens4friends.commands.snap_match import AlienSnapMatcher
 from aliens4friends.commands.scan import Scancode
-from aliens4friends.commands.delta import DeltaCodeNG
+from aliens4friends.commands.delta import Delta, DeltaCodeNG
 from aliens4friends.commands.spdxdebian import Debian2SPDX
 from aliens4friends.commands.spdxalien import MakeAlienSPDX
 from aliens4friends.commands.harvest import Harvest
@@ -470,10 +470,7 @@ class Aliens4Friends:
 		)
 
 	def delta(self) -> bool:
-		return DeltaCodeNG.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
+		return Delta.execute(
 			self.args.use_oldmatcher,
 			self.args.session
 		)
