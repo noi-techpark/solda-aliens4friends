@@ -9,10 +9,9 @@
 # https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 # https://spdx.github.io/spdx-spec/
 
+from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.session import Session, SessionError
 import os
-import re
-import json
 import logging
 import tempfile
 from uuid import uuid4
@@ -455,77 +454,41 @@ class Debian2SPDX:
 		with open(filename, "w") as f:
 			f.write("\n".join(content))
 
+class SpdxDebian(Command):
+
+	def __init__(self, session_id: str, use_oldmatcher: bool):
+		super().__init__(session_id, processing=Processing.MULTI)
+		self.use_oldmatcher = use_oldmatcher
+
+	def hint(self) -> str:
+		return "match/snapmatch"
 
 	@staticmethod
 	def execute(
-		pool: Pool,
-		glob_name: str = "*",
-		glob_version: str = "*",
 		use_oldmatcher: bool = False,
 		session_id: str = ""
 	) -> bool:
-
-		filetype = FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH
-
-		# Just take packages from the current session list
-		# On error just return, error messages are inside load()
-		if session_id:
-			try:
-				session = Session(pool, session_id)
-				session.load()
-				paths = session.package_list_paths(filetype)
-			except SessionError:
-				return False
-
-		# ...without a session_id, take information directly from the pool
-		else:
-			paths = pool.absglob(f"{glob_name}/{glob_version}/*.{filetype}")
-
-		multiprocessing_pool = MultiProcessingPool()
-		results = multiprocessing_pool.map(
-			Debian2SPDX._execute,
-			[
-				[path, use_oldmatcher, pool] for path in paths
-			]
+		cmd = SpdxDebian(session_id, use_oldmatcher)
+		return cmd.exec_with_paths(
+			FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH,
+			ignore_variant=True
 		)
 
-		if results:
-			for r in results:
-				if not r:
-					return False
-		else:
-			if session_id:
-				logger.info(
-					f"Nothing found for session with ID '{session_id}'. "
-					f"Have you executed 'match/snapmatch' for these packages?"
-				)
-			else:
-				logger.info(
-					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-					f"Have you executed 'match/snapmatch' for these packages?"
-				)
+	def run(self, args) -> bool:
+		path = args[0]
 
-		return True
-
-	@staticmethod
-	def _execute(args) -> bool:
-
-		path, use_oldmatcher, pool = args
-
-		name, version, _, _ = pool.filename_split(path)
+		name, version, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
 
 		try:
-			if use_oldmatcher:
+			if self.use_oldmatcher:
 				model = AlienMatcherModel.from_file(path)
 			else:
 				model = AlienSnapMatcherModel.from_file(path)
 		except Exception as ex:
-			logger.error(f"[{package}] Unable to load json from {pool.clnpath(path)}.")
-			debug_with_stacktrace(logger)
-			return False
+			raise CommandError(f"[{package}] Unable to load json from {self.pool.clnpath(path)}.")
 
-		logger.debug(f"[{package}] Files determined through {pool.clnpath(path)}")
+		logger.debug(f"[{package}] Files determined through {self.pool.clnpath(path)}")
 
 		try:
 			match = model.match
@@ -536,9 +499,9 @@ class Debian2SPDX:
 				logger.info(f"[{package}] no debian orig archive to scan here")
 				return True
 
-			debian_spdx_filename = pool.abspath_typed(FILETYPE.DEBIAN_SPDX, match.name, match.version)
+			debian_spdx_filename = self.pool.abspath_typed(FILETYPE.DEBIAN_SPDX, match.name, match.version)
 
-			if pool.cached(debian_spdx_filename, debug_prefix=f"[{package}] "):
+			if self.pool.cached(debian_spdx_filename, debug_prefix=f"[{package}] "):
 				return True
 
 			# FIXME Shouldn't this already has been done before?
@@ -547,9 +510,9 @@ class Debian2SPDX:
 				match.debsrc_orig = match.debsrc_debian
 				match.debsrc_debian = None
 
-			debsrc_orig = pool.abspath(match.debsrc_orig)
+			debsrc_orig = self.pool.abspath(match.debsrc_orig)
 			debsrc_debian = (
-				pool.abspath(match.debsrc_debian)
+				self.pool.abspath(match.debsrc_debian)
 				if match.debsrc_debian
 				else None # native format, only 1 archive
 			)
@@ -584,12 +547,12 @@ class Debian2SPDX:
 
 			dorig = debsrc_orig or ""
 			ddeb = debsrc_debian or ""
-			logger.info(f"[{package}] generating spdx from {pool.clnpath(dorig)} and {ddeb}")
+			logger.info(f"[{package}] generating spdx from {self.pool.clnpath(dorig)} and {ddeb}")
 			d2s = Debian2SPDX(debsrc_orig, debsrc_debian)
 			d2s.generate_SPDX()
-			logger.info(f"[{package}] writing spdx to {pool.clnpath(debian_spdx_filename)}")
+			logger.info(f"[{package}] writing spdx to {self.pool.clnpath(debian_spdx_filename)}")
 			d2s.write_SPDX(debian_spdx_filename)
-			debian_copyright_filename = pool.abspath(
+			debian_copyright_filename = self.pool.abspath(
 				Settings.PATH_DEB,
 				match.name,
 				match.version,
@@ -603,8 +566,5 @@ class Debian2SPDX:
 
 		except Debian2SPDXException as ex:
 			logger.warning(f"[{package}] {ex}")
-		except Exception as ex:
-			log_minimal_error(logger, ex, f"[{package}] ")
-			return False
 
 		return True

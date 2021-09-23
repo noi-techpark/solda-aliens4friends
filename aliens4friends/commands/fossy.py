@@ -195,16 +195,16 @@ class GetFossyData:
 
 class Fossy(Command):
 
-	def __init__(self, session_id: str, processing: Processing, fossywrapper: FossyWrapper) -> None:
-		super().__init__(session_id, processing)
-		self.fossywrapper = fossywrapper
+	def __init__(self, session_id: str) -> None:
+		super().__init__(session_id, processing=Processing.LOOP)
+		self.fossywrapper = FossyWrapper()
 
 	def hint(self) -> str:
 		return "add/match"
 
 	@staticmethod
 	def execute(session_id: str = "") -> bool:
-		cmd = Fossy(session_id, processing=Processing.LOOP, fossywrapper=FossyWrapper())
+		cmd = Fossy(session_id)
 		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
 
 	def run(self, args) -> bool:

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
+from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.session import Session, SessionError
 import os
 import tempfile
@@ -179,104 +180,82 @@ class UploadAliens2Fossy:
 			"licenses": licenses
 		}
 
+class Upload(Command):
+
+	def __init__(self, session_id: str, folder: str):
+		super().__init__(session_id, processing=Processing.LOOP)
+		self.folder = folder
+		self.fossywrapper = FossyWrapper()
+
+	def hint(self) -> str:
+		return "add/spdxalien"
+
 	@staticmethod
 	def execute(
-		pool: Pool,
 		folder: str,
-		glob_name: str = "*",
-		glob_version: str = "*",
 		session_id: str = ""
 	) -> bool:
-		fossy = FossyWrapper()
+		cmd = Upload(session_id, folder)
+		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
 
-		# Just take packages from the current session list
-		# On error just return, error messages are inside load()
-		if session_id:
-			try:
-				session = Session(pool, session_id)
-				session.load()
-				paths = session.package_list_paths(FILETYPE.ALIENSRC)
-			except SessionError:
-				return False
+	def run(self, args):
+		path = args
+		name, version, _, _ = self.pool.packageinfo_from_path(path)
 
-		# ...without a session_id, take information directly from the pool
-		else:
-			paths = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
+		cur_pckg = f"{name}-{version}"
+		cur_path = self.pool.relpath(
+			Settings.PATH_USR,
+			name,
+			version
+		)
 
-		found = False
-		success = True
-		for path in paths:
-			found = True
+		try:
+			apkg = AlienPackage(path)
+			if not apkg.package_files:
+				logger.info(
+					f"[{cur_pckg}] package does not contain any files"
+					" (is it a meta-package?), skipping"
+				)
+				return True
 
-			name, version, _, _ = pool.packageinfo_from_path(path)
-
-			cur_pckg = f"{name}-{version}"
-			cur_path = pool.relpath(
-				Settings.PATH_USR,
-				name,
-				version
+			logger.info(
+				f"[{cur_pckg}] expanding alien package,"
+				" it may require a lot of time"
 			)
+			apkg.expand(get_internal_archive_rootfolders=True)
+		except Exception as ex:
+			raise CommandError(f"[{cur_pckg}] Unable to load aliensrc from {path} ")
 
-			try:
-				apkg = AlienPackage(path)
-				if not apkg.package_files:
-					logger.info(
-						f"[{cur_pckg}] package does not contain any files"
-						" (is it a meta-package?), skipping"
-					)
-					continue
-				logger.info(
-					f"[{cur_pckg}] expanding alien package,"
-					" it may require a lot of time"
-				)
-				apkg.expand(get_internal_archive_rootfolders=True)
-			except Exception as ex:
-				log_minimal_error(logger, ex, f"[{cur_pckg}] Unable to load aliensrc from {path} ")
-				success = False
-				continue
+		alien_spdx_filename = self.pool.abspath(
+			cur_path,
+			f'{apkg.internal_archive_name}.alien.spdx'
+		) if apkg.internal_archive_name else ""
 
-			try:
-				alien_spdx_filename = pool.abspath(
-					cur_path,
-					f'{apkg.internal_archive_name}.alien.spdx'
-				) if apkg.internal_archive_name else ""
+		a2f = UploadAliens2Fossy(
+			apkg,
+			self.pool,
+			alien_spdx_filename,
+			self.fossywrapper,
+			self.folder
+		)
+		a2f.get_or_do_upload()
+		a2f.run_fossy_scanners()
+		a2f.import_spdx()
 
-				a2f = UploadAliens2Fossy(apkg, pool, alien_spdx_filename, fossy, folder)
-				a2f.get_or_do_upload()
-				a2f.run_fossy_scanners()
-				a2f.import_spdx()
+		self.pool.write_json(
+			a2f.get_metadata_from_fossology(),
+			cur_path,
+			f'{cur_pckg}.fossy.json'
+		)
 
-				pool.write_json(
-					a2f.get_metadata_from_fossology(),
-					cur_path,
-					f'{cur_pckg}.fossy.json'
-				)
+		self.session.package_list_set(
+			{
+				"uploaded": a2f.uploaded,
+				"uploaded_reason": a2f.uploaded_reason
+			},
+			apkg.name,
+			apkg.version.str,
+			apkg.variant
+		)
 
-				if session_id:
-					session.package_list_set(
-						{
-							"uploaded": a2f.uploaded,
-							"uploaded_reason": a2f.uploaded_reason
-						},
-						apkg.name,
-						apkg.version.str,
-						apkg.variant
-					)
-
-			except Exception as ex:
-				log_minimal_error(logger, ex, f"[{cur_pckg}] ")
-				success = False
-
-		if not found:
-			if session_id:
-				logger.info(
-					f"Nothing found for packages in session '{session_id}'. "
-					f"Have you executed 'add' or 'spdxalien' for these packages?"
-				)
-			else:
-				logger.info(
-					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-					f"Have you executed 'add' or 'spdxalien' for these packages?"
-				)
-
-		return success
+		return True

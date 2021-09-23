@@ -37,13 +37,13 @@ from aliens4friends.commands.match import AlienMatcher
 from aliens4friends.commands.snap_match import AlienSnapMatcher
 from aliens4friends.commands.scan import Scan
 from aliens4friends.commands.delta import Delta
-from aliens4friends.commands.spdxdebian import Debian2SPDX
+from aliens4friends.commands.spdxdebian import Debian2SPDX, SpdxDebian
 from aliens4friends.commands.spdxalien import MakeAlienSPDX
 from aliens4friends.commands.harvest import Harvest, Harvester
 from aliens4friends.commands.fossy import Fossy
 from aliens4friends.commands.add import Add
 from aliens4friends.commands.session import Session
-from aliens4friends.commands.upload import UploadAliens2Fossy
+from aliens4friends.commands.upload import Upload, UploadAliens2Fossy
 
 PROGNAME = "aliens4friends"
 
@@ -469,29 +469,20 @@ class Aliens4Friends:
 		)
 
 	def spdxdebian(self) -> bool:
-		return Debian2SPDX.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
+		return SpdxDebian.execute(
 			self.args.use_oldmatcher,
 			self.args.session
 		)
 
 	def spdxalien(self) -> bool:
 		return MakeAlienSPDX.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
 			self.args.use_oldmatcher,
 			self.args.session
 		)
 
 	def upload(self) -> bool:
-		return UploadAliens2Fossy.execute(
-			self.pool,
+		return Upload.execute(
 			self.args.folder,
-			self.args.glob_name,
-			self.args.glob_version,
 			self.args.session
 		)
 

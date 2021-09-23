@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
-from aliens4friends.commons.session import Session, SessionError
+from typing import Any
+from aliens4friends.commands.command import Command, CommandError, Processing
 import os
 import logging
 from uuid import uuid4
-from multiprocessing import Pool as MultiProcessingPool
 
 from spdx.file import File as SPDXFile
 from spdx.utils import NoAssert, SPDXNone
@@ -14,10 +14,10 @@ from spdx.checksum import Algorithm as SPDXAlgorithm
 from spdx.document import Document as SPDXDocument
 
 from aliens4friends.commons.package import AlienPackage
-from aliens4friends.commons.utils import debug_with_stacktrace, md5, log_minimal_error
+from aliens4friends.commons.utils import md5
 from aliens4friends.commons.spdxutils import parse_spdx_tv, write_spdx_tv, fix_spdxtv, EMPTY_FILE_SHA1
 
-from aliens4friends.commons.pool import FILETYPE, Pool
+from aliens4friends.commons.pool import FILETYPE
 from aliens4friends.commons.settings import Settings
 
 from aliens4friends.models.alienmatcher import AlienMatcherModel, AlienSnapMatcherModel
@@ -191,136 +191,100 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 		# alienpackage's matching files and to the alienpackage as a whole
 
 
-class MakeAlienSPDX:
+class MakeAlienSPDX(Command):
+
+	def __init__(self, session_id: str, use_oldmatcher: bool):
+		super().__init__(session_id, processing=Processing.MULTI)
+		self.use_oldmatcher = use_oldmatcher
+
+	def hint(self) -> str:
+		return "match/snapmatch"
+
+	def print_results(self, results: Any) -> None:
+		for res in results:
+			print(res.to_json())
 
 	@staticmethod
 	def execute(
-		pool: Pool,
-		glob_name: str = "*",
-		glob_version: str = "*",
 		use_oldmatcher: bool = False,
 		session_id: str = ""
 	) -> bool:
-
-		filetype = FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH
-
-		# Just take packages from the current session list
-		# On error just return, error messages are inside load()
-		if session_id:
-			try:
-				session = Session(pool, session_id)
-				session.load()
-				paths = session.package_list_paths(filetype)
-			except SessionError:
-				return False
-
-		# ...without a session_id, take information directly from the pool
-		else:
-			paths = pool.absglob(f"{glob_name}/{glob_version}/*.{filetype}")
-
-		multiprocessing_pool = MultiProcessingPool()
-		results = multiprocessing_pool.map(
-			MakeAlienSPDX._execute,
-			[
-				[path, use_oldmatcher, pool] for path in paths
-			]
+		cmd = MakeAlienSPDX(session_id, use_oldmatcher)
+		return cmd.exec_with_paths(
+			FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH,
+			ignore_variant=True
 		)
 
-		if results:
-			for r in results:
-				if not r:
-					return False
-		else:
-			if session_id:
-				logger.info(
-					f"Nothing found for session with ID '{session_id}'. "
-					f"Have you executed 'match/snapmatch' for these packages?"
-				)
-			else:
-				logger.info(
-					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-					f"Have you executed 'match/snapmatch' for these packages?"
-				)
+	def run(self, args) -> bool:
+		path = args[0]
 
-		return True
-
-	@staticmethod
-	def _execute(args) -> bool:
-
-		path, use_oldmatcher, pool = args
-
-		name, version, _, _ = pool.filename_split(path)
+		name, version, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
 
 		try:
-			if use_oldmatcher:
+			if self.use_oldmatcher:
 				model = AlienMatcherModel.from_file(path)
 			else:
 				model = AlienSnapMatcherModel.from_file(path)
-		except Exception as ex:
-			logger.error(f"[{package}] Unable to load json from {pool.clnpath(path)}.")
-			debug_with_stacktrace(logger)
-			return False
+		except Exception:
+			raise CommandError(f"[{package}] Unable to load json from {self.pool.clnpath(path)}.")
 
-		try:
-			if model.errors and 'No internal archive' in model.errors:
-				logger.info(f"[{package}] No internal archive in aliensrc package, skipping")
-				return True
-			alien = model.aliensrc
-			alien_spdx_filename = pool.abspath(
-				Settings.PATH_USR,
-				alien.name,
-				alien.version,
-				f'{alien.internal_archive_name}.alien.spdx'
+		if model.errors and 'No internal archive' in model.errors:
+			logger.info(f"[{package}] No internal archive in aliensrc package, skipping")
+			return True
+
+		alien = model.aliensrc
+		alien_spdx_filename = self.pool.abspath(
+			Settings.PATH_USR,
+			alien.name,
+			alien.version,
+			f'{alien.internal_archive_name}.alien.spdx'
+		)
+
+		if self.pool.cached(alien_spdx_filename, debug_prefix=f"[{package}] "):
+			return True
+
+		alien_package_filename = self.pool.abspath(
+			Settings.PATH_USR,
+			alien.name,
+			alien.version,
+			alien.filename
+		)
+		scancode_spdx_filename = self.pool.abspath_typed(FILETYPE.SCANCODE_SPDX, alien.name, alien.version)
+		fix_spdxtv(scancode_spdx_filename)
+		scancode_spdx, _ = parse_spdx_tv(scancode_spdx_filename)
+		alien_package = AlienPackage(alien_package_filename)
+		alien_package.expand(get_internal_archive_checksums=True)
+
+		deltacodeng_results_filename = ""
+		debian_spdx_filename = ""
+
+		match = model.match
+
+		if match.name:
+			deltacodeng_results_filename = self.pool.abspath_typed(FILETYPE.DELTACODE, alien.name, alien.version)
+			debian_spdx_filename = self.pool.abspath_typed(FILETYPE.DEBIAN_SPDX, match.name, match.version)
+
+		if (
+			os.path.isfile(deltacodeng_results_filename)
+			and os.path.isfile(debian_spdx_filename)
+		):
+			logger.info(f"[{package}] Applying debian spdx to package {alien.name}-{alien.version}")
+			fix_spdxtv(debian_spdx_filename)
+			debian_spdx, _ = parse_spdx_tv(debian_spdx_filename)
+			deltacodeng_results = DeltaCodeModel.from_file(deltacodeng_results_filename)
+			d2as = Debian2AlienSPDX(
+				scancode_spdx,
+				alien_package,
+				debian_spdx,
+				deltacodeng_results
 			)
-
-			if pool.cached(alien_spdx_filename, debug_prefix=f"[{package}] "):
-				return True
-
-			alien_package_filename = pool.abspath(
-				Settings.PATH_USR,
-				alien.name,
-				alien.version,
-				alien.filename
-			)
-			scancode_spdx_filename = pool.abspath_typed(FILETYPE.SCANCODE_SPDX, alien.name, alien.version)
-			fix_spdxtv(scancode_spdx_filename)
-			scancode_spdx, _ = parse_spdx_tv(scancode_spdx_filename)
-			alien_package = AlienPackage(alien_package_filename)
-			alien_package.expand(get_internal_archive_checksums=True)
-
-			deltacodeng_results_filename = ""
-			debian_spdx_filename = ""
-
-			match = model.match
-
-			if match.name:
-				deltacodeng_results_filename = pool.abspath_typed(FILETYPE.DELTACODE, alien.name, alien.version)
-				debian_spdx_filename = pool.abspath_typed(FILETYPE.DEBIAN_SPDX, match.name, match.version)
-
-			if (
-				os.path.isfile(deltacodeng_results_filename)
-				and os.path.isfile(debian_spdx_filename)
-			):
-				logger.info(f"[{package}] Applying debian spdx to package {alien.name}-{alien.version}")
-				fix_spdxtv(debian_spdx_filename)
-				debian_spdx, _ = parse_spdx_tv(debian_spdx_filename)
-				deltacodeng_results = DeltaCodeModel.from_file(deltacodeng_results_filename)
-				d2as = Debian2AlienSPDX(
-					scancode_spdx,
-					alien_package,
-					debian_spdx,
-					deltacodeng_results
-				)
-				d2as.process()
-				write_spdx_tv(d2as.alien_spdx, alien_spdx_filename)
-			else:
-				logger.info(f"[{package}] No debian spdx available, using scancode spdx for package {alien.name}-{alien.version}")
-				s2as = Scancode2AlienSPDX(scancode_spdx, alien_package)
-				s2as.process()
-				write_spdx_tv(s2as.alien_spdx, alien_spdx_filename)
-		except Exception as ex:
-			log_minimal_error(logger, ex, f"[{package}] ")
-			return False
+			d2as.process()
+			write_spdx_tv(d2as.alien_spdx, alien_spdx_filename)
+		else:
+			logger.info(f"[{package}] No debian spdx available, using scancode spdx for package {alien.name}-{alien.version}")
+			s2as = Scancode2AlienSPDX(scancode_spdx, alien_package)
+			s2as.process()
+			write_spdx_tv(s2as.alien_spdx, alien_spdx_filename)
 
 		return True
