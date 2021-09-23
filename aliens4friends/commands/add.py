@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
+from typing import List
+from aliens4friends.commands.command import Command
 import logging
-from posixpath import relpath
 
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.pool import FILETYPE, Pool, SRCTYPE, OVERWRITE, PoolErrorFileExists
-from aliens4friends.commons.settings import Settings
 
 from aliens4friends.models.tinfoilhat import TinfoilHatModel
-from aliens4friends.commons.session import Session, SessionError
+from aliens4friends.commons.session import Session
 from aliens4friends.models.session import SessionPackageModel
 
 from aliens4friends.commons.utils import get_prefix_formatted, log_minimal_error
@@ -19,26 +19,17 @@ logger = logging.getLogger(__name__)
 class AddError(Exception):
 	pass
 
-class Add:
+class Add(Command):
 	"""
     Add packages or result files from another Aliens4Friends pool to this pool
 	structure. Depending of the internal data of each input artifact we
 	calculate the correct position inside the pool's userland repository.
 	"""
 
-	def __init__(self, pool: Pool, session_id: str) -> None:
-		super().__init__()
-		self.pool = pool
+	def __init__(self, session_id: str) -> None:
+		super().__init__(session_id, multiprocessing=False)
 		self.session_list_aliensrc = []
 		self.session_list_tinfoilhat = []
-		self.session = None
-
-		# Load a session if possible, or terminate otherwise
-		# Error messages are already inside load(), let the
-		# caller handle SessionError exceptions
-		if session_id:
-			self.session = Session(pool, session_id)
-			self.session.load(create=True)
 
 	def alienpackage(self, path: str, force: bool) -> None:
 		alienpackage = AlienPackage(path)
@@ -157,25 +148,26 @@ class Add:
 
 		self.session.write_package_list(candidates)
 
+	def run(self, args) -> bool:
+		path, force = args
+		try:
+			logger.info(f"ADD {path}")
+			if path.endswith(FILETYPE.ALIENSRC):
+				self.alienpackage(path, force)
+			elif path.endswith(FILETYPE.TINFOILHAT):
+				self.tinfoilhat(path)
+			else:
+				raise AddError(f"File {path} is not supported for manual adding!")
+		except Exception as ex:
+			log_minimal_error(logger, ex, f"{path} --> ")
+			return False
+		return True
+
 	@staticmethod
-	def execute(file_list, pool: Pool, force: bool, session_id: str) -> bool:
-		adder = Add(pool, session_id)
-		logger.info(f"ADD started with session '{session_id}'.")
-
-		success = True
-		for path in file_list:
-			try:
-				logger.info(f"ADD {path}")
-				if path.endswith(FILETYPE.ALIENSRC):
-					adder.alienpackage(path, force)
-				elif path.endswith(FILETYPE.TINFOILHAT):
-					adder.tinfoilhat(path)
-				else:
-					raise AddError(f"File {path} is not supported for manual adding!")
-			except Exception as ex:
-				log_minimal_error(logger, ex, f"{path} --> ")
-				success = False
-
+	def execute(file_list, force: bool, session_id: str) -> bool:
+		adder = Add(session_id)
+		success = adder.exec(
+			[file, force] for file in file_list
+		)
 		adder.write_session_list()
-
 		return success

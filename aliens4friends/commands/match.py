@@ -7,7 +7,7 @@ import os
 import logging
 from multiprocessing import Pool as MultiProcessingPool
 
-from typing import Tuple, Any, Optional
+from typing import Tuple, Any, Optional, overload
 
 import requests
 from debian.deb822 import Deb822
@@ -54,28 +54,23 @@ class AlienMatcher(Command):
 	]
 	API_URL_ALLSRC = "https://api.ftp-master.debian.org/all_sources"
 
-	def __init__(self, session_id) -> None:
-		pool = Pool(Settings.POOLPATH)
+	def __init__(self, session_id: str) -> None:
 		super().__init__(session_id, multiprocessing=True)
-		if 'DEB_ALL_SOURCES' not in globals():
-			global DEB_ALL_SOURCES
-			DEB_ALL_SOURCES = AlienMatcher.get_deb_all_sources()
-
+		self.set_deb_all_sources()
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
 
-	@staticmethod
-	def get_deb_all_sources() -> Any:
-		# we need a static method that can be invoked before using
-		# multiprocessing in execute()
-		pool = Pool(Settings.POOLPATH)
-		api_response_cached = pool.relpath(
+	def set_deb_all_sources(self) -> None:
+		if 'DEB_ALL_SOURCES' in globals():
+			return
+
+		api_response_cached = self.pool.relpath(
 			Settings.PATH_TMP,
 			f"deb_all_sources.json"
 		)
 		# FIXME add control if cached copy is outdated
 		logger.debug(f"Search cache pool for existing API response.")
 		try:
-			response = pool.get_json(api_response_cached)
+			response = self.pool.get_json(api_response_cached)
 			logger.debug(f"API call result found in cache at {api_response_cached}.")
 		except FileNotFoundError:
 			logger.debug(f"API call result not found in cache. Making an API call...")
@@ -84,9 +79,11 @@ class AlienMatcher(Command):
 				raise AlienMatcherError(
 					f"Cannot get API response, got error {response.status_code}"
 					f" from {AlienMatcher.API_URL_ALLSRC}")
-			pool.write_json(response.text, api_response_cached)
+			self.pool.write_json(response.text, api_response_cached)
 			response = response.text
-		return json.loads(response)
+
+		global DEB_ALL_SOURCES
+		DEB_ALL_SOURCES = json.loads(response)
 
 	def search(self, package: Package) -> Tuple[Package, int, int]:
 		logger.debug(f"[{self.curpkg}] Search for similar packages with {self.API_URL_ALLSRC}.")
@@ -418,12 +415,8 @@ class AlienMatcher(Command):
 		return "add"
 
 	@staticmethod
-	def execute(
-		session_id: str = ""
-	) -> bool:
-
-		am = AlienMatcher(session_id)
-		return am.exec_with_paths(
+	def execute(session_id: str = "") -> bool:
+		return AlienMatcher(session_id).exec_with_paths(
 			FILETYPE.ALIENSRC,
 			ignore_variant=True
 		)

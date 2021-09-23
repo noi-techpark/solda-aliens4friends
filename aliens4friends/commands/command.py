@@ -13,7 +13,7 @@ class Command:
 	def __init__(
 		self,
 		session_id: str,
-		multiprocessing: bool = False
+		multiprocessing: bool
 	) -> None:
 		super().__init__()
 		self.pool = Pool(Settings.POOLPATH)
@@ -26,6 +26,8 @@ class Command:
 		if session_id:
 			self.session = Session(self.pool, session_id)
 			self.session.load(create=True)
+
+		logger.info(f"{self.__class__.__name__.upper()}: Start with session '{session_id}'.")
 
 	def get_paths(
 		self,
@@ -85,8 +87,11 @@ class Command:
 				if not r:
 					return False
 		else:
+			session_info = f" in session '{self.session.session_id}'" if self.session else ""
 			logger.info(
-				f"Nothing found for packages in session '{self.session_id}'. {self._hint()}"
+				f"{self.__class__.__name__.upper()}:"
+				f" Nothing found for packages{session_info}."
+				f" {self._hint()}"
 			)
 
 		return True

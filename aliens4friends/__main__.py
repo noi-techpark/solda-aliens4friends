@@ -443,7 +443,6 @@ class Aliens4Friends:
 		file_list = [ f.name for f in self.args.FILES ]
 		return Add.execute(
 			file_list,
-			self.pool,
 			self.args.force,
 			self.args.session
 		)
