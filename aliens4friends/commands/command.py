@@ -63,25 +63,32 @@ class Command:
 		return filtered_paths
 
 	@abstractclassmethod
-	def run(self, item: Any) -> Any:
+	def run(self, *args: Any) -> Any:
 		raise NotImplementedError(
 			"Implement a run method, that handles each path"
 		)
 
 	def exec(
 		self,
-		input: List[Any]
+		*args: List[Any]
 	) -> bool:
+
+		cleaned_args = []
+		for arg in args:
+			if isinstance(arg, list):
+				cleaned_args = Command._inputlist_add_list(cleaned_args, arg)
+			else:
+				cleaned_args = Command._inputlist_add_constant(cleaned_args, arg)
 
 		results = []
 		if self.multiprocessing:
 			mpool = MultiProcessingPool()
 			results = mpool.map(
 				self.run,
-				input
+				[ [i] for i in cleaned_args ]
 			)
 		else:
-			for item in input:
+			for item in cleaned_args:
 				results.append(self.run(item))
 
 		if results:
@@ -98,6 +105,27 @@ class Command:
 			)
 
 		return True
+
+	@staticmethod
+	def _inputlist_add_constant(inputlist: List, constant):
+		if inputlist and isinstance(inputlist[0], list):
+			return [
+				[ *l, constant ] for l in inputlist
+			]
+
+		return [
+			[
+				l, constant
+			] for l in inputlist
+		]
+
+	@staticmethod
+	def _inputlist_add_list(inputlist, list2):
+		if not inputlist:
+			return list2
+		return [
+			[*l1, l2] for l1 in inputlist for l2 in list2
+		]
 
 	def exec_with_paths(
 		self,

@@ -380,7 +380,8 @@ class AlienMatcher(Command):
 			logger.debug(f"[{self.curpkg}] Result written to {resultpath}.")
 		return amm
 
-	def run(self, package_path: str) -> Optional[AlienMatcherModel]:
+	def run(self, args) -> Optional[AlienMatcherModel]:
+		package_path = args[0]
 		try:
 			package = AlienPackage(package_path)
 			self.curpkg = f"{package.name}-{package.version.str}"

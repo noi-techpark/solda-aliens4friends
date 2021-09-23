@@ -31,7 +31,7 @@ class Add(Command):
 		self.session_list_aliensrc = []
 		self.session_list_tinfoilhat = []
 
-	def alienpackage(self, path: str, force: bool) -> None:
+	def alienpackage(self, path: str, force_overwrite: bool) -> None:
 		alienpackage = AlienPackage(path)
 		if not isinstance(alienpackage, AlienPackage):
 			raise TypeError("Parameter must be an AlienPackage.")
@@ -57,7 +57,7 @@ class Add(Command):
 				filepath,
 				filename,
 				SRCTYPE.PATH,
-				overwrite=OVERWRITE.ALWAYS if force else OVERWRITE.RAISE
+				overwrite=OVERWRITE.ALWAYS if force_overwrite else OVERWRITE.RAISE
 			)
 
 		except PoolErrorFileExists as ex:
@@ -164,10 +164,8 @@ class Add(Command):
 		return True
 
 	@staticmethod
-	def execute(file_list, force: bool, session_id: str) -> bool:
+	def execute(file_list, force_overwrite: bool, session_id: str) -> bool:
 		adder = Add(session_id)
-		success = adder.exec(
-			[file, force] for file in file_list
-		)
+		success = adder.exec(file_list, force_overwrite)
 		adder.write_session_list()
 		return success
