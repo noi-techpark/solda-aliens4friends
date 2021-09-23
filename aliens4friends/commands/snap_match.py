@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 # SPDX-License-Identifier: Apache-2.0
 
+from aliens4friends.commands.command import Command, Processing
 import os
 from aliens4friends.commons.session import Session, SessionError
 from aliens4friends.commons.aliases import ALIASES, EXCLUSIONS
-import collections as col
 import json
 import logging
 import csv
@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 class AlienSnapMatcherError(Exception):
 	pass
 
-class AlienSnapMatcher:
+class AlienSnapMatcher(Command):
 
 	API_URL_ALLSRC = "https://snapshot.debian.org/mr/package/"
 	API_URL_FILES = "https://snapshot.debian.org/file/"
@@ -49,9 +49,8 @@ class AlienSnapMatcher:
 
 	REQUEST_THROTTLE = 5
 
-	def __init__(self) -> None:
-		super().__init__()
-		self.pool = Pool(Settings.POOLPATH)
+	def __init__(self, session_id: str) -> None:
+		super().__init__(session_id, processing=Processing.MULTI)
 		AlienSnapMatcher.loadSources()
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -358,13 +357,13 @@ class AlienSnapMatcher:
 			csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "match status", "version match distance", "name snapmatch", "version snapmatch", "snapmatch status", "version snapmatch distance", "snapscore", "package match info", "version match info"])
 
-	def run(self, package_path: Union[str, Path]) -> Optional[AlienSnapMatcherModel]:
-
+	def run(self, args) -> Optional[AlienSnapMatcherModel]:
+		path = args[0]
 		try:
 			# Return model in any case, we need to keep also "no match" results
-			package = AlienPackage(package_path)
+			package = AlienPackage(path)
 			self.curpkg = f"{package.name}-{package.version.str}"
-			logger.info(f"[{self.curpkg}] Processing {os.path.basename(package_path)}...")
+			logger.info(f"[{self.curpkg}] Processing {os.path.basename(path)}...")
 			amm = AlienSnapMatcherModel(
 				tool=Tool(__name__, Settings.VERSION),
 				aliensrc=AlienSrc(
@@ -556,58 +555,20 @@ class AlienSnapMatcher:
 			global SNAP_ALL_SOURCES
 			SNAP_ALL_SOURCES = AlienSnapMatcher.get_data(AlienSnapMatcher.API_URL_ALLSRC)
 
+	def print_results(self, results: Any) -> None:
+		for match in results:
+			if match:
+				print(match.to_json())
+
+	def hint(self) -> str:
+		return "add"
+
 	@staticmethod
-	def execute(
-		pool: Pool,
-		glob_name: str = "*",
-		glob_version: str = "*",
-		session_id: str = ""
-	) -> bool:
-		AlienSnapMatcher.loadSources()
+	def execute(session_id: str = "") -> bool:
 		AlienSnapMatcher.clearDiff()
 
-		# Just take packages from the current session list
-		# On error just return, error messages are inside load()
-		if session_id:
-			try:
-				session = Session(pool, session_id)
-				session.load()
-				paths = session.package_list_paths(FILETYPE.ALIENSRC)
-			except SessionError:
-				return False
+		return AlienSnapMatcher(session_id).exec_with_paths(
+			FILETYPE.ALIENSRC,
+			ignore_variant=True
+		)
 
-		# ...without a session_id, take information directly from the pool
-		else:
-			paths = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
-
-		results = [
-			AlienSnapMatcher._execute(a)
-			for a in paths
-		]
-
-		if Settings.PRINTRESULT:
-			for match in results:
-				if match:
-					print(match.to_json(indent=2))
-
-		if results:
-			for r in results:
-				if not r:
-					return False
-		else:
-			if session_id:
-				logger.info(
-					f"Nothing found for packages in session '{session_id}'. "
-					f"Have you executed 'add -s {session_id}' for these packages?"
-				)
-			else:
-				logger.info(
-					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-					f"Have you executed 'add' for these packages?"
-				)
-
-		return True
-
-	@staticmethod
-	def _execute(path: Union[str, Path]) -> Optional[AlienSnapMatcherModel]:
-		return AlienSnapMatcher().run(path)

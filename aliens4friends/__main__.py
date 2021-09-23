@@ -453,9 +453,6 @@ class Aliens4Friends:
 
 	def snapmatch(self) -> bool:
 		return AlienSnapMatcher.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
 			self.args.session
 		)
 
