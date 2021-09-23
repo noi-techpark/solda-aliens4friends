@@ -1,15 +1,14 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
-from aliens4friends.commands import session
+from aliens4friends.commands.command import Command, Processing
 from aliens4friends.models.session import SessionPackageModel
-from aliens4friends.commons.session import Session, SessionError
+from aliens4friends.commons.session import Session
 import json
 import logging
 import os
-import re
 import sys
-from typing import List, Dict, Any, Optional, Tuple, Union
+from typing import List, Dict, Any, Optional, Union
 
 from aliens4friends.commons.pool import FILETYPE, Pool, PoolErrorUnsupportedFiletype
 from aliens4friends.commons.package import AlienPackage
@@ -34,7 +33,7 @@ from aliens4friends.models.harvest import (
 from aliens4friends.models.fossy import FossyModel
 from aliens4friends.models.alienmatcher import AlienMatcherModel, AlienSnapMatcherModel
 from aliens4friends.models.deltacode import DeltaCodeModel
-from aliens4friends.models.tinfoilhat import TinfoilHatModel, PackageWithTags, PackageMetaData
+from aliens4friends.models.tinfoilhat import TinfoilHatModel, PackageWithTags
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +41,7 @@ class HarvestException(Exception):
 	pass
 
 # FIXME use the new models everywhere in this class!
-class Harvest:
+class Harvester:
 	"""
 	Go through all files inside the pool and extract useful information to be
 	put inside a final report. This report can then be used for example in a
@@ -127,7 +126,7 @@ class Harvest:
 						"matcher": None
 					}
 				if p.variant not in self.package_groups[group_id]['variants']:
-					self.package_groups[group_id]['variants'][p.variant] = Harvest._create_variant(p)
+					self.package_groups[group_id]['variants'][p.variant] = Harvester._create_variant(p)
 
 		for path in self.input_files:
 
@@ -176,7 +175,7 @@ class Harvest:
 					self.package_groups[group_id]['deltacode'] = dc.header.stats
 				else:
 					if variant not in self.package_groups[group_id]['variants']:
-						self.package_groups[group_id]['variants'][variant] = Harvest._create_variant()
+						self.package_groups[group_id]['variants'][variant] = Harvester._create_variant()
 					self.package_groups[group_id]['variants'][variant]['list'].append( #pytype: disable=attribute-error
 						{
 							"ext": ext,
@@ -324,7 +323,7 @@ class Harvest:
 			if license_id in seen:
 				continue
 			seen.add(license_id)
-			Harvest._increment(result, license_id, 1)
+			Harvester._increment(result, license_id, 1)
 		return result
 
 	def _parse_fossy_ordered_licenses(self, licenses: dict) -> List[LicenseFinding]:
@@ -344,10 +343,10 @@ class Harvest:
 				continue
 			cur_stat_agents = self._parse_fossy_licenselists(license_finding.agentFindings)
 			for k, v in cur_stat_agents.items():
-				Harvest._increment(stat_agents, k, v)
+				Harvester._increment(stat_agents, k, v)
 			cur_stat_conclusions = self._parse_fossy_licenselists(license_finding.conclusions)
 			for k, v in cur_stat_conclusions.items():
-				Harvest._increment(stat_conclusions, k, v)
+				Harvester._increment(stat_conclusions, k, v)
 
 		# Some response key do not do what they promise...
 		# See https://git.ostc-eu.org/playground/fossology/-/blob/dev-packaging/fossywrapper/__init__.py#L565
@@ -399,59 +398,56 @@ class Harvest:
 			source_package.binary_packages = self._parse_tinfoilhat_packages(container.packages)
 			source_package.metadata = container.recipe.metadata
 
-	@staticmethod
-	def execute(
-		pool: Pool,
-		add_missing,
-		glob_name: str = "*",
-		glob_version: str = "*",
-		use_oldmatcher: bool = False,
-		session_id: str = ""
-	) -> bool:
 
-		result_path = pool.relpath(Settings.PATH_STT)
-		pool.mkdir(result_path)
+class Harvest(Command):
+
+	def __init__(self, session_id: str, add_missing: bool, use_oldmatcher: bool):
+		super().__init__(session_id, processing=Processing.SINGLE)
+		self.use_oldmatcher = use_oldmatcher
+		self.add_missing = add_missing
+
+		result_path = self.pool.relpath(Settings.PATH_STT)
+		self.pool.mkdir(result_path)
 		result_file = 'report.harvest.json'
-		output = os.path.join(result_path, result_file)
+		self.output = os.path.join(result_path, result_file)
 
+
+	def get_filelist(self) -> List[str]:
 		files = []
-
-		# Just take packages from the current session list
-		# On error just return, error messages are inside load()
-		if session_id:
-			try:
-				session = Session(pool, session_id)
-				session.load()
-			except SessionError:
-				return False
-
-		for filetype in Harvest.SUPPORTED_FILES:
+		for filetype in Harvester.SUPPORTED_FILES:
 			if (
-				filetype == FILETYPE.ALIENMATCHER and not use_oldmatcher
+				filetype == FILETYPE.ALIENMATCHER and not self.use_oldmatcher
 				or
-				filetype == FILETYPE.SNAPMATCH and use_oldmatcher
+				filetype == FILETYPE.SNAPMATCH and self.use_oldmatcher
 			):
 				continue
 
-			if session_id:
-				files += session.package_list_paths(filetype, only_selected=False)
-			else:
-				for fn in pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.{filetype}"):
-					files.append(str(fn))
+			files += self.session.package_list_paths(filetype, only_selected=False)
+		return files
 
-		harvest = Harvest(
-			pool,
+	def print_results(self, results: Any) -> None:
+		print(results.to_json())
+
+	@staticmethod
+	def execute(
+		add_missing: bool,
+		use_oldmatcher: bool = False,
+		session_id: str = ""
+	) -> bool:
+		cmd = Harvest(session_id, add_missing, use_oldmatcher)
+		return cmd.exec(cmd.get_filelist())
+
+	def run(self, args) -> bool:
+		files = args
+		harvest = Harvester(
+			self.pool,
 			files,
-			output,
-			add_missing,
-			use_oldmatcher,
-			session=session if session else None
+			self.output,
+			self.add_missing,
+			self.use_oldmatcher,
+			session=self.session
 		)
 		harvest.readfile()
-
 		harvest.write_results()
-		logger.info(f'Results written to {pool.clnpath(output)}.')
-		if Settings.PRINTRESULT:
-			print(harvest.result.to_json())
-
+		logger.info(f'Results written to {self.pool.clnpath(self.output)}.')
 		return True

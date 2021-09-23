@@ -254,7 +254,7 @@ class DeltaCodeNG:
 class Delta(Command):
 
 	def __init__(self, session_id: str, use_oldmatcher: bool):
-		super().__init__(session_id, multiprocessing=True)
+		super().__init__(session_id, processing=True)
 		self.use_oldmatcher = use_oldmatcher
 
 	def hint(self) -> str:

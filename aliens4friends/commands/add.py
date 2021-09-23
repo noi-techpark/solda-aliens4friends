@@ -22,7 +22,7 @@ class Add(Command):
 	"""
 
 	def __init__(self, session_id: str) -> None:
-		super().__init__(session_id, multiprocessing=False)
+		super().__init__(session_id, processing=False)
 		self.session_list_aliensrc = []
 		self.session_list_tinfoilhat = []
 

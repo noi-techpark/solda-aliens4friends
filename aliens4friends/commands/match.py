@@ -55,7 +55,7 @@ class AlienMatcher(Command):
 	API_URL_ALLSRC = "https://api.ftp-master.debian.org/all_sources"
 
 	def __init__(self, session_id: str) -> None:
-		super().__init__(session_id, multiprocessing=True)
+		super().__init__(session_id, processing=True)
 		self.set_deb_all_sources()
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
 

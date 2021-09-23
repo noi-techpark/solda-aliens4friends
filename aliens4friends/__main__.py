@@ -39,7 +39,7 @@ from aliens4friends.commands.scan import Scancode
 from aliens4friends.commands.delta import Delta, DeltaCodeNG
 from aliens4friends.commands.spdxdebian import Debian2SPDX
 from aliens4friends.commands.spdxalien import MakeAlienSPDX
-from aliens4friends.commands.harvest import Harvest
+from aliens4friends.commands.harvest import Harvest, Harvester
 from aliens4friends.commands.fossy import Fossy, GetFossyData
 from aliens4friends.commands.add import Add
 from aliens4friends.commands.session import SessionCommand
@@ -418,7 +418,7 @@ class Aliens4Friends:
 		)
 		self._args_defaults(
 			self.parsers[cmd],
-			f"Various files are supported: {Harvest.SUPPORTED_FILES}"
+			f"Various files are supported: {Harvester.SUPPORTED_FILES}"
 		)
 		self._args_print_to_stdout(self.parsers[cmd])
 		self.parsers[cmd].add_argument(
@@ -509,10 +509,7 @@ class Aliens4Friends:
 
 	def harvest(self) -> bool:
 		return Harvest.execute(
-			self.pool,
 			self.args.add_missing,
-			self.args.glob_name,
-			self.args.glob_version,
 			self.args.use_oldmatcher,
 			self.args.session
 		)

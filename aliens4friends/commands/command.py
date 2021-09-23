@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 from abc import abstractclassmethod
+from enum import IntEnum
 from aliens4friends.commons.utils import log_minimal_error
 import logging
 from aliens4friends.commons.settings import Settings
@@ -17,18 +18,22 @@ class CommandError(Exception):
 		super().__init__(msg)
 		self.prefix = prefix
 
+class Processing(IntEnum):
+	MULTI = 0
+	LOOP = 1
+	SINGLE = 2
 
 class Command:
 
 	def __init__(
 		self,
 		session_id: str,
-		multiprocessing: bool
+		processing: Processing
 	) -> None:
 		super().__init__()
 		self.pool = Pool(Settings.POOLPATH)
 		self.session = None
-		self.multiprocessing = multiprocessing
+		self.processing = processing
 
 		# Load a session if possible, or terminate otherwise
 		# Error messages are already inside load(), let the
@@ -95,15 +100,19 @@ class Command:
 				cleaned_args = Command._inputlist_add_constant(cleaned_args, arg)
 
 		results = []
-		if self.multiprocessing:
+		if self.processing == Processing.MULTI:
 			mpool = MultiProcessingPool()
 			results = mpool.map(
 				self._run,
 				[ [i] for i in cleaned_args ]
 			)
-		else:
+		elif self.processing == Processing.SINGLE:
+			results.append(self._run(cleaned_args))
+		elif self.processing == Processing.LOOP:
 			for item in cleaned_args:
 				results.append(self._run(item))
+		else:
+			raise CommandError(f"Unknown Processing Type {self.processing}.")
 
 		if results:
 			self._print_results(results)
