@@ -1,23 +1,18 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
-from typing import List
-from aliens4friends.commands.command import Command
+from aliens4friends.commands.command import Command, CommandError
 import logging
 
 from aliens4friends.commons.package import AlienPackage
-from aliens4friends.commons.pool import FILETYPE, Pool, SRCTYPE, OVERWRITE, PoolErrorFileExists
+from aliens4friends.commons.pool import FILETYPE, SRCTYPE, OVERWRITE, PoolErrorFileExists
 
 from aliens4friends.models.tinfoilhat import TinfoilHatModel
-from aliens4friends.commons.session import Session
 from aliens4friends.models.session import SessionPackageModel
 
 from aliens4friends.commons.utils import get_prefix_formatted, log_minimal_error
 
 logger = logging.getLogger(__name__)
-
-class AddError(Exception):
-	pass
 
 class Add(Command):
 	"""
@@ -150,17 +145,13 @@ class Add(Command):
 
 	def run(self, args) -> bool:
 		path, force = args
-		try:
-			logger.info(f"ADD {path}")
-			if path.endswith(FILETYPE.ALIENSRC):
-				self.alienpackage(path, force)
-			elif path.endswith(FILETYPE.TINFOILHAT):
-				self.tinfoilhat(path)
-			else:
-				raise AddError(f"File {path} is not supported for manual adding!")
-		except Exception as ex:
-			log_minimal_error(logger, ex, f"{path} --> ")
-			return False
+		logger.info(f"ADD: {path}")
+		if path.endswith(FILETYPE.ALIENSRC):
+			self.alienpackage(path, force)
+		elif path.endswith(FILETYPE.TINFOILHAT):
+			self.tinfoilhat(path)
+		else:
+			raise CommandError(f"File {path} is not supported for manual adding!")
 		return True
 
 	@staticmethod

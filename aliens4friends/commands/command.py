@@ -2,6 +2,7 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 from abc import abstractclassmethod
+from aliens4friends.commons.utils import log_minimal_error
 import logging
 from aliens4friends.commons.settings import Settings
 from typing import Any, List
@@ -10,6 +11,12 @@ from aliens4friends.commons.session import Session
 from multiprocessing import Pool as MultiProcessingPool
 
 logger = logging.getLogger(__name__)
+
+class CommandError(Exception):
+	def __init__(self, msg: str, prefix: str = ""):
+		super().__init__(msg)
+		self.prefix = prefix
+
 
 class Command:
 
@@ -62,6 +69,13 @@ class Command:
 
 		return filtered_paths
 
+	def _run(self, *args: Any) -> Any:
+		try:
+			return self.run(*args)
+		except CommandError as ex:
+			log_minimal_error(logger, ex, ex.prefix)
+			return False
+
 	@abstractclassmethod
 	def run(self, *args: Any) -> Any:
 		raise NotImplementedError(
@@ -84,12 +98,12 @@ class Command:
 		if self.multiprocessing:
 			mpool = MultiProcessingPool()
 			results = mpool.map(
-				self.run,
+				self._run,
 				[ [i] for i in cleaned_args ]
 			)
 		else:
 			for item in cleaned_args:
-				results.append(self.run(item))
+				results.append(self._run(item))
 
 		if results:
 			self._print_results(results)

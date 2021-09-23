@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
-from aliens4friends.commands.command import Command
+from aliens4friends.commands.command import Command, CommandError
 import json
 import os
 import logging
@@ -404,8 +404,7 @@ class AlienMatcher(Command):
 			)
 			return amm
 		except PackageError as ex:
-			logger.error(f"[{self.curpkg}] ERROR: {ex}")
-			return None
+			raise CommandError(f"[{self.curpkg}] ERROR: {ex}")
 
 	def print_results(self, results: Any) -> None:
 		for match in results:
