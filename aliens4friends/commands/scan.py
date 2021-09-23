@@ -119,7 +119,7 @@ class Scancode:
 		for path in paths:
 			found = True
 
-			name, version = pool.packageinfo_from_path(path)
+			name, version, _, _ = pool.packageinfo_from_path(path)
 			package = f"{name}-{version}"
 
 			try:

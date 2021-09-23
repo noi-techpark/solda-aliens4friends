@@ -224,7 +224,7 @@ class GetFossyData:
 		for path in paths:
 			found = True
 
-			name, version = pool.packageinfo_from_path(path)
+			name, version, _, _ = pool.packageinfo_from_path(path)
 
 			cur_pckg = f"{name}-{version}"
 			cur_path = os.path.join(

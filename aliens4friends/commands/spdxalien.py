@@ -249,7 +249,7 @@ class MakeAlienSPDX:
 
 		path, use_oldmatcher, pool = args
 
-		name, version = pool.packageinfo_from_path(path)
+		name, version, _, _ = pool.filename_split(path)
 		package = f"{name}-{version}"
 
 		try:

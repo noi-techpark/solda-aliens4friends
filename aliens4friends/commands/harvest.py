@@ -11,7 +11,7 @@ import re
 import sys
 from typing import List, Dict, Any, Optional, Tuple, Union
 
-from aliens4friends.commons.pool import FILETYPE, Pool
+from aliens4friends.commons.pool import FILETYPE, Pool, PoolErrorUnsupportedFiletype
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.settings import Settings
 
@@ -81,28 +81,6 @@ class Harvest:
 		self.use_oldmatcher = use_oldmatcher
 		self.session = session
 
-	# FIXME Move this to Pool
-	@staticmethod
-	def _filename_split(path):
-		p = str(path).split("/")
-		path = os.path.basename(path)
-		package_id, mainext = os.path.splitext(path)
-		if mainext == ".aliensrc":
-			ext = mainext
-		else:
-			package_id, subext = os.path.splitext(package_id)
-			ext = f"{subext}{mainext}"
-
-		ext = ext.lstrip('.')
-		if ext not in Harvest.SUPPORTED_FILES:
-			raise HarvestException("Unsupported file extension")
-
-		name = p[-3]
-		version = p[-2]
-		variant = package_id[len(name)+len(version)+2:]
-
-		return name, version, variant, ext
-
 	def _warn_missing_input(self, package: SourcePackage, package_inputs):
 		missing = []
 		candidates = self.SUPPORTED_FILES.copy()
@@ -161,11 +139,10 @@ class Harvest:
 			try:
 				logger.debug(f"Parsing {self.pool.clnpath(path)}... ")
 				try:
-					name, version, variant, ext = Harvest._filename_split(path)
-				except HarvestException as ex:
-					if str(ex) == "Unsupported file extension":
-						logger.debug(f"File {self.pool.clnpath(path)} is not supported. Skipping...")
-						continue
+					name, version, variant, ext = self.pool.packageinfo_from_path(path)
+				except PoolErrorUnsupportedFiletype:
+					logger.debug(f"File {self.pool.clnpath(path)} is not supported. Skipping...")
+					continue
 
 				group_id = f"{name}-{version}"
 

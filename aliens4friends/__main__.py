@@ -450,9 +450,6 @@ class Aliens4Friends:
 
 	def match(self) -> bool:
 		return AlienMatcher.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
 			self.args.session
 		)
 
