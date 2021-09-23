@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
-from aliens4friends.commands.command import Command, CommandError
+from aliens4friends.commands.command import Command, CommandError, Processing
 import logging
 
 from aliens4friends.commons.package import AlienPackage
@@ -22,7 +22,7 @@ class Add(Command):
 	"""
 
 	def __init__(self, session_id: str) -> None:
-		super().__init__(session_id, processing=False)
+		super().__init__(session_id, processing=Processing.LOOP)
 		self.session_list_aliensrc = []
 		self.session_list_tinfoilhat = []
 

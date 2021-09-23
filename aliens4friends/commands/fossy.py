@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
-from aliens4friends.commands.command import Command, CommandError
+from aliens4friends.commands.command import Command, CommandError, Processing
 import os
 import re
 import logging
@@ -195,8 +195,8 @@ class GetFossyData:
 
 class Fossy(Command):
 
-	def __init__(self, session_id: str, multiprocessing: bool, fossywrapper: FossyWrapper) -> None:
-		super().__init__(session_id, multiprocessing)
+	def __init__(self, session_id: str, processing: Processing, fossywrapper: FossyWrapper) -> None:
+		super().__init__(session_id, processing)
 		self.fossywrapper = fossywrapper
 
 	def hint(self) -> str:
@@ -204,7 +204,7 @@ class Fossy(Command):
 
 	@staticmethod
 	def execute(session_id: str = "") -> bool:
-		cmd = Fossy(session_id, multiprocessing=False, fossywrapper=FossyWrapper())
+		cmd = Fossy(session_id, processing=Processing.LOOP, fossywrapper=FossyWrapper())
 		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
 
 	def run(self, args) -> bool:

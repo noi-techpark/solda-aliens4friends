@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
-from aliens4friends.commands.command import Command, CommandError
+from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.session import Session, SessionError
 import json
 import re
@@ -254,7 +254,7 @@ class DeltaCodeNG:
 class Delta(Command):
 
 	def __init__(self, session_id: str, use_oldmatcher: bool):
-		super().__init__(session_id, processing=True)
+		super().__init__(session_id, processing=Processing.MULTI)
 		self.use_oldmatcher = use_oldmatcher
 
 	def hint(self) -> str:

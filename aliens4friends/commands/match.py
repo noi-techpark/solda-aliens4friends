@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
-from aliens4friends.commands.command import Command, CommandError
+from aliens4friends.commands.command import Command, CommandError, Processing
 import json
 import os
 import logging
@@ -55,7 +55,7 @@ class AlienMatcher(Command):
 	API_URL_ALLSRC = "https://api.ftp-master.debian.org/all_sources"
 
 	def __init__(self, session_id: str) -> None:
-		super().__init__(session_id, processing=True)
+		super().__init__(session_id, processing=Processing.MULTI)
 		self.set_deb_all_sources()
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
 

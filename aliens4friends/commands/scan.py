@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
+from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.models.alienmatcher import AlienMatcherModel, AlienSnapMatcherModel
 from aliens4friends.commons.session import Session, SessionError
 import os
@@ -87,109 +88,85 @@ class Scancode:
 				raise ex
 
 
+class Scan(Command):
+
+	def __init__(self, session_id: str, use_oldmatcher: bool):
+		super().__init__(session_id, processing=Processing.LOOP)
+		self.use_oldmatcher = use_oldmatcher
+		self.scancode = Scancode(self.pool)
+
+	def hint(self) -> str:
+		return "match/snapmatch"
 
 	@staticmethod
 	def execute(
-		pool: Pool,
-		glob_name: str = "*",
-		glob_version: str = "*",
 		use_oldmatcher: bool = False,
 		session_id: str = ""
 	) -> bool:
-		scancode = Scancode(pool)
+		cmd = Scan(session_id, use_oldmatcher)
+		return cmd.exec_with_paths(
+			FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH,
+			ignore_variant=False
+		)
 
-		filetype = FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH
+	def run(self, args):
+		path = args
+		name, version, _, _ = self.pool.packageinfo_from_path(path)
+		package = f"{name}-{version}"
+		result = []
 
-		# Just take packages from the current session list
-		# On error just return, error messages are inside load()
-		if session_id:
-			try:
-				session = Session(pool, session_id)
-				session.load()
-				paths = session.package_list_paths(filetype)
-			except SessionError:
-				return False
+		try:
+			if self.use_oldmatcher:
+				model = AlienMatcherModel.from_file(path)
+			else:
+				model = AlienSnapMatcherModel.from_file(path)
+		except Exception as ex:
+			raise CommandError(f"[{package}] Unable to load json from {self.pool.clnpath(path)}.")
 
-		# ...without a session_id, take information directly from the pool
-		else:
-			paths = pool.absglob(f"{glob_name}/{glob_version}/*.{filetype}")
+		logger.debug(f"[{package}] Files determined through {self.pool.clnpath(path)}")
 
-		found = False
-		success = True
-		for path in paths:
-			found = True
+		try:
+			to_scan = model.match.debsrc_orig or model.match.debsrc_debian # support for Debian Format 1.0 native
+			archive = Archive(self.pool.relpath(to_scan))
+			result.append(
+				self.scancode.run(archive, model.match.name, model.match.version)
+			)
+		except KeyError:
+			logger.info(f"[{package}] no debian match, no debian package to scan here")
+		except TypeError as ex:
+			if not to_scan:  #pytype: disable=name-error
+				logger.info(f"[{package}] no debian orig archive to scan here")
+			else:
+				raise CommandError(f"[{package}] {ex}.")
 
-			name, version, _, _ = pool.packageinfo_from_path(path)
-			package = f"{name}-{version}"
+		except Exception as ex:
+			raise CommandError(logger, ex, f"[{package}] {ex}.")
 
-			try:
-				if use_oldmatcher:
-					model = AlienMatcherModel.from_file(path)
-				else:
-					model = AlienSnapMatcherModel.from_file(path)
-			except Exception as ex:
-				logger.error(f"[{package}] Unable to load json from {pool.clnpath(path)}.")
-				success = False
-				continue
-
-			logger.debug(f"[{package}] Files determined through {pool.clnpath(path)}")
-
-			try:
-				to_scan = model.match.debsrc_orig or model.match.debsrc_debian # support for Debian Format 1.0 native
-				archive = Archive(pool.relpath(to_scan))
-				result = scancode.run(archive, model.match.name, model.match.version)
-				if result and Settings.PRINTRESULT:
-					print(result)
-			except KeyError:
-				logger.info(f"[{package}] no debian match, no debian package to scan here")
-			except TypeError as ex:
-				if not to_scan:  #pytype: disable=name-error
-					logger.info(f"[{package}] no debian orig archive to scan here")
-				else:
-					log_minimal_error(logger, ex, f"[{package}] ")
-					success = False
-			except Exception as ex:
-				log_minimal_error(logger, ex, f"[{package}] ")
-				success = False
-
-			try:
-				archive = Archive(
-					pool.relpath(
-						Settings.PATH_USR,
-						model.aliensrc.name,
-						model.aliensrc.version,
-						model.aliensrc.filename
-					)
-				)
-				result = scancode.run(
-					archive,
+		try:
+			archive = Archive(
+				self.pool.relpath(
+					Settings.PATH_USR,
 					model.aliensrc.name,
 					model.aliensrc.version,
-					os.path.join("files", model.aliensrc.internal_archive_name)
+					model.aliensrc.filename
 				)
-				if result and Settings.PRINTRESULT:
-					with open(result) as r:
-						print(json.dumps(json.load(r), indent=2))
-			except TypeError as ex:
-				if not model.aliensrc.internal_archive_name:
-					logger.info(f"[{package}] no internal archive to scan here")
-				else:
-					log_minimal_error(logger, ex, f"[{package}] ")
-					success = False
-			except Exception as ex:
-				log_minimal_error(logger, ex, f"[{package}] ")
-				success = False
-
-		if not found:
-			if session_id:
-				logger.info(
-					f"Nothing found for packages in session '{session_id}'. "
-					f"Have you executed 'snapmatch/match -s {session_id}' for these packages?"
-				)
+			)
+			result_file = self.scancode.run(
+				archive,
+				model.aliensrc.name,
+				model.aliensrc.version,
+				os.path.join("files", model.aliensrc.internal_archive_name)
+			)
+			if result_file and Settings.PRINTRESULT:
+				with open(result_file) as r:
+					result.append(json.load(r))
+		except TypeError as ex:
+			if not model.aliensrc.internal_archive_name:
+				logger.info(f"[{package}] no internal archive to scan here")
 			else:
-				logger.info(
-					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-					f"Have you executed 'snapmatch/match' for these packages?"
-				)
+				raise CommandError(f"[{package}] {ex}.")
 
-		return success
+		except Exception as ex:
+			raise CommandError(f"[{package}] {ex}.")
+
+		return result
