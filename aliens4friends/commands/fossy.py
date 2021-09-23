@@ -1,24 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
 
-from aliens4friends.commons.session import Session, SessionError
+from aliens4friends.commands.command import Command, CommandError
 import os
 import re
-import json
-import tempfile
 import logging
 from uuid import uuid4
-from typing import Optional, Dict, Any, Generator
+from typing import Optional
 
-from spdx.document import Document as SPDXDocument
 from spdx.package import Package as SPDXPackage
 from spdx.creationinfo import Tool
 from spdx.document import License as SPDXLicense
 
 from aliens4friends.models.fossy import FossyModel
 
-from aliens4friends.commons.pool import FILETYPE, Pool
-from aliens4friends.commons.utils import bash, get_prefix_formatted, log_minimal_error
+from aliens4friends.commons.pool import FILETYPE
+from aliens4friends.commons.utils import bash, get_prefix_formatted
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.fossywrapper import FossyWrapper
@@ -196,105 +193,79 @@ class GetFossyData:
 			"licenses": licenses
 		}
 
+class Fossy(Command):
+
+	def __init__(self, session_id: str, multiprocessing: bool, fossywrapper: FossyWrapper) -> None:
+		super().__init__(session_id, multiprocessing)
+		self.fossywrapper = fossywrapper
+
+	def hint(self) -> str:
+		return "add/match"
+
 	@staticmethod
-	def execute(
-		pool: Pool,
-		glob_name: str = "*",
-		glob_version: str = "*",
-		session_id: str = ""
-	) -> bool:
-		fossy = FossyWrapper()
+	def execute(session_id: str = "") -> bool:
+		cmd = Fossy(session_id, multiprocessing=False, fossywrapper=FossyWrapper())
+		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
 
-		# Just take packages from the current session list
-		# On error just return, error messages are inside load()
-		if session_id:
-			try:
-				session = Session(pool, session_id)
-				session.load()
-				paths = session.package_list_paths(FILETYPE.ALIENSRC)
-			except SessionError:
-				return False
+	def run(self, args) -> bool:
+		path = args
+		name, version, _, _ = self.pool.packageinfo_from_path(path)
 
-		# ...without a session_id, take information directly from the pool
-		else:
-			paths = pool.absglob(f"{glob_name}/{glob_version}/*.aliensrc")
+		cur_pckg = f"{name}-{version}"
+		cur_path = os.path.join(
+			Settings.PATH_USR,
+			name,
+			version
+		)
 
-		found = False
-		success = True
-		for path in paths:
-			found = True
+		out_spdx_filename = self.pool.relpath(cur_path, f'{cur_pckg}.final.spdx')
+		if self.pool.cached(out_spdx_filename, debug_prefix=f"[{cur_pckg}] "):
+			return True
 
-			name, version, _, _ = pool.packageinfo_from_path(path)
+		try:
+			apkg = AlienPackage(path)
+		except Exception as ex:
+			raise CommandError(f"[{cur_pckg}] Unable to load aliensrc from {path}: ERROR: {ex}")
 
-			cur_pckg = f"{name}-{version}"
-			cur_path = os.path.join(
-				Settings.PATH_USR,
-				name,
-				version
+		if not apkg.package_files:
+			logger.debug(f"[{cur_pckg}] This is a metapackage with no files, skipping")
+			return True
+
+		try:
+			alien_spdx = [
+				p for p in self.pool.absglob(f"{cur_path}/*.alien.spdx")
+			]
+			if len(alien_spdx) == 0:
+				alien_spdx_filename = None
+			elif len(alien_spdx) == 1:
+				alien_spdx_filename = alien_spdx[0]
+				logger.info(f"[{cur_pckg}] using {self.pool.clnpath(alien_spdx_filename)}")
+			else:
+				raise GetFossyDataException(
+					f"[{cur_pckg}] Something's wrong, more than one alien spdx"
+					f" file found in pool: {alien_spdx}"
+				)
+			alien_fossy_json_filename = self.pool.relpath(cur_path, f'{cur_pckg}.{FILETYPE.FOSSY}')
+			logger.info(f"[{cur_pckg}] Getting spdx and json data from Fossology")
+			gfd = GetFossyData(self.fossywrapper, apkg, alien_spdx_filename)
+			doc = gfd.get_spdx()
+			self.pool.write_spdx_with_history(doc, get_prefix_formatted(), out_spdx_filename)
+			fossy_json = gfd.get_metadata_from_fossology()
+
+			fossy_json['metadata'] = {
+				"name": apkg.name,
+				"version": apkg.metadata['version'],
+				"revision": apkg.metadata['revision'],
+				"variant": apkg.variant
+			}
+
+			fossy_data = FossyModel.decode(fossy_json)
+			self.pool.write_json_with_history(
+				fossy_data, get_prefix_formatted(), alien_fossy_json_filename
 			)
 
-			out_spdx_filename = pool.relpath(cur_path, f'{cur_pckg}.final.spdx')
-			if os.path.isfile(out_spdx_filename) and Settings.POOLCACHED:
-				logger.info(f"[{cur_pckg}] Fossy spdx already generated, skipping")
-				continue
+		except Exception as ex:
+			raise CommandError(f"[{cur_pckg}] ERROR: {ex}")
 
-			try:
-				apkg = AlienPackage(path)
-			except Exception as ex:
-				log_minimal_error(logger, ex, f"[{cur_pckg}] Unable to load aliensrc from {path} ")
-				success = False
-				continue
-			if not apkg.package_files:
-				logger.info(f"[{cur_pckg}] This is a metapackage with no files, skipping")
-				continue
+		return True
 
-			try:
-				alien_spdx = [
-					p for p in pool.absglob(f"{cur_path}/*.alien.spdx")
-				]
-				if len(alien_spdx) == 0:
-					alien_spdx_filename = None
-				elif len(alien_spdx) == 1:
-					alien_spdx_filename = alien_spdx[0]
-					logger.info(f"[{cur_pckg}] using {pool.clnpath(alien_spdx_filename)}")
-				else:
-					raise GetFossyDataException(
-						f"[{cur_pckg}] Something's wrong, more than one alien spdx"
-						f" file found in pool: {alien_spdx}"
-					)
-				alien_fossy_json_filename = pool.relpath(cur_path, f'{cur_pckg}.{FILETYPE.FOSSY}')
-				logger.info(f"[{cur_pckg}] Getting spdx and json data from Fossology")
-				gfd = GetFossyData(fossy, apkg, alien_spdx_filename)
-				doc = gfd.get_spdx()
-				pool.write_spdx_with_history(doc, get_prefix_formatted(), out_spdx_filename)
-				fossy_json = gfd.get_metadata_from_fossology()
-
-				fossy_json['metadata'] = {
-					"name": apkg.name,
-					"version": apkg.metadata['version'],
-					"revision": apkg.metadata['revision'],
-					"variant": apkg.variant
-				}
-
-				fossy_data = FossyModel.decode(fossy_json)
-				pool.write_json_with_history(
-					fossy_data, get_prefix_formatted(), alien_fossy_json_filename
-				)
-
-			except Exception as ex:
-				log_minimal_error(logger, ex, f"[{cur_pckg}] ")
-				success = False
-
-		if not found:
-			if session_id:
-				logger.info(
-					f"Nothing found for session with ID '{session_id}'. "
-					f"Have you executed 'match' for these packages?"
-				)
-			else:
-				logger.info(
-					f"Nothing found for packages '{glob_name}' with versions '{glob_version}'. "
-					f"Have you executed 'add' for these packages?"
-				)
-
-		return success

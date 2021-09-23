@@ -82,7 +82,7 @@ class Command:
 	@abstractclassmethod
 	def run(self, *args: Any) -> Any:
 		raise NotImplementedError(
-			"Implement a run method, that handles each path"
+			"Implement a run method giving any argument you need"
 		)
 
 	def exec(self, *args) -> bool:

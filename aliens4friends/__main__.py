@@ -40,7 +40,7 @@ from aliens4friends.commands.delta import Delta, DeltaCodeNG
 from aliens4friends.commands.spdxdebian import Debian2SPDX
 from aliens4friends.commands.spdxalien import MakeAlienSPDX
 from aliens4friends.commands.harvest import Harvest
-from aliens4friends.commands.fossy import GetFossyData
+from aliens4friends.commands.fossy import Fossy, GetFossyData
 from aliens4friends.commands.add import Add
 from aliens4friends.commands.session import SessionCommand
 from aliens4friends.commands.upload import UploadAliens2Fossy
@@ -503,10 +503,7 @@ class Aliens4Friends:
 		)
 
 	def fossy(self) -> bool:
-		return GetFossyData.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
+		return Fossy.execute(
 			self.args.session
 	)
 
