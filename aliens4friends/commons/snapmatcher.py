@@ -1,47 +1,33 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 # SPDX-License-Identifier: Apache-2.0
 
-from aliens4friends.commands.command import Command, Processing
-import os
-from aliens4friends.commons.session import Session, SessionError
-from aliens4friends.commons.aliases import ALIASES, EXCLUSIONS
+import csv
 import json
 import logging
-import csv
 import time
-
-from pathlib import Path
-
-from aliens4friends.commons.pool import FILETYPE, Pool, PoolError
-from aliens4friends.models.base import ModelError
-from aliens4friends.commons.settings import Settings
-from aliens4friends.commons.calc import Calc
-from aliens4friends.commons.aliases import ALIASES, EXCLUSIONS
-from aliens4friends.commons.version import Version
-from aliens4friends.commons.utils import md5sum
-
-from typing import Union, Any, Optional, List
+from typing import Any, List, Union
 
 import requests
 from debian.deb822 import Deb822
-
 from urllib3.exceptions import NewConnectionError
 
-from aliens4friends.commons.package import AlienPackage, PackageError
-from aliens4friends.models.alienmatcher import (
-	AlienSnapMatcherModel,
-	Tool,
-	AlienSrc,
-	DebianSnapMatch,
-	SourceFile
-)
+from aliens4friends.commands.command import Command, Processing
+from aliens4friends.commons.aliases import ALIASES
+from aliens4friends.commons.calc import Calc
+from aliens4friends.commons.package import AlienPackage
+from aliens4friends.commons.pool import FILETYPE, Pool
+from aliens4friends.commons.settings import Settings
+from aliens4friends.commons.utils import md5sum
+from aliens4friends.commons.version import Version
+from aliens4friends.models.alienmatcher import (AlienSnapMatcherModel,
+                                                DebianSnapMatch, SourceFile)
 
 logger = logging.getLogger(__name__)
 
 class AlienSnapMatcherError(Exception):
 	pass
 
-class AlienSnapMatcher(Command):
+class AlienSnapMatcher:
 
 	API_URL_ALLSRC = "https://snapshot.debian.org/mr/package/"
 	API_URL_FILES = "https://snapshot.debian.org/file/"
@@ -49,8 +35,7 @@ class AlienSnapMatcher(Command):
 
 	REQUEST_THROTTLE = 5
 
-	def __init__(self, session_id: str) -> None:
-		super().__init__(session_id, processing=Processing.MULTI)
+	def __init__(self) -> None:
 		AlienSnapMatcher.loadSources()
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
 
@@ -357,84 +342,6 @@ class AlienSnapMatcher(Command):
 			csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "match status", "version match distance", "name snapmatch", "version snapmatch", "snapmatch status", "version snapmatch distance", "snapscore", "package match info", "version match info"])
 
-	def run(self, args) -> Optional[AlienSnapMatcherModel]:
-		path = args[0]
-		try:
-			# Return model in any case, we need to keep also "no match" results
-			package = AlienPackage(path)
-			self.curpkg = f"{package.name}-{package.version.str}"
-			logger.info(f"[{self.curpkg}] Processing {os.path.basename(path)}...")
-			amm = AlienSnapMatcherModel(
-				tool=Tool(__name__, Settings.VERSION),
-				aliensrc=AlienSrc(
-					name = package.name,
-					version = package.version.str,
-					alternative_names = package.alternative_names,
-					internal_archive_name = None,
-					filename = package.archive_name,
-					files = package.package_files
-				)
-			)
-			results = []
-			results.append(package.name)
-			results.append(package.version.str)
-
-			resultpath = self.pool.relpath_typed(FILETYPE.SNAPMATCH, package.name, package.version.str)
-
-			try:
-				if not Settings.POOLCACHED:
-					raise FileNotFoundError()
-				amm = AlienSnapMatcherModel.from_file(self.pool.abspath(resultpath))
-				if amm.match.score > 0:
-					results.append(amm.match.name)
-					results.append(amm.match.version)
-					results.append('found')
-					v1 = Version(amm.match.version)
-					distance = package.version.distance(v1)
-					results.append(distance)
-					results.append(amm.match.score)
-					results.append(amm.match.package_score)
-					results.append(amm.match.version_score)
-					outcome = "MATCH"
-				else:
-					results.append('-')
-					results.append('-')
-					results.append('missing')
-					results.append('-')
-					results.append(amm.match.score)
-					results.append('-')
-					results.append('-')
-					amm.errors.append("NO MATCH without errors")
-					outcome = "NO MATCH"
-				logger.debug(f"[{self.curpkg}] Result already exists ({outcome}), skipping.")
-			except (PoolError, ModelError, FileNotFoundError) as ex:
-				if type(ex) == PoolError or type(ex) == ModelError:
-					logger.warning(
-						f"[{self.curpkg}] Result file already exists but it is not readable: {ex}"
-					)
-				if package.name in EXCLUSIONS:
-					logger.warning(f"[{self.curpkg}] IGNORED: Known non-debian")
-					amm.errors.append("IGNORED: Known non-debian")
-				else:
-					package.expand()
-					amm.aliensrc.internal_archive_name = package.internal_archive_name
-					self.match(package, amm, results) # pass amm and results by reference
-				self.pool.write_json(amm, resultpath)
-
-			compare_csv = self.pool.abspath(
-				Settings.PATH_USR,
-				f"match_vs_snapmatch.csv"
-			)
-
-			with open(compare_csv, 'a+') as csvfile:
-				csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-				csvwriter.writerow(results)
-
-		except (AlienSnapMatcherError, PackageError) as ex:
-				logger.error(f"[{self.curpkg}] ERROR: {ex}")
-
-		return amm
-
 	# search for package string, if found check version and return an overall matching score
 	def _searchPackage(self, apkg : AlienPackage, altSearch = True) -> DebianSnapMatch:
 		logger.info(f"[{self.curpkg}] Searching for {apkg.name} v {apkg.version.str} @ snapshot.debian.org/mr/package")
@@ -554,21 +461,3 @@ class AlienSnapMatcher(Command):
 		if 'SNAP_ALL_SOURCES' not in globals():
 			global SNAP_ALL_SOURCES
 			SNAP_ALL_SOURCES = AlienSnapMatcher.get_data(AlienSnapMatcher.API_URL_ALLSRC)
-
-	def print_results(self, results: Any) -> None:
-		for match in results:
-			if match:
-				print(match.to_json())
-
-	def hint(self) -> str:
-		return "add"
-
-	@staticmethod
-	def execute(session_id: str = "") -> bool:
-		AlienSnapMatcher.clearDiff()
-
-		return AlienSnapMatcher(session_id).exec_with_paths(
-			FILETYPE.ALIENSRC,
-			ignore_variant=True
-		)
-

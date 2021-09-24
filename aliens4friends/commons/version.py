@@ -111,20 +111,6 @@ class Version:
 			((dist_revision1 + dist_revision2 + dist_post) * 10 if dist_major == 0 and dist_minor == 0 and dist_micro == 0 else 0)
 		)
 
-	def distance_note(self, distance: Union[int, str]) -> Union[int, str]:
-		if not isinstance(distance, int):
-			return distance
-
-		if distance == Version.OK_DISTANCE:
-			return "GREEN"
-		#if distance < 1000:
-		#	return "GREEN"
-		if distance <  Version.KO_DISTANCE:
-			return "YELLOW"
-		if distance < Version.MAX_DISTANCE:
-			return "RED"
-		return "VERSION INVALID"
-
 	def __lt__(self, other: _TVersion) -> bool:
 		return self.debian_version < other.debian_version
 

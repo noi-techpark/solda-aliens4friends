@@ -25,25 +25,24 @@ settings.
 
 """
 
-import logging
 import argparse
+import logging
 import sys
 from textwrap import dedent
 
-from aliens4friends.commons.settings import Settings
-from aliens4friends.commons.pool import Pool
-
-from aliens4friends.commands.match import AlienMatcher
-from aliens4friends.commands.snap_match import AlienSnapMatcher
-from aliens4friends.commands.scan import Scan
-from aliens4friends.commands.delta import Delta
-from aliens4friends.commands.spdxdebian import Debian2SPDX, SpdxDebian
-from aliens4friends.commands.spdxalien import MakeAlienSPDX
-from aliens4friends.commands.harvest import Harvest, Harvester
-from aliens4friends.commands.fossy import Fossy
 from aliens4friends.commands.add import Add
+from aliens4friends.commands.delta import Delta
+from aliens4friends.commands.fossy import Fossy
+from aliens4friends.commands.harvest import Harvest, Harvester
+from aliens4friends.commands.match import Match
+from aliens4friends.commands.scan import Scan
 from aliens4friends.commands.session import Session
-from aliens4friends.commands.upload import Upload, UploadAliens2Fossy
+from aliens4friends.commands.snapmatch import SnapMatch
+from aliens4friends.commands.spdxalien import SpdxAlien
+from aliens4friends.commands.spdxdebian import SpdxDebian
+from aliens4friends.commands.upload import Upload
+from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.settings import Settings
 
 PROGNAME = "aliens4friends"
 
@@ -327,7 +326,6 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
 	def parser_snapmatch(self, cmd: str) -> None:
@@ -337,7 +335,6 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
 	def parser_scan(self, cmd: str) -> None:
@@ -349,7 +346,6 @@ class Aliens4Friends:
 			self.parsers[cmd]
 		)
 		self._args_print_to_stdout(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
@@ -360,7 +356,6 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
@@ -371,7 +366,6 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
@@ -382,7 +376,6 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
@@ -392,7 +385,6 @@ class Aliens4Friends:
 			help="Upload Alien Packages to Fossology"
 		)
 		self._args_defaults(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self.parsers[cmd].add_argument(
 			"--folder",
 			type = str,
@@ -407,7 +399,6 @@ class Aliens4Friends:
 			help="Get final SPDX and json data from Fossology"
 		)
 		self._args_defaults(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
 	def parser_harvest(self, cmd: str) -> None:
@@ -427,7 +418,6 @@ class Aliens4Friends:
 			default = False,
 			help = "Add missing input files to the report while harvesting."
 		)
-		self._args_glob(self.parsers[cmd])
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
@@ -447,12 +437,12 @@ class Aliens4Friends:
 		)
 
 	def match(self) -> bool:
-		return AlienMatcher.execute(
+		return Match.execute(
 			self.args.session
 		)
 
 	def snapmatch(self) -> bool:
-		return AlienSnapMatcher.execute(
+		return SnapMatch.execute(
 			self.args.session
 		)
 
@@ -475,7 +465,7 @@ class Aliens4Friends:
 		)
 
 	def spdxalien(self) -> bool:
-		return MakeAlienSPDX.execute(
+		return SpdxAlien.execute(
 			self.args.use_oldmatcher,
 			self.args.session
 		)
