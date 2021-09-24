@@ -42,12 +42,14 @@ class SnapMatch(Command):
 		)
 
 	def run(self, args) -> Optional[AlienSnapMatcherModel]:
-		path = args[0]
+		path = args
+
+		#FIXME Move this run code to the AlienSnapMatcher class
 
 		# Return model in any case, we need to keep also "no match" results
 		package = AlienPackage(path)
-		self.curpkg = f"{package.name}-{package.version.str}"
-		logger.info(f"[{self.curpkg}] Processing {os.path.basename(path)}...")
+		self.alienmatcher.curpkg = f"{package.name}-{package.version.str}"
+		logger.info(f"[{self.alienmatcher.curpkg}] Processing {os.path.basename(path)}...")
 		amm = AlienSnapMatcherModel(
 			tool=Tool(__name__, Settings.VERSION),
 			aliensrc=AlienSrc(
@@ -90,14 +92,14 @@ class SnapMatch(Command):
 				results.append('-')
 				amm.errors.append("NO MATCH without errors")
 				outcome = "NO MATCH"
-			logger.debug(f"[{self.curpkg}] Result already exists ({outcome}), skipping.")
+			logger.debug(f"[{self.alienmatcher.curpkg}] Result already exists ({outcome}), skipping.")
 		except (PoolError, ModelError, FileNotFoundError) as ex:
 			if type(ex) == PoolError or type(ex) == ModelError:
 				logger.warning(
-					f"[{self.curpkg}] Result file already exists but it is not readable: {ex}"
+					f"[{self.alienmatcher.curpkg}] Result file already exists but it is not readable: {ex}"
 				)
 			if package.name in EXCLUSIONS:
-				logger.info(f"[{self.curpkg}] IGNORED: Known non-debian")
+				logger.info(f"[{self.alienmatcher.curpkg}] IGNORED: Known non-debian")
 				amm.errors.append("IGNORED: Known non-debian")
 			else:
 				package.expand()

@@ -23,9 +23,9 @@ class Match(Command):
 		return "add"
 
 	def run(self, args) -> Optional[AlienMatcherModel]:
-		path = args[0]
+		path = args
 
-		#FIXME Move this run code to the AlienMatcher class, some for other commands
+		#FIXME Move this run code to the AlienMatcher class
 		try:
 			package = AlienPackage(path)
 			self.alienmatcher.curpkg = f"{package.name}-{package.version.str}"

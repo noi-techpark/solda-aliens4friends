@@ -7,7 +7,8 @@ import tempfile
 
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.archive import Archive
-from aliens4friends.commons.debian2spdx import Debian2SPDX
+from aliens4friends.commons.debian2spdx import (Debian2SPDX,
+                                                Debian2SPDXException)
 from aliens4friends.commons.pool import FILETYPE
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.utils import bash
@@ -47,7 +48,7 @@ class SpdxDebian(Command):
 				model = AlienMatcherModel.from_file(path)
 			else:
 				model = AlienSnapMatcherModel.from_file(path)
-		except Exception as ex:
+		except Exception:
 			raise CommandError(f"[{package}] Unable to load json from {self.pool.clnpath(path)}.")
 
 		logger.debug(f"[{package}] Files determined through {self.pool.clnpath(path)}")
@@ -109,20 +110,24 @@ class SpdxDebian(Command):
 		dorig = debsrc_orig or ""
 		ddeb = debsrc_debian or ""
 		logger.info(f"[{package}] generating spdx from {self.pool.clnpath(dorig)} and {ddeb}")
-		d2s = Debian2SPDX(debsrc_orig, debsrc_debian)
-		d2s.generate_SPDX()
-		logger.info(f"[{package}] writing spdx to {self.pool.clnpath(debian_spdx_filename)}")
-		d2s.write_SPDX(debian_spdx_filename)
-		debian_copyright_filename = self.pool.abspath(
-			Settings.PATH_DEB,
-			match.name,
-			match.version,
-			f'{match.name}-{match.version}_debian_copyright'
-		)
-		if os.path.isfile(debian_copyright_filename) and Settings.POOLCACHED:
-			logger.debug(f"[{package}] debian/copyright already extracted, skipping")
-			return True
-		logger.info(f"[{package}] extracting debian/copyright")
-		d2s.write_debian_copyright(debian_copyright_filename)
+
+		try:
+			d2s = Debian2SPDX(debsrc_orig, debsrc_debian)
+			d2s.generate_SPDX()
+			logger.info(f"[{package}] writing spdx to {self.pool.clnpath(debian_spdx_filename)}")
+			d2s.write_SPDX(debian_spdx_filename)
+			debian_copyright_filename = self.pool.abspath(
+				Settings.PATH_DEB,
+				match.name,
+				match.version,
+				f'{match.name}-{match.version}_debian_copyright'
+			)
+			if os.path.isfile(debian_copyright_filename) and Settings.POOLCACHED:
+				logger.debug(f"[{package}] debian/copyright already extracted, skipping")
+				return True
+			logger.info(f"[{package}] extracting debian/copyright")
+			d2s.write_debian_copyright(debian_copyright_filename)
+		except Debian2SPDXException as ex:
+			logger.warning(f"[{package}] {ex}")
 
 		return True

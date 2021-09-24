@@ -231,6 +231,7 @@ class Aliens4Friends:
 	def config(self) -> None:
 		for k, v in Settings.DOTENV.items():
 			print(f"{k}={v}")
+		exit(0)
 
 	def help(self) -> None:
 		docparts = __doc__.split(
