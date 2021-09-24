@@ -70,19 +70,18 @@ class Command:
 				if package_id in candidates:
 					continue
 				candidates.append(package_id)
-			filtered_paths.append(path)
+			filtered_paths.append(str(path))
 
 		return filtered_paths
 
 	def _run(self, *args: Any) -> Any:
 		try:
 			return self.run(*args)
+		except CommandError as ex:
+			log_minimal_error(logger, ex, ex.prefix)
 		except Exception as ex:
-			prefix = ""
-			if "prefix" in ex.__dict__.keys():
-				prefix = ex.prefix
-			log_minimal_error(logger, ex, prefix)
-			return False
+			log_minimal_error(logger, ex)
+		return False
 
 	@abstractclassmethod
 	def run(self, *args: Any) -> Any:

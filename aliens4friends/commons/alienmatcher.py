@@ -12,7 +12,7 @@ from aliens4friends.commons.archive import Archive, ArchiveError
 from aliens4friends.commons.calc import Calc
 from aliens4friends.commons.package import (AlienPackage, DebianPackage,
                                             Package, PackageError)
-from aliens4friends.commons.pool import FILETYPE
+from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.utils import sha1sum
 from aliens4friends.commons.version import Version
@@ -27,10 +27,6 @@ class AlienMatcherError(Exception):
 	pass
 
 class AlienMatcher:
-
-	# Type hints for attributes not declared in __init__
-	curpkg: str
-
 	"""
 	Class to match an entry inside a yocto manifest file with debian packages
 	libraries through an API, exactly or if not possible find the closest
@@ -41,6 +37,9 @@ class AlienMatcher:
 	- Debian versioning: https://readme.phys.ethz.ch/documentation/debian_version_numbers/
 	"""
 
+	# Type hints for attributes not declared in __init__
+	curpkg: str
+
 	DEBIAN_BASEURL = [
 		"http://deb.debian.org/debian/pool/main",
 		"http://security.debian.org/debian-security/pool/updates/main",
@@ -48,7 +47,8 @@ class AlienMatcher:
 	]
 	API_URL_ALLSRC = "https://api.ftp-master.debian.org/all_sources"
 
-	def __init__(self, session_id: str) -> None:
+	def __init__(self, pool: Pool) -> None:
+		self.pool = pool
 		self.set_deb_all_sources()
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
 

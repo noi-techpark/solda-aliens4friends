@@ -11,7 +11,6 @@ import requests
 from debian.deb822 import Deb822
 from urllib3.exceptions import NewConnectionError
 
-from aliens4friends.commands.command import Command, Processing
 from aliens4friends.commons.aliases import ALIASES
 from aliens4friends.commons.calc import Calc
 from aliens4friends.commons.package import AlienPackage
@@ -35,10 +34,10 @@ class AlienSnapMatcher:
 
 	REQUEST_THROTTLE = 5
 
-	def __init__(self) -> None:
+	def __init__(self, pool: Pool) -> None:
 		AlienSnapMatcher.loadSources()
 		logging.getLogger("urllib3").setLevel(logging.WARNING)
-
+		self.pool = pool
 
 	@staticmethod
 	def get_data(uri : str) -> Any:

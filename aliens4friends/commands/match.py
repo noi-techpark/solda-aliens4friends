@@ -17,7 +17,7 @@ class Match(Command):
 
 	def __init__(self, session_id: str) -> None:
 		super().__init__(session_id, processing=Processing.LOOP)
-		self.alienmatcher = AlienMatcher(session_id)
+		self.alienmatcher = AlienMatcher(self.pool)
 
 	def hint(self) -> str:
 		return "add"

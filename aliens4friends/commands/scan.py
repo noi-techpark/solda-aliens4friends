@@ -67,7 +67,7 @@ class Scan(Command):
 				raise CommandError(f"[{package}] {ex}.")
 
 		except Exception as ex:
-			raise CommandError(logger, ex, f"[{package}] {ex}.")
+			raise CommandError(f"[{package}] {ex}.")
 
 		try:
 			archive = Archive(

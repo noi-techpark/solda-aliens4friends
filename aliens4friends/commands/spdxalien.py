@@ -8,7 +8,8 @@ from typing import Any
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.pool import FILETYPE
-from aliens4friends.commons.scancode2alienspdx import Debian2AlienSPDX
+from aliens4friends.commons.scancode2alienspdx import (Debian2AlienSPDX,
+                                                       Scancode2AlienSPDX)
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.spdxutils import (fix_spdxtv, parse_spdx_tv,
                                               write_spdx_tv)
