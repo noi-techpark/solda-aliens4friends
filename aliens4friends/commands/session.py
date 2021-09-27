@@ -1,16 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
-from aliens4friends.commands.command import Command, CommandError, Processing
-import logging
 import json
+import logging
 import re
 from typing import Tuple
 
+from aliens4friends.commands.command import Command, CommandError, Processing
+from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.session import Session, SessionError
-from aliens4friends.commons.pool import Pool, FILETYPE
-from aliens4friends.models.session import SessionPackageModel
 from aliens4friends.models.alienmatcher import AlienMatcherModel
+from aliens4friends.models.session import SessionPackageModel
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ FILTERS = {
 	"include-exclude": filter_include_exclude
 }
 
-class Session(Command):
+class SessionCmd(Command):
 
 	def __init__(self, session_id: str, create: bool, filter_str: str):
 		super().__init__(session_id, processing=Processing.SINGLE)
@@ -86,11 +86,13 @@ class Session(Command):
 		create: bool = False,
 		filter_str: str = ""
 	) -> bool:
-		cmd = Session(session_id, create, filter_str)
-		cmd.exec()
+		cmd = SessionCmd(session_id, create, filter_str)
+		return cmd.exec()
 
 	def run(self, args):
 		if self.create:
+			if not self.session:
+				self.session = Session(self.pool)
 			self.session.create()
 			print(self.session.session_id)
 			return True

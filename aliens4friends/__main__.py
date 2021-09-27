@@ -36,7 +36,7 @@ from aliens4friends.commands.fossy import Fossy
 from aliens4friends.commands.harvest import Harvest, Harvester
 from aliens4friends.commands.match import Match
 from aliens4friends.commands.scan import Scan
-from aliens4friends.commands.session import Session
+from aliens4friends.commands.session import SessionCmd
 from aliens4friends.commands.snapmatch import SnapMatch
 from aliens4friends.commands.spdxalien import SpdxAlien
 from aliens4friends.commands.spdxdebian import SpdxDebian
@@ -154,12 +154,13 @@ class Aliens4Friends:
 		if hasattr(self.args, 'print') and self.args.print:
 			Settings.DOTENV["A4F_PRINTRESULT"] = Settings.PRINTRESULT = True
 
-	def _args_session(self, parser: argparse.ArgumentParser) -> None:
+	def _args_session(self, parser: argparse.ArgumentParser, required: bool = True) -> None:
 		parser.add_argument(
 			"-s",
 			"--session",
 			type = str,
 			default="",
+			required=required,
 			help="Use a session to create a list of packages, otherwise all packages inside the pool are used"
 		)
 
@@ -297,7 +298,7 @@ class Aliens4Friends:
 			default = False,
 			help = "Create a new session from a given SESSION or random ID (if absent)"
 		)
-		self._args_session(self.parsers[cmd])
+		self._args_session(self.parsers[cmd], required=False)
 
 	def parser_add(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -423,7 +424,7 @@ class Aliens4Friends:
 		self._args_session(self.parsers[cmd])
 
 	def session(self) -> bool:
-		return Session.execute(
+		return SessionCmd.execute(
 			self.args.session,
 			self.args.create,
 			self.args.filter

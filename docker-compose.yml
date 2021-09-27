@@ -3,37 +3,37 @@
 
 version: '3.4'
 services:
-    fossology:
-        build:
-            dockerfile: infrastructure/docker/fossology.dockerfile
-            context: .
-            args:
-                FOSSOLOGY_REPO_PATH: /
-        environment:
-            FOSSOLOGY_DB_HOST: postgres
-            FOSSOLOGY_DB_NAME: fossology
-            FOSSOLOGY_DB_USER: fossy
-            FOSSOLOGY_DB_PASSWORD: fossy
-        depends_on:
-            - postgres
-        ports:
-            - 8999:80
-        volumes:
-            - ./:/code
-    postgres:
-        image: postgres:12
-        environment:
-            POSTGRES_DB: fossology
-            POSTGRES_USER: fossy
-            POSTGRES_PASSWORD: fossy
-        volumes:
-            - ../fossydb/:/var/lib/postgresql/data/
-        ports:
-            - 5555:5432
-    toolchain:
-        build:
-            dockerfile: infrastructure/docker/toolchain.dockerfile
-            context: .
-        volumes:
-            - ./:/code
-        working_dir: /code
+  fossology:
+    build:
+      dockerfile: infrastructure/docker/fossology.dockerfile
+      context: .
+      args:
+        FOSSOLOGY_REPO_PATH: /
+    environment:
+      FOSSOLOGY_DB_HOST: postgres
+      FOSSOLOGY_DB_NAME: fossology
+      FOSSOLOGY_DB_USER: fossy
+      FOSSOLOGY_DB_PASSWORD: fossy
+    depends_on:
+      - postgres
+    ports:
+      - 8999:80
+    volumes:
+      - ./:/code
+  postgres:
+    image: postgres:12
+    environment:
+      POSTGRES_DB: fossology
+      POSTGRES_USER: fossy
+      POSTGRES_PASSWORD: fossy
+    volumes:
+      - ../fossydb/:/var/lib/postgresql/data/
+    ports:
+      - 5555:5432
+  toolchain:
+    build:
+      dockerfile: infrastructure/docker/toolchain.dockerfile
+      context: .
+    volumes:
+      - ./:/code
+    working_dir: /code

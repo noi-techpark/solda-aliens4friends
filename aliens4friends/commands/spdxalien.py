@@ -49,6 +49,7 @@ class SpdxAlien(Command):
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
 
+		#FIXME Move this run code to Debian2AlienSPDX
 		try:
 			if self.use_oldmatcher:
 				model = AlienMatcherModel.from_file(path)
