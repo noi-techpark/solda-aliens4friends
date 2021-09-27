@@ -96,4 +96,6 @@ class Scan(Command):
 		except Exception as ex:
 			raise CommandError(f"[{package}] {ex}.")
 
-		return result
+		# Return a non-empty list, if we got no results but also no errors,
+		# otherwise correct runs which skip all files would fail!
+		return [ True ] if not result else result
