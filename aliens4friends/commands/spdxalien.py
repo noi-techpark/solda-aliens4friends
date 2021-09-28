@@ -58,7 +58,7 @@ class SpdxAlien(Command):
 		except Exception:
 			raise CommandError(f"[{package}] Unable to load json from {self.pool.clnpath(path)}.")
 
-		if model.errors and 'No internal archive' in model.errors:
+		if not model.aliensrc.internal_archive_name:
 			logger.info(f"[{package}] No internal archive in aliensrc package, skipping")
 			return True
 
