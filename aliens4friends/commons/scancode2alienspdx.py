@@ -18,7 +18,7 @@ from aliens4friends.models.deltacode import DeltaCodeModel
 logger = logging.getLogger(__name__)
 
 # proximity2debian levels
-FULL_PROXIMITY = 1
+FULL_PROXIMITY = 1.0
 NEARLY_FULL_PROXIMITY = 0.92
 MIN_ACCEPTABLE_PROXIMITY = 0.3
 
@@ -60,7 +60,7 @@ class Scancode2AlienSPDX:
 
 class Debian2AlienSPDX(Scancode2AlienSPDX):
 
-	proximity: int  # pytype hint to resolve attribute-errors
+	proximity: float  # pytype hint to resolve attribute-errors
 
 	def __init__(self,
 			scancode_spdx: SPDXDocument,
@@ -176,7 +176,7 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 			s.changed_files_with_changed_copyright_or_license
 			+ s.new_files_with_license_or_copyright
 		)
-		self.proximity = int(similar / (similar + different))
+		self.proximity = similar / (similar + different)
 		# excluding deleted files and new files with no license/copyright from
 		# the count, on purpose, because here the need is to have  a criterion
 		# to decide whether to apply debian/copyright metadata to the
