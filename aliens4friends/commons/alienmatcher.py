@@ -3,7 +3,9 @@
 
 import json
 import logging
-from typing import Tuple
+import os
+from pathlib import Path
+from typing import Tuple, Union
 
 import requests
 from debian.deb822 import Deb822
@@ -285,31 +287,40 @@ class AlienMatcher:
 			debian_control['Format']
 		)
 
-	def match(self, apkg: AlienPackage) -> AlienMatcherModel:
+	def match(self, full_archive_path: Union[Path, str]) -> AlienMatcherModel:
+
+		try:
+			package = AlienPackage(full_archive_path)
+			self.curpkg = f"{package.name}-{package.version.str}"
+			logger.info(f"[{self.curpkg}] Processing {package.archive_name}...")
+			package.expand()
+		except PackageError as ex:
+			raise AlienMatcherError(f"[{self.curpkg}] ERROR: {ex}")
+
 		errors = []
 		logger.debug(f"[{self.curpkg}] Find a matching package on Debian repositories.")
-		int_arch_count = apkg.internal_archive_count()
+		int_arch_count = package.internal_archive_count()
 		if int_arch_count > 1:
-			if apkg.internal_archive_name:
+			if package.internal_archive_name:
 				logger.info(
 					f"[{self.curpkg}] Alien Package has more than one"
 					 " internal archive, using just primary archive"
-					f" '{apkg.internal_archive_name}' for comparison"
+					f" '{package.internal_archive_name}' for comparison"
 				)
 			else:
 				logger.info(
-					f"[{apkg.name}-{apkg.version.str}] IGNORED: Alien Package has"
+					f"[{package.name}-{package.version.str}] IGNORED: Alien Package has"
 					f" {int_arch_count} internal archives and no primary archive."
 					 " We support comparison of one archive only at the moment!"
 				)
 				errors.append(f"{int_arch_count} internal archives and no primary archive")
 		elif int_arch_count == 0:
 			logger.info(
-				f"[{apkg.name}-{apkg.version.str}] IGNORED: Alien Package has"
+				f"[{package.name}-{package.version.str}] IGNORED: Alien Package has"
 				 " no internal archive, nothing to compare!"
 			)
 			errors.append("no internal archive")
-		resultpath = self.pool.relpath_typed(FILETYPE.ALIENMATCHER, apkg.name, apkg.version.str)
+		resultpath = self.pool.relpath_typed(FILETYPE.ALIENMATCHER, package.name, package.version.str)
 		try:
 			if not Settings.POOLCACHED:
 				raise FileNotFoundError()
@@ -332,19 +343,19 @@ class AlienMatcher:
 			amm = AlienMatcherModel(
 				tool=Tool(__name__, Settings.VERSION),
 				aliensrc=AlienSrc(
-					apkg.name,
-					apkg.version.str,
-					apkg.alternative_names,
-					apkg.internal_archive_name,
-					apkg.archive_name,
-					apkg.package_files
+					package.name,
+					package.version.str,
+					package.alternative_names,
+					package.internal_archive_name,
+					package.archive_name,
+					package.package_files
 				)
 			)
 
 			try:
-				if apkg.has_internal_primary_archive():
+				if package.has_internal_primary_archive():
 
-					match, package_score, version_score = self.search(apkg)
+					match, package_score, version_score = self.search(package)
 
 					# It will use the cache, but we need the package also if the
 					# SPDX was already generated from the Debian sources.
@@ -371,4 +382,19 @@ class AlienMatcher:
 			amm.errors = errors
 			self.pool.write_json(amm, resultpath)
 			logger.debug(f"[{self.curpkg}] Result written to {resultpath}.")
+
+		debsrc_debian = amm.match.debsrc_debian
+		debsrc_debian = os.path.basename(debsrc_debian) if debsrc_debian else ''
+
+		debsrc_orig = amm.match.debsrc_orig
+		debsrc_orig = os.path.basename(debsrc_orig) if debsrc_orig else ''
+
+		outcome = 'MATCH' if debsrc_debian or debsrc_orig else 'NO MATCH'
+		if not debsrc_debian and not debsrc_orig and not amm.errors:
+			amm.errors = 'NO MATCH without errors'
+		logger.info(
+			f"[{self.curpkg}] {outcome}:"
+			f" {debsrc_debian} {debsrc_orig} {'; '.join(amm.errors)}"
+		)
+
 		return amm
