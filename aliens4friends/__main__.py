@@ -41,8 +41,11 @@ from aliens4friends.commands.snapmatch import SnapMatch
 from aliens4friends.commands.spdxalien import SpdxAlien
 from aliens4friends.commands.spdxdebian import SpdxDebian
 from aliens4friends.commands.upload import Upload
-from aliens4friends.commons.pool import Pool
+from aliens4friends.commands.listpool import ListPool
+from aliens4friends.commands.command import Processing
+from aliens4friends.commons.pool import Pool, FILETYPE
 from aliens4friends.commons.settings import Settings
+from aliens4friends.commons.utils import get_attr_names
 
 PROGNAME = "aliens4friends"
 
@@ -61,7 +64,8 @@ SUPPORTED_COMMANDS = [
 	"harvest",
 	"snapmatch",
 	"help",
-	"session"
+	"session",
+	"listpool"
 ]
 
 class Aliens4Friends:
@@ -416,11 +420,33 @@ class Aliens4Friends:
 		self._args_print_to_stdout(self.parsers[cmd])
 		self.parsers[cmd].add_argument(
 			"--add-missing",
-			action = "store_true",
+			action = "store_true",a4f listpool -s jleyicmxhlylovrw --processing MULTI --filetype ALIENSRC --testarg ciao
 			default = False,
 			help = "Add missing input files to the report while harvesting."
 		)
 		self._args_use_oldmatcher(self.parsers[cmd])
+		self._args_session(self.parsers[cmd])
+	
+	def parser_listpool(self, cmd:str) -> None:
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="List files in pool for debugging"
+		)
+		self._args_defaults(self.parsers[cmd])
+		self.parsers[cmd].add_argument(
+			"--processing",
+			choices=get_attr_names(Processing),
+			default="LOOP"
+		)
+		self.parsers[cmd].add_argument(
+			"--filetype",
+			choices=get_attr_names(FILETYPE),
+			required=True
+		)
+		self.parsers[cmd].add_argument(
+			"--testarg",
+			help="test argument for debugging purposes"
+		)
 		self._args_session(self.parsers[cmd])
 
 	def session(self) -> bool:
@@ -488,6 +514,14 @@ class Aliens4Friends:
 			self.args.add_missing,
 			self.args.use_oldmatcher,
 			self.args.session
+		)
+
+	def listpool(self) -> bool:
+		return ListPool.execute(
+			self.args.session,
+			self.args.filetype,
+			self.args.processing,
+			self.args.testarg
 		)
 
 
