@@ -420,7 +420,7 @@ class Aliens4Friends:
 		self._args_print_to_stdout(self.parsers[cmd])
 		self.parsers[cmd].add_argument(
 			"--add-missing",
-			action = "store_true",a4f listpool -s jleyicmxhlylovrw --processing MULTI --filetype ALIENSRC --testarg ciao
+			action = "store_true",
 			default = False,
 			help = "Add missing input files to the report while harvesting."
 		)
