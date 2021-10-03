@@ -17,7 +17,8 @@ class ListPool(Command):
         session_id: str = "",
         filetype: str = "TINFOILHAT",
         processing: str = "LOOP",
-        testarg: str = ""
+        testarg: str = "",
+        testarg2: str = ""
     ) -> bool:
         try:
             cmd = ListPool(session_id, getattr(Processing, processing))
@@ -26,8 +27,13 @@ class ListPool(Command):
         
         try:
             args = [ getattr(FILETYPE, filetype), True ]
-            if testarg:
+            if testarg and not testarg2:
                 args.append(testarg)
+            if not testarg and testarg2:
+                args.append(testarg2)
+            if testarg and testarg2:
+                args.append([testarg, testarg2])
+
             return cmd.exec_with_paths(*args)
         except AttributeError:
             raise CommandError(f"unknown filetype: {filetype}")

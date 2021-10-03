@@ -447,6 +447,10 @@ class Aliens4Friends:
 			"--testarg",
 			help="test argument for debugging purposes"
 		)
+		self.parsers[cmd].add_argument(
+			"--testarg2",
+			help="2nd test argument for debugging purposes"
+		)
 		self._args_session(self.parsers[cmd])
 
 	def session(self) -> bool:
@@ -521,7 +525,8 @@ class Aliens4Friends:
 			self.args.session,
 			self.args.filetype,
 			self.args.processing,
-			self.args.testarg
+			self.args.testarg,
+			self.args.testarg2
 		)
 
 
