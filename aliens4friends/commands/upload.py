@@ -70,7 +70,7 @@ class Upload(Command):
 			self.fossywrapper,
 			self.folder
 		)
-		a2f.get_or_do_upload()
+		upload_id = a2f.get_or_do_upload()
 		a2f.run_fossy_scanners()
 		a2f.import_spdx()
 
@@ -90,4 +90,4 @@ class Upload(Command):
 			apkg.variant
 		)
 
-		return True
+		return upload_id

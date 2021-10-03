@@ -98,4 +98,4 @@ class Scan(Command):
 
 		# Return a non-empty list, if we got no results but also no errors,
 		# otherwise correct runs which skip all files would fail!
-		return [ True ] if not result else result
+		return [ " " ] if not result else result

@@ -115,4 +115,4 @@ class SpdxAlien(Command):
 			s2as.process()
 			write_spdx_tv(s2as.alien_spdx, alien_spdx_filename)
 
-		return True
+		return alien_spdx_filename

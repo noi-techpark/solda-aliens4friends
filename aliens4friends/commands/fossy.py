@@ -90,5 +90,5 @@ class Fossy(Command):
 		except Exception as ex:
 			raise CommandError(f"[{cur_pckg}] ERROR: {ex}")
 
-		return True
+		return alien_fossy_json_filename
 

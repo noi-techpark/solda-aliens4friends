@@ -124,10 +124,10 @@ class SpdxDebian(Command):
 			)
 			if os.path.isfile(debian_copyright_filename) and Settings.POOLCACHED:
 				logger.debug(f"[{package}] debian/copyright already extracted, skipping")
-				return True
-			logger.info(f"[{package}] extracting debian/copyright")
-			d2s.write_debian_copyright(debian_copyright_filename)
+			else:
+				logger.info(f"[{package}] extracting debian/copyright")
+				d2s.write_debian_copyright(debian_copyright_filename)
+			return([debian_copyright_filename, debian_spdx_filename])
 		except Debian2SPDXException as ex:
 			logger.warning(f"[{package}] {ex}")
-
-		return True
+			return True

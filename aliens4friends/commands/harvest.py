@@ -60,4 +60,4 @@ class Harvest(Command):
 		harvest.readfile()
 		harvest.write_results()
 		logger.info(f'Results written to {self.pool.clnpath(self.output)}.')
-		return True
+		return self.output
