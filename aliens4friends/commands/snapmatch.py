@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 class SnapMatch(Command):
 
-	def __init__(self, session_id: str) -> None:
-		super().__init__(session_id, processing=Processing.LOOP)
+	def __init__(self, session_id: str, dryrun: bool) -> None:
+		super().__init__(session_id, Processing.LOOP, dryrun)
 		AlienSnapMatcher.clearDiff() #FIXME Should we move this into AlienSnapMatcher itself?
 		self.alienmatcher = AlienSnapMatcher(self.pool)
 
@@ -35,8 +35,8 @@ class SnapMatch(Command):
 		return "add"
 
 	@staticmethod
-	def execute(session_id: str = "") -> bool:
-		return SnapMatch(session_id).exec_with_paths(
+	def execute(session_id: str = "", dryrun: bool = False) -> bool:
+		return SnapMatch(session_id, dryrun).exec_with_paths(
 			FILETYPE.ALIENSRC,
 			ignore_variant=True
 		)

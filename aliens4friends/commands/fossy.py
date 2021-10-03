@@ -19,16 +19,16 @@ logger = logging.getLogger(__name__)
 
 class Fossy(Command):
 
-	def __init__(self, session_id: str) -> None:
-		super().__init__(session_id, processing=Processing.LOOP)
+	def __init__(self, session_id: str, dryrun: bool) -> None:
+		super().__init__(session_id, Processing.LOOP, dryrun)
 		self.fossywrapper = FossyWrapper()
 
 	def hint(self) -> str:
 		return "add/match"
 
 	@staticmethod
-	def execute(session_id: str = "") -> bool:
-		cmd = Fossy(session_id)
+	def execute(session_id: str = "", dryrun: bool = False) -> bool:
+		cmd = Fossy(session_id, dryrun)
 		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
 
 	def run(self, path) -> Union[str, bool]:

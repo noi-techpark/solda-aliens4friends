@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 class Harvest(Command):
 
-	def __init__(self, session_id: str, add_missing: bool, use_oldmatcher: bool):
-		super().__init__(session_id, processing=Processing.SINGLE)
+	def __init__(self, session_id: str, add_missing: bool, use_oldmatcher: bool, dryrun: bool):
+		super().__init__(session_id, Processing.SINGLE, dryrun)
 		self.use_oldmatcher = use_oldmatcher
 		self.add_missing = add_missing
 		result_path = self.pool.relpath(Settings.PATH_STT)
@@ -43,9 +43,10 @@ class Harvest(Command):
 	def execute(
 		add_missing: bool,
 		use_oldmatcher: bool = False,
-		session_id: str = ""
+		session_id: str = "",
+		dryrun: bool = False
 	) -> bool:
-		cmd = Harvest(session_id, add_missing, use_oldmatcher)
+		cmd = Harvest(session_id, add_missing, use_oldmatcher, dryrun)
 		return cmd.exec(cmd.get_filelist())
 
 	def run(self, files: List[str]) -> str:

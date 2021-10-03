@@ -10,6 +10,7 @@ from aliens4friends.commons.settings import Settings
 from typing import Any, List, Union
 from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.session import Session
+from aliens4friends.commons.utils import get_func_arg_names
 from multiprocessing import Pool as MultiProcessingPool
 
 logger = logging.getLogger(__name__)
@@ -29,12 +30,14 @@ class Command:
 	def __init__(
 		self,
 		session_id: str,
-		processing: Processing
+		processing: Processing,
+		dryrun: bool = False
 	) -> None:
 		super().__init__()
 		self.pool = Pool(Settings.POOLPATH)
 		self.session = None
 		self.processing = processing
+		self.dryrun = dryrun
 
 		# Load a session if possible, or terminate otherwise
 		# Error messages are already inside load(), let the
@@ -83,6 +86,13 @@ class Command:
 		  only input possible with MULTI processing) and then converts it into a
 		  series of arguments for the run() method
 		"""
+		if self.dryrun:
+			classname = self.__class__.__name__.upper()
+			run_arg_names = ", ".join(get_func_arg_names(self.__class__.run))
+			logger.info(
+				f"[DRYRUN] {classname}: calling run({run_arg_names}) with arguments {args}"
+			)
+			return True
 		try:
 			return self.run(*args)
 		except CommandError as ex:

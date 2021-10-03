@@ -193,6 +193,12 @@ class Aliens4Friends:
 			default = False,
 			help = "Show only warnings and errors. This overrides the A4F_LOGLEVEL env var."
 		)
+		group.add_argument(
+			"--dryrun",
+			help = "Log operations to be done without doing anything",
+			action = "store_true",
+			default = False
+		)
 
 	def _args_glob(self, parser: argparse.ArgumentParser):
 		parser.add_argument(
@@ -465,59 +471,69 @@ class Aliens4Friends:
 		return Add.execute(
 			file_list,
 			self.args.force,
-			self.args.session
+			self.args.session,
+			self.args.dryrun
 		)
 
 	def match(self) -> bool:
 		return Match.execute(
-			self.args.session
+			self.args.session,
+			self.args.dryrun
 		)
 
 	def snapmatch(self) -> bool:
 		return SnapMatch.execute(
-			self.args.session
+			self.args.session,
+			self.args.dryrun
 		)
 
 	def scan(self) -> bool:
 		return Scan.execute(
 			self.args.use_oldmatcher,
-			self.args.session
+			self.args.session,
+			self.args.dryrun
 		)
 
 	def delta(self) -> bool:
 		return Delta.execute(
 			self.args.use_oldmatcher,
-			self.args.session
+			self.args.session,
+			self.args.dryrun
 		)
 
 	def spdxdebian(self) -> bool:
 		return SpdxDebian.execute(
 			self.args.use_oldmatcher,
-			self.args.session
+			self.args.session,
+			self.args.dryrun
 		)
 
 	def spdxalien(self) -> bool:
 		return SpdxAlien.execute(
 			self.args.use_oldmatcher,
-			self.args.session
+			self.args.session,
+			self.args.dryrun
 		)
 
 	def upload(self) -> bool:
 		return Upload.execute(
 			self.args.folder,
-			self.args.session
+			self.args.session,
+			self.args.dryrun
 		)
 
 	def fossy(self) -> bool:
 		return Fossy.execute(
-			self.args.session
+			self.args.session,
+			self.args.dryrun
 	)
 
 	def harvest(self) -> bool:
 		return Harvest.execute(
 			self.args.add_missing,
 			self.args.use_oldmatcher,
-			self.args.session
+			self.args.session,
+			self.args.dryrun
 		)
 
 	def listpool(self) -> bool:

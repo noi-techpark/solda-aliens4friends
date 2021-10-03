@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 class SpdxDebian(Command):
 
-	def __init__(self, session_id: str, use_oldmatcher: bool):
-		super().__init__(session_id, processing=Processing.MULTI)
+	def __init__(self, session_id: str, use_oldmatcher: bool, dryrun: bool):
+		super().__init__(session_id, Processing.MULTI, dryrun)
 		self.use_oldmatcher = use_oldmatcher
 
 	def hint(self) -> str:
@@ -30,9 +30,10 @@ class SpdxDebian(Command):
 	@staticmethod
 	def execute(
 		use_oldmatcher: bool = False,
-		session_id: str = ""
+		session_id: str = "",
+		dryrun: bool = False
 	) -> bool:
-		cmd = SpdxDebian(session_id, use_oldmatcher)
+		cmd = SpdxDebian(session_id, use_oldmatcher, dryrun)
 		return cmd.exec_with_paths(
 			FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH,
 			ignore_variant=True

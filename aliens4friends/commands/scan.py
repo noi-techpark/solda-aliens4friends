@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 class Scan(Command):
 
-	def __init__(self, session_id: str, use_oldmatcher: bool):
-		super().__init__(session_id, processing=Processing.LOOP)
+	def __init__(self, session_id: str, use_oldmatcher: bool, dryrun: bool):
+		super().__init__(session_id, Processing.LOOP, dryrun)
 		self.use_oldmatcher = use_oldmatcher
 		self.scancode = Scancode(self.pool)
 
@@ -29,9 +29,10 @@ class Scan(Command):
 	@staticmethod
 	def execute(
 		use_oldmatcher: bool = False,
-		session_id: str = ""
+		session_id: str = "",
+		dryrun: bool = False
 	) -> bool:
-		cmd = Scan(session_id, use_oldmatcher)
+		cmd = Scan(session_id, use_oldmatcher, dryrun)
 		return cmd.exec_with_paths(
 			FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH,
 			ignore_variant=False
