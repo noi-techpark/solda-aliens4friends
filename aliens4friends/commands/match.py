@@ -20,8 +20,7 @@ class Match(Command):
 	def hint(self) -> str:
 		return "add"
 
-	def run(self, args) -> Optional[AlienMatcherModel]:
-		path = args
+	def run(self, path: str) -> Optional[AlienMatcherModel]:
 		return self.alienmatcher.match(path)
 
 	def print_results(self, results: Any) -> None:

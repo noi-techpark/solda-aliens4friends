@@ -2,6 +2,8 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 import logging
+from typing import Union
+
 from aliens4friends.commons.fossyupload import UploadAliens2Fossy
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.pool import FILETYPE
@@ -29,8 +31,7 @@ class Upload(Command):
 		cmd = Upload(session_id, folder)
 		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
 
-	def run(self, args):
-		path = args
+	def run(self, path: str) -> Union[int, bool]:
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 
 		cur_pckg = f"{name}-{version}"

@@ -3,6 +3,7 @@
 
 import logging
 import os
+from typing import Union
 
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.fossydownload import (GetFossyData,
@@ -30,8 +31,7 @@ class Fossy(Command):
 		cmd = Fossy(session_id)
 		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
 
-	def run(self, args) -> bool:
-		path = args
+	def run(self, path) -> Union[str, bool]:
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 
 		cur_pckg = f"{name}-{version}"

@@ -54,7 +54,7 @@ class Harvester:
 	def __init__(
 		self,
 		pool: Pool,
-		input_files,
+		input_files: List[str],
 		result_file : str,
 		add_missing : bool = False,
 		use_oldmatcher: bool = False,

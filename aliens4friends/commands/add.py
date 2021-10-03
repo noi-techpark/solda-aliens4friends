@@ -143,8 +143,7 @@ class Add(Command):
 
 		self.session.write_package_list(candidates)
 
-	def run(self, args) -> bool:
-		path, force = args
+	def run(self, path: str, force: bool) -> bool:
 		logger.info(f"ADD: {path}")
 		if path.endswith(FILETYPE.ALIENSRC):
 			self.alienpackage(path, force)

@@ -3,7 +3,7 @@
 
 import logging
 import os
-from typing import Any
+from typing import Any, Union
 
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.package import AlienPackage
@@ -43,8 +43,7 @@ class SpdxAlien(Command):
 			ignore_variant=True
 		)
 
-	def run(self, args) -> bool:
-		path = args[0]
+	def run(self, path: str) -> Union[str, bool]:
 
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"

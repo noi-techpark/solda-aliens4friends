@@ -4,6 +4,7 @@
 import logging
 import os
 import tempfile
+from typing import Union, List
 
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.archive import Archive
@@ -37,8 +38,7 @@ class SpdxDebian(Command):
 			ignore_variant=True
 		)
 
-	def run(self, args) -> bool:
-		path = args[0]
+	def run(self, path: str) -> Union[List[str], bool]:
 
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"

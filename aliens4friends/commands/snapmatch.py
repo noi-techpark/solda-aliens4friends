@@ -41,8 +41,7 @@ class SnapMatch(Command):
 			ignore_variant=True
 		)
 
-	def run(self, args) -> Optional[AlienSnapMatcherModel]:
-		path = args
+	def run(self, path) -> Optional[AlienSnapMatcherModel]:
 
 		#FIXME Move this run code to the AlienSnapMatcher class
 

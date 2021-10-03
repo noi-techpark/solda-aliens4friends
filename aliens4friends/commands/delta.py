@@ -2,13 +2,14 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 import logging
-from typing import Any
+from typing import Union, List
 
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.deltacodeng import DeltaCodeNG
 from aliens4friends.commons.pool import FILETYPE
 from aliens4friends.models.alienmatcher import (AlienMatcherModel,
                                                 AlienSnapMatcherModel)
+from aliens4friends.models.deltacode import DeltaCodeModel	
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +22,12 @@ class Delta(Command):
 	def hint(self) -> str:
 		return "match/snapmatch"
 
-	def print_results(self, results: Any) -> None:
+	def print_results(self, results: List[Union[DeltaCodeModel, bool]]) -> None:
 		for res in results:
-			print(res.to_json())
+			if isinstance(res, DeltaCodeModel):
+				print(res.to_json())
+			else:
+				print(res)
 
 	@staticmethod
 	def execute(
@@ -37,8 +41,7 @@ class Delta(Command):
 			ignore_variant=True
 		)
 
-	def run(self, args) -> Any:
-		path = args[0]
+	def run(self, path: str) -> Union[DeltaCodeModel, bool]:
 
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"

@@ -48,8 +48,7 @@ class Harvest(Command):
 		cmd = Harvest(session_id, add_missing, use_oldmatcher)
 		return cmd.exec(cmd.get_filelist())
 
-	def run(self, args) -> bool:
-		files = args
+	def run(self, files: List[str]) -> str:
 		harvest = Harvester(
 			self.pool,
 			files,
