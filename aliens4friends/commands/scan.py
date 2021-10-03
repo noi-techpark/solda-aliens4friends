@@ -4,7 +4,7 @@
 import json
 import logging
 import os
-from typing import List
+from typing import List, Optional
 
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.archive import Archive
@@ -38,7 +38,7 @@ class Scan(Command):
 			ignore_variant=False
 		)
 
-	def run(self, path: str) -> List[str]: 
+	def run(self, path: str) -> List[Optional[str]]: 
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
 		result = []
