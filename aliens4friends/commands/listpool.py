@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: Alberto Pianon <pianon@array.eu>
+
 import logging
 
 from aliens4friends.commons.pool import FILETYPE
