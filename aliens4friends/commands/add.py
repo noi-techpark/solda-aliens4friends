@@ -125,7 +125,7 @@ class Add(Command):
 				)
 			):
 				candidate.selected = False
-				candidate.reason = f"No {FILETYPE.ALIENSRC.value} found"
+				candidate.selected_reason = f"No {FILETYPE.ALIENSRC.value} found"
 				continue
 
 			if (
@@ -139,7 +139,7 @@ class Add(Command):
 				)
 			):
 				candidate.selected = False
-				candidate.reason = f"No {FILETYPE.TINFOILHAT.value} found"
+				candidate.selected_reason = f"No {FILETYPE.TINFOILHAT.value} found"
 
 		self.session.write_package_list(candidates)
 
