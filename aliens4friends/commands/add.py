@@ -21,8 +21,9 @@ class Add(Command):
 	calculate the correct position inside the pool's userland repository.
 	"""
 
-	def __init__(self, session_id: str) -> None:
-		super().__init__(session_id, processing=Processing.LOOP)
+		# add command must not use multiprocessing, because at the end
+		# it has to update the session file, but data would not be available
+		# using multiprocessing
 		self.session_list_aliensrc = []
 		self.session_list_tinfoilhat = []
 

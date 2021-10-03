@@ -66,7 +66,7 @@ class SpdxDebian(Command):
 		if self.pool.cached(debian_spdx_filename, debug_prefix=f"[{package}] "):
 			return True
 
-		# FIXME Shouldn't this already has been done before?
+		# FIXME Move this logic in the Debian2SPDX class
 		if not match.debsrc_orig and match.debsrc_debian:
 			# support for debian format 1.0 native
 			match.debsrc_orig = match.debsrc_debian
