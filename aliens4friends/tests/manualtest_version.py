@@ -1,18 +1,26 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
-from aliens4friends.commons.version import Version
+import csv
 
-def test():
-	# dist = version_distance("2.31+git0+6fdf971c9d", "2.31-9")
-	# print(dist)
+from aliens4friends.commons.version import Version, VersionError
 
-	#v1 = Version("0.1.10-1")
-	#v2 = Version("0.1.10")
-	#v1 = Version("1:1.2.8.dfsg-2")
 
-	#print(v1.distance(v2))
+def test(v1str, v2str):
+	try:
+		v1 = Version(v1str)
+		v2 = Version(v2str)
+		print(v1.similarity(v2))
+	except VersionError:
+		print("")
 
-	#v1 = Version("8+deb8u11")
-	v1 = Version("246")
-	print(v1)
+
+if __name__ == '__main__':
+
+	with open('matchResults.csv') as f:
+		reader = csv.reader(f)
+		for rec in reader:
+			alien_version = rec[5]
+			match_version = rec[6]
+			# print(rec[0], end=" ")
+			test(alien_version, match_version)

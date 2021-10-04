@@ -5,6 +5,7 @@ import re
 from typing import Any, Optional, TypeVar, Union
 
 from debian.debian_support import Version as DebVersion
+from numpy import log
 from packaging.version import Version as PkgVersion
 
 _TVersion = TypeVar('_TVersion', bound='Version')
@@ -25,7 +26,7 @@ class Version:
 	FLAG_PKG_VERSION_SIMPLIFIED = 1<<4
 	FLAG_PKG_VERSION_ERROR = 1<<5
 
-	MAX_DISTANCE = 10000000000000
+	MAX_DISTANCE = 10000000000
 	OK_DISTANCE = 0
 	KO_DISTANCE = 100000
 
@@ -116,6 +117,20 @@ class Version:
 			(dist_micro * 100 if dist_major == 0 and dist_minor == 0 else 0) +
 			((dist_revision1 + dist_revision2 + dist_post) * 10 if dist_major == 0 and dist_minor == 0 and dist_micro == 0 else 0)
 		)
+
+	def similarity(self, other_version: Union[_TVersion, Any]) -> float:
+		dist = self.distance(other_version)
+		logdist = log(dist) if dist != 0 else 0 # to avoid a runtime warning in log()
+		sim = 100 - logdist / log(self.MAX_DISTANCE) * 100
+
+		if sim > 100:
+			return 100
+
+		if sim < 0:
+			return 0
+
+		return sim
+
 
 	def __lt__(self, other: _TVersion) -> bool:
 		return self.debian_version < other.debian_version
