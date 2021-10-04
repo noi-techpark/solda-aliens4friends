@@ -25,25 +25,27 @@ settings.
 
 """
 
-import logging
 import argparse
+import logging
 import sys
 from textwrap import dedent
 
-from aliens4friends.commons.settings import Settings
-from aliens4friends.commons.pool import Pool
-
-from aliens4friends.commands.match import AlienMatcher
-from aliens4friends.commands.snap_match import AlienSnapMatcher
-from aliens4friends.commands.scan import Scancode
-from aliens4friends.commands.delta import DeltaCodeNG
-from aliens4friends.commands.spdxdebian import Debian2SPDX
-from aliens4friends.commands.spdxalien import MakeAlienSPDX
-from aliens4friends.commands.harvest import Harvest
-from aliens4friends.commands.fossy import GetFossyData
 from aliens4friends.commands.add import Add
-from aliens4friends.commands.session import SessionCommand
-from aliens4friends.commands.upload import UploadAliens2Fossy
+from aliens4friends.commands.delta import Delta
+from aliens4friends.commands.fossy import Fossy
+from aliens4friends.commands.harvest import Harvest, Harvester
+from aliens4friends.commands.match import Match
+from aliens4friends.commands.scan import Scan
+from aliens4friends.commands.session import SessionCmd
+from aliens4friends.commands.snapmatch import SnapMatch
+from aliens4friends.commands.spdxalien import SpdxAlien
+from aliens4friends.commands.spdxdebian import SpdxDebian
+from aliens4friends.commands.upload import Upload
+from aliens4friends.commands.listpool import ListPool
+from aliens4friends.commands.command import Processing
+from aliens4friends.commons.pool import Pool, FILETYPE
+from aliens4friends.commons.settings import Settings
+from aliens4friends.commons.utils import get_attr_names
 
 PROGNAME = "aliens4friends"
 
@@ -62,7 +64,8 @@ SUPPORTED_COMMANDS = [
 	"harvest",
 	"snapmatch",
 	"help",
-	"session"
+	"session",
+	"listpool"
 ]
 
 class Aliens4Friends:
@@ -108,7 +111,8 @@ class Aliens4Friends:
 
 		self.setup()
 
-		getattr(self, self.args.command)()
+		success = getattr(self, self.args.command)()
+		sys.exit(0 if success else 1)
 
 	def setup(self) -> None:
 		try:
@@ -154,12 +158,13 @@ class Aliens4Friends:
 		if hasattr(self.args, 'print') and self.args.print:
 			Settings.DOTENV["A4F_PRINTRESULT"] = Settings.PRINTRESULT = True
 
-	def _args_session(self, parser: argparse.ArgumentParser) -> None:
+	def _args_session(self, parser: argparse.ArgumentParser, required: bool = True) -> None:
 		parser.add_argument(
 			"-s",
 			"--session",
 			type = str,
 			default="",
+			required=required,
 			help="Use a session to create a list of packages, otherwise all packages inside the pool are used"
 		)
 
@@ -231,6 +236,7 @@ class Aliens4Friends:
 	def config(self) -> None:
 		for k, v in Settings.DOTENV.items():
 			print(f"{k}={v}")
+		exit(0)
 
 	def help(self) -> None:
 		docparts = __doc__.split(
@@ -296,7 +302,7 @@ class Aliens4Friends:
 			default = False,
 			help = "Create a new session from a given SESSION or random ID (if absent)"
 		)
-		self._args_session(self.parsers[cmd])
+		self._args_session(self.parsers[cmd], required=False)
 
 	def parser_add(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -326,7 +332,6 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
 	def parser_snapmatch(self, cmd: str) -> None:
@@ -336,7 +341,6 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
 	def parser_scan(self, cmd: str) -> None:
@@ -348,7 +352,6 @@ class Aliens4Friends:
 			self.parsers[cmd]
 		)
 		self._args_print_to_stdout(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
@@ -359,7 +362,6 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
@@ -370,7 +372,6 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
@@ -381,7 +382,6 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
@@ -391,7 +391,6 @@ class Aliens4Friends:
 			help="Upload Alien Packages to Fossology"
 		)
 		self._args_defaults(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self.parsers[cmd].add_argument(
 			"--folder",
 			type = str,
@@ -406,7 +405,6 @@ class Aliens4Friends:
 			help="Get final SPDX and json data from Fossology"
 		)
 		self._args_defaults(self.parsers[cmd])
-		self._args_glob(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
 	def parser_harvest(self, cmd: str) -> None:
@@ -417,7 +415,7 @@ class Aliens4Friends:
 		)
 		self._args_defaults(
 			self.parsers[cmd],
-			f"Various files are supported: {Harvest.SUPPORTED_FILES}"
+			f"Various files are supported: {Harvester.SUPPORTED_FILES}"
 		)
 		self._args_print_to_stdout(self.parsers[cmd])
 		self.parsers[cmd].add_argument(
@@ -426,104 +424,104 @@ class Aliens4Friends:
 			default = False,
 			help = "Add missing input files to the report while harvesting."
 		)
-		self._args_glob(self.parsers[cmd])
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
+	
+	def parser_listpool(self, cmd:str) -> None:
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="List files in pool for debugging"
+		)
+		self._args_defaults(self.parsers[cmd])
+		self.parsers[cmd].add_argument(
+			"--processing",
+			choices=get_attr_names(Processing),
+			default="LOOP"
+		)
+		self.parsers[cmd].add_argument(
+			"--filetype",
+			choices=get_attr_names(FILETYPE),
+			required=True
+		)
+		self.parsers[cmd].add_argument(
+			"--testarg",
+			help="test argument for debugging purposes"
+		)
+		self._args_session(self.parsers[cmd])
 
-	def session(self) -> None:
-		SessionCommand.execute(
-			self.pool,
+	def session(self) -> bool:
+		return SessionCmd.execute(
 			self.args.session,
 			self.args.create,
 			self.args.filter
 		)
 
-	def add(self) -> None:
+	def add(self) -> bool:
 		file_list = [ f.name for f in self.args.FILES ]
-		Add.execute(
+		return Add.execute(
 			file_list,
-			self.pool,
 			self.args.force,
 			self.args.session
 		)
 
-	def match(self) -> None:
-		AlienMatcher.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
+	def match(self) -> bool:
+		return Match.execute(
 			self.args.session
 		)
 
-	def snapmatch(self) -> None:
-		AlienSnapMatcher.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
+	def snapmatch(self) -> bool:
+		return SnapMatch.execute(
 			self.args.session
 		)
 
-	def scan(self) -> None:
-		Scancode.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
+	def scan(self) -> bool:
+		return Scan.execute(
 			self.args.use_oldmatcher,
 			self.args.session
 		)
 
-	def delta(self) -> None:
-		DeltaCodeNG.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
+	def delta(self) -> bool:
+		return Delta.execute(
 			self.args.use_oldmatcher,
 			self.args.session
 		)
 
-	def spdxdebian(self) -> None:
-		Debian2SPDX.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
+	def spdxdebian(self) -> bool:
+		return SpdxDebian.execute(
 			self.args.use_oldmatcher,
 			self.args.session
 		)
 
-	def spdxalien(self) -> None:
-		MakeAlienSPDX.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
+	def spdxalien(self) -> bool:
+		return SpdxAlien.execute(
 			self.args.use_oldmatcher,
 			self.args.session
 		)
 
-	def upload(self) -> None:
-		UploadAliens2Fossy.execute(
-			self.pool,
+	def upload(self) -> bool:
+		return Upload.execute(
 			self.args.folder,
-			self.args.glob_name,
-			self.args.glob_version,
 			self.args.session
 		)
 
-	def fossy(self) -> None:
-		GetFossyData.execute(
-			self.pool,
-			self.args.glob_name,
-			self.args.glob_version,
+	def fossy(self) -> bool:
+		return Fossy.execute(
 			self.args.session
 	)
 
-	def harvest(self) -> None:
-		Harvest.execute(
-			self.pool,
+	def harvest(self) -> bool:
+		return Harvest.execute(
 			self.args.add_missing,
-			self.args.glob_name,
-			self.args.glob_version,
 			self.args.use_oldmatcher,
 			self.args.session
+		)
+
+	def listpool(self) -> bool:
+		return ListPool.execute(
+			self.args.session,
+			self.args.filetype,
+			self.args.processing,
+			self.args.testarg
 		)
 
 

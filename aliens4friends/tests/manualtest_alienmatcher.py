@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
+from aliens4friends.commons.pool import Pool
+from aliens4friends.commons.settings import Settings
 import os
 from aliens4friends.commands.match import AlienMatcher, AlienMatcherError
 from aliens4friends.commons.package import PackageError, Package, DebianPackage
@@ -53,3 +55,46 @@ def test_list():
 	for p in packages:
 		matcher.run(os.path.join(path, p))
 
+from multiprocessing import Pool as MultiProcessingPool
+
+class Cmd:
+
+	def __init__(self, multi = False) -> None:
+		self.multi = multi
+
+	def exec(self, inputa):
+		results = []
+		if self.multi:
+			mpool = MultiProcessingPool()
+			results = mpool.map(
+				self.run,
+				inputa
+			)
+		else:
+			for a in inputa:
+				results.append(self.run(a))
+
+		return results
+
+
+class Cl(Cmd):
+
+	def run(self, inp):
+		print(inp)
+		return inp+1
+
+def test1():
+	c = Cl(multi=True)
+	r = c.exec(
+		[1,2,3]
+	)
+	print(r)
+
+	c = Cl(multi=False)
+	r = c.exec(
+		[1,2,3]
+	)
+	print(r)
+
+if __name__ == "__main__":
+	test1()

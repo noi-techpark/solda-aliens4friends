@@ -43,3 +43,22 @@ class SessionModel(BaseModel):
 		self.tool = Tool.decode(tool)
 		self.session_id = session_id
 		self.package_list = SessionPackageModel.drilldown(package_list)
+
+	def get_package_list(
+		self,
+		only_selected: bool = False,
+		ignore_variant: bool = False
+	) -> Optional[List[SessionPackageModel]]:
+		candidates = []
+		result = []
+		for p in self.package_list:
+			if not p.selected and only_selected:
+				continue
+			if ignore_variant:
+				package_id = f"{p.name}:::{p.version}"
+				if package_id in candidates:
+					continue
+				candidates.append(package_id)
+			result.append(p)
+		return result
+

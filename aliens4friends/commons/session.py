@@ -75,17 +75,22 @@ class Session:
 			logger.error(error)
 			raise SessionError(error)
 
-	def package_list_paths(self, type: FILETYPE, only_selected: bool = True) -> List[str]:
+	def package_list_paths(
+		self,
+		type: FILETYPE,
+		only_selected: bool = True,
+		ignore_variant: bool = False
+	) -> List[str]:
+
 		return [
 			self.pool.abspath_typed(
 				type,
 				pckg.name,
 				pckg.version,
 				pckg.variant
-			) for pckg in self.session_model.package_list
-			if (
-				only_selected and pckg.selected
-				or not only_selected
+			) for pckg in self.session_model.get_package_list(
+				only_selected,
+				ignore_variant
 			)
 		]
 

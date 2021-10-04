@@ -7,7 +7,7 @@ import os
 import hashlib
 import logging
 import traceback
-from typing import Tuple, Type, Optional
+from typing import Tuple, Type, Optional, List, Any
 
 def bash(
 	command: str,
@@ -122,3 +122,7 @@ def debug_with_stacktrace(logger: logging.Logger):
 def log_minimal_error(logger: logging.Logger, ex: Exception, prefix: str = ""):
 	logger.error(f"{prefix}{ex.__class__.__name__}: {ex}")
 	debug_with_stacktrace(logger)
+
+def get_attr_names(obj: Any) -> List[str]:
+	"""Return object attribute name list"""
+	return [ a for a in dir(obj) if not a.startswith("_")]

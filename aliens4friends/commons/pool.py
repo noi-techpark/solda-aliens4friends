@@ -49,6 +49,8 @@ class PoolError(Exception):
 	pass
 class PoolErrorFileExists(PoolError):
 	pass
+class PoolErrorUnsupportedFiletype(PoolError):
+	pass
 
 class Pool:
 
@@ -110,12 +112,6 @@ class Pool:
 
 		raise PoolError(f"Unable to find a path for the file type '{type}'")
 
-	def packageinfo_from_path(self, path: Union[str, Path]) -> Tuple[str, str]:
-		"""Return (name,version) of a given path containing inside the pool"""
-		if isinstance(path, str):
-			path = Path(path)
-		return path.parts[-3], path.parts[-2]
-
 	def relpath_typed(
 		self,
 		type: FILETYPE,
@@ -165,6 +161,26 @@ class Pool:
 				self.filename(type, name, version, variant)
 			)
 		return relpath
+
+	def packageinfo_from_path(self, path: Union[str, Path]):
+		p = str(path).split("/")
+		path = os.path.basename(path)
+		package_id, mainext = os.path.splitext(path)
+		if mainext == ".aliensrc":
+			ext = mainext
+		else:
+			package_id, subext = os.path.splitext(package_id)
+			ext = f"{subext}{mainext}"
+
+		ext = ext.lstrip('.')
+		if ext not in FILETYPE.__dict__.values():
+			raise PoolErrorUnsupportedFiletype(f"Unsupported file extension '{ext}'")
+
+		name = p[-3]
+		version = p[-2]
+		variant = package_id[len(name)+len(version)+2:]
+
+		return name, version, variant, ext
 
 
 	def abspath_typed(
