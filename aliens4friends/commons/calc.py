@@ -13,16 +13,13 @@ class Calc:
 	# identical package names != best match (example: gnutls => gnutls28)
 	PACKAGE_WEIGHT = 0.5
 	SCORES = {
-		"s100" : "Ident",
-		"s95" : "Alias match",
-		"s92" : "Removed '-' from package name",
-		"s90" : "Removed numbers and '-' from package name",
-		"s80" : "Prefixed with the abbreviation isc-",
-		"s71" : "Some libraries may lack a lib prefix",
-		"s70" : "python without '3'",
-		"s60" : "python without 'python'",
-		"s59" : "Fonts may start with 'fonts-' in Debian",
-		"s50" : "Library/API version at the end of the package name",
+		"s100" : "Ident or alias match",
+		"s95" : "Removed '-' from package name",
+		"s90" : "Removed numbers and '-' from package name or prefixed with the abbreviation isc-",
+		"s85" : "Some libraries may lack a lib prefix",
+		"s80" : "python without '3'",
+		"s70" : "python without 'python' or fonts that start with 'fonts-' in Debian",
+		"s60" : "Library/API version at the end of the package name",
 		"s0" : "Not matching at all"
 	}
 
@@ -107,12 +104,13 @@ class Calc:
 		if given in ALIASES:
 			given = ALIASES[given]
 
+		# We are sure that hardcoded aliases match perfectly
 		if given == new:
-			return 95
+			return 100
 
 		# (glib-2.0 => glib2.0)
 		if given.replace("-", "") == new:
-			return 92
+			return 95
 
 		g = Calc._clean_name(given)
 		n = Calc._clean_name(new)
@@ -124,14 +122,14 @@ class Calc:
 		# Prefixed with the abbreviation isc- (Internet Software Consortium)
 		# Possibly postfixed with -client or -server
 		if n.startswith(f"isc{g}"):
-			return 80
+			return 90
 
 		# Some libraries may lack a lib prefix
 		if (
 			(g.startswith("lib") or n.startswith("lib"))
 			and g.replace("lib", "") == n.replace("lib", "")
 		):
-			return 71
+			return 85
 
 		# Major Python version mismatch: python3-iniparse vs. python-iniparse
 		# Some python packages do not have a python[23]- prefix
@@ -142,17 +140,17 @@ class Calc:
 			nn = n.replace("python3", "python")
 			gg = g.replace("python3", "python")
 			if nn == gg:
-				return 70
+				return 80
 			if nn.replace("python", "") == gg.replace("python", ""):
-				return 60
+				return 70
 
 		# Fonts may start with "fonts-" in Debian
 		if g.replace("fonts", "") == n.replace("fonts", ""):
-			return 59
+			return 70
 
 		# Library/API version at the end of the package name
 		if n.startswith(g):
-			return 50
+			return 60
 
 		# --> Not matching at all
 		return 0
