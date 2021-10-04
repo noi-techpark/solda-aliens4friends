@@ -2,12 +2,15 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 import re
+from typing import Any, Optional, TypeVar, Union
 
 from debian.debian_support import Version as DebVersion
-from packaging.version import Version as PkgVersion, parse, InvalidVersion
-from typing import Union, Any, Optional, TypeVar
+from packaging.version import Version as PkgVersion
 
 _TVersion = TypeVar('_TVersion', bound='Version')
+
+class VersionError(Exception):
+	pass
 
 class Version:
 
@@ -28,13 +31,16 @@ class Version:
 
 	def __init__(self, version_str: str, remove_epoc: bool = True) -> None:
 		super().__init__()
-		self.str = version_str
+		self.str = version_str.strip()
+		if not self.str:
+			raise VersionError(f"Invalid version string given: '{version_str}'")
 		if remove_epoc:
 			self.str = self._remove_epoc(self.str)
 		self.version_conversion = 0
 		self.str_simple = self._version_simplify()
 		self.package_version = None
 		self.debian_version = None
+		self.is_semver = Version._is_semver(self.str)
 		self._make_debian_version()
 		self._make_package_version()
 
@@ -150,3 +156,10 @@ class Version:
 		if m:
 			return ''.join(m.groups())
 		return vers_str
+
+	@staticmethod
+	def _is_semver(vers_str: str) -> bool:
+		# Taken from https://semver.org/
+		p = re.compile("^(?P<major>0|[1-9]\d*)\.(?P<minor>0|[1-9]\d*)\.(?P<patch>0|[1-9]\d*)(?:-(?P<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?P<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$")
+		m = p.match(vers_str)
+		return True if m else False
