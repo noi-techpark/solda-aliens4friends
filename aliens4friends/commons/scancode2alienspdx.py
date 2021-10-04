@@ -81,12 +81,12 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 			+ results.changed_files_with_same_copyright_and_license
 			+ list(results.changed_files_with_updated_copyright_year_only.keys())
 		)
-		self.calc_proximity()
-		if self.proximity < MIN_ACCEPTABLE_PROXIMITY:
+		proximity = self.deltacodeng_results.header.stats.calc_proximity()
+		if proximity < MIN_ACCEPTABLE_PROXIMITY:
 			logger.warning(
 				f"[{curpkg}] proximity with debian package"
 				f" {self._debian_spdx.package.name}-{self._debian_spdx.package.version}"
-				f" is too low ({int(self.proximity*100)}%),"
+				f" is too low ({int(proximity*100)}%),"
 				 " using scancode spdx instead"
 			)
 			super().process()
@@ -140,7 +140,7 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 				alien_spdx_files.append(alien_file)
 		self.alien_spdx = self._debian_spdx
 		self.alien_spdx.package.files = alien_spdx_files
-		if self.proximity < NEARLY_FULL_PROXIMITY:
+		if proximity < NEARLY_FULL_PROXIMITY:
 			logger.info(
 				f"[{curpkg}] proximity is not ~100%, do not apply main package"
 				 " license(s) from debian package"
@@ -150,7 +150,7 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 			# if proximity is not ~100%
 			self.alien_spdx.package.license_declared = NoAssert()
 			self.alien_spdx.package.conc_lics = NoAssert()
-		if self.proximity < FULL_PROXIMITY:
+		if proximity < FULL_PROXIMITY:
 			logger.info(
 				f"[{curpkg}] proximity is not ==100%, do not apply global package"
 				" license and copyright metadata from debian package"
@@ -162,22 +162,4 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 			self.alien_spdx.package.cr_text = NoAssert()
 		self.set_package_and_document_metadata()
 
-
-	def calc_proximity(self) -> None:
-		s = self.deltacodeng_results.header.stats
-		similar = (
-			s.same_files
-			+ s.moved_files
-			+ s.changed_files_with_no_license_and_copyright
-			+ s.changed_files_with_same_copyright_and_license
-			+ s.changed_files_with_updated_copyright_year_only
-		)
-		different = (
-			s.changed_files_with_changed_copyright_or_license
-			+ s.new_files_with_license_or_copyright
-		)
-		self.proximity = similar / (similar + different)
-		# excluding deleted files and new files with no license/copyright from
-		# the count, on purpose, because here the need is to have  a criterion
-		# to decide whether to apply debian/copyright metadata to the
-		# alienpackage's matching files and to the alienpackage as a whole
+		
