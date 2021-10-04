@@ -60,9 +60,6 @@ class SnapMatch(Command):
 				files = package.package_files
 			)
 		)
-		results = []
-		results.append(package.name)
-		results.append(package.version.str)
 
 		resultpath = self.pool.relpath_typed(FILETYPE.SNAPMATCH, package.name, package.version.str)
 
@@ -71,24 +68,9 @@ class SnapMatch(Command):
 				raise FileNotFoundError()
 			amm = AlienSnapMatcherModel.from_file(self.pool.abspath(resultpath))
 			if amm.match.score > 0:
-				results.append(amm.match.name)
-				results.append(amm.match.version)
-				results.append('found')
 				v1 = Version(amm.match.version)
-				distance = package.version.distance(v1)
-				results.append(distance)
-				results.append(amm.match.score)
-				results.append(amm.match.package_score)
-				results.append(amm.match.version_score)
 				outcome = "MATCH"
 			else:
-				results.append('-')
-				results.append('-')
-				results.append('missing')
-				results.append('-')
-				results.append(amm.match.score)
-				results.append('-')
-				results.append('-')
 				amm.errors.append("NO MATCH without errors")
 				outcome = "NO MATCH"
 			logger.debug(f"[{self.alienmatcher.curpkg}] Result already exists ({outcome}), skipping.")
@@ -106,17 +88,8 @@ class SnapMatch(Command):
 			else:
 				package.expand()
 				amm.aliensrc.internal_archive_name = package.internal_archive_name
-				self.alienmatcher.match(package, amm, results) # pass amm and results by reference
+				self.alienmatcher.match(package, amm) # pass amm and results by reference
 			self.pool.write_json(amm, resultpath)
-
-		compare_csv = self.pool.abspath(
-			Settings.PATH_USR,
-			f"match_vs_snapmatch.csv"
-		)
-
-		with open(compare_csv, 'a+') as csvfile:
-			csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-			csvwriter.writerow(results)
 
 		return amm
 
