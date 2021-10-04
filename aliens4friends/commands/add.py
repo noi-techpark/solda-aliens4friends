@@ -21,8 +21,11 @@ class Add(Command):
 	calculate the correct position inside the pool's userland repository.
 	"""
 
-	def __init__(self, session_id: str) -> None:
-		super().__init__(session_id, processing=Processing.LOOP)
+	def __init__(self, session_id: str, dryrun: bool) -> None:
+		super().__init__(session_id, Processing.LOOP, dryrun)
+		# add command must not use multiprocessing, because at the end
+		# it has to update the session file, but data would not be available
+		# using multiprocessing
 		self.session_list_aliensrc = []
 		self.session_list_tinfoilhat = []
 
@@ -99,7 +102,7 @@ class Add(Command):
 	def write_session_list(self) -> None:
 
 		# Nothing to do, if we do not have started a session...
-		if not self.session:
+		if not self.session or self.dryrun:
 			return
 
 		# Since lists are not hashable, we need a custom duplicate removal here
@@ -125,7 +128,7 @@ class Add(Command):
 				)
 			):
 				candidate.selected = False
-				candidate.reason = f"No {FILETYPE.ALIENSRC.value} found"
+				candidate.selected_reason = f"No {FILETYPE.ALIENSRC.value} found"
 				continue
 
 			if (
@@ -139,12 +142,11 @@ class Add(Command):
 				)
 			):
 				candidate.selected = False
-				candidate.reason = f"No {FILETYPE.TINFOILHAT.value} found"
+				candidate.selected_reason = f"No {FILETYPE.TINFOILHAT.value} found"
 
 		self.session.write_package_list(candidates)
 
-	def run(self, args) -> bool:
-		path, force = args
+	def run(self, path: str, force: bool) -> bool:
 		logger.info(f"ADD: {path}")
 		if path.endswith(FILETYPE.ALIENSRC):
 			self.alienpackage(path, force)
@@ -155,8 +157,8 @@ class Add(Command):
 		return True
 
 	@staticmethod
-	def execute(file_list, force_overwrite: bool, session_id: str) -> bool:
-		adder = Add(session_id)
+	def execute(file_list, force_overwrite: bool, session_id: str, dryrun: bool) -> bool:
+		adder = Add(session_id, dryrun)
 		success = adder.exec(file_list, force_overwrite)
 		adder.write_session_list()
 		return success

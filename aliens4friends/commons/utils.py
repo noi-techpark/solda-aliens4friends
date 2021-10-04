@@ -2,12 +2,13 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 import subprocess
+import inspect
 from datetime import datetime
 import os
 import hashlib
 import logging
 import traceback
-from typing import Tuple, Type, Optional, List, Any
+from typing import Tuple, Type, Optional, List, Any, Callable
 
 def bash(
 	command: str,
@@ -126,3 +127,9 @@ def log_minimal_error(logger: logging.Logger, ex: Exception, prefix: str = ""):
 def get_attr_names(obj: Any) -> List[str]:
 	"""Return object attribute name list"""
 	return [ a for a in dir(obj) if not a.startswith("_")]
+
+def get_func_arg_names(func: Callable):
+	names = list(inspect.signature(func).parameters)
+	if "self" in names:
+		names.remove("self")
+	return names

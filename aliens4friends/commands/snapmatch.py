@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 class SnapMatch(Command):
 
-	def __init__(self, session_id: str) -> None:
-		super().__init__(session_id, processing=Processing.LOOP)
+	def __init__(self, session_id: str, dryrun: bool) -> None:
+		super().__init__(session_id, Processing.LOOP, dryrun)
 		AlienSnapMatcher.clearDiff() #FIXME Should we move this into AlienSnapMatcher itself?
 		self.alienmatcher = AlienSnapMatcher(self.pool)
 
@@ -35,14 +35,13 @@ class SnapMatch(Command):
 		return "add"
 
 	@staticmethod
-	def execute(session_id: str = "") -> bool:
-		return SnapMatch(session_id).exec_with_paths(
+	def execute(session_id: str = "", dryrun: bool = False) -> bool:
+		return SnapMatch(session_id, dryrun).exec_with_paths(
 			FILETYPE.ALIENSRC,
 			ignore_variant=True
 		)
 
-	def run(self, args) -> Optional[AlienSnapMatcherModel]:
-		path = args
+	def run(self, path) -> Optional[AlienSnapMatcherModel]:
 
 		#FIXME Move this run code to the AlienSnapMatcher class
 
@@ -61,9 +60,6 @@ class SnapMatch(Command):
 				files = package.package_files
 			)
 		)
-		results = []
-		results.append(package.name)
-		results.append(package.version.str)
 
 		resultpath = self.pool.relpath_typed(FILETYPE.SNAPMATCH, package.name, package.version.str)
 
@@ -72,27 +68,15 @@ class SnapMatch(Command):
 				raise FileNotFoundError()
 			amm = AlienSnapMatcherModel.from_file(self.pool.abspath(resultpath))
 			if amm.match.score > 0:
-				results.append(amm.match.name)
-				results.append(amm.match.version)
-				results.append('found')
 				v1 = Version(amm.match.version)
-				distance = package.version.distance(v1)
-				results.append(distance)
-				results.append(amm.match.score)
-				results.append(amm.match.package_score)
-				results.append(amm.match.version_score)
 				outcome = "MATCH"
 			else:
-				results.append('-')
-				results.append('-')
-				results.append('missing')
-				results.append('-')
-				results.append(amm.match.score)
-				results.append('-')
-				results.append('-')
 				amm.errors.append("NO MATCH without errors")
 				outcome = "NO MATCH"
 			logger.debug(f"[{self.alienmatcher.curpkg}] Result already exists ({outcome}), skipping.")
+			if outcome == "MATCH":
+				self.alienmatcher.download_all_to_debian(amm.match)
+
 		except (PoolError, ModelError, FileNotFoundError) as ex:
 			if type(ex) == PoolError or type(ex) == ModelError:
 				logger.warning(
@@ -104,17 +88,8 @@ class SnapMatch(Command):
 			else:
 				package.expand()
 				amm.aliensrc.internal_archive_name = package.internal_archive_name
-				self.alienmatcher.match(package, amm, results) # pass amm and results by reference
+				self.alienmatcher.match(package, amm) # pass amm and results by reference
 			self.pool.write_json(amm, resultpath)
-
-		compare_csv = self.pool.abspath(
-			Settings.PATH_USR,
-			f"match_vs_snapmatch.csv"
-		)
-
-		with open(compare_csv, 'a+') as csvfile:
-			csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-			csvwriter.writerow(results)
 
 		return amm
 

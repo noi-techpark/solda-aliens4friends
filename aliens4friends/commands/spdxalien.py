@@ -3,7 +3,7 @@
 
 import logging
 import os
-from typing import Any
+from typing import Any, Union
 
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.package import AlienPackage
@@ -21,30 +21,26 @@ logger = logging.getLogger(__name__)
 
 class SpdxAlien(Command):
 
-	def __init__(self, session_id: str, use_oldmatcher: bool):
-		super().__init__(session_id, processing=Processing.MULTI)
+	def __init__(self, session_id: str, use_oldmatcher: bool, dryrun: bool):
+		super().__init__(session_id, Processing.MULTI, dryrun)
 		self.use_oldmatcher = use_oldmatcher
 
 	def hint(self) -> str:
 		return "match/snapmatch"
 
-	def print_results(self, results: Any) -> None:
-		for res in results:
-			print(res.to_json())
-
 	@staticmethod
 	def execute(
 		use_oldmatcher: bool = False,
-		session_id: str = ""
+		session_id: str = "",
+		dryrun: bool = False
 	) -> bool:
-		cmd = SpdxAlien(session_id, use_oldmatcher)
+		cmd = SpdxAlien(session_id, use_oldmatcher, dryrun)
 		return cmd.exec_with_paths(
 			FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH,
 			ignore_variant=True
 		)
 
-	def run(self, args) -> bool:
-		path = args[0]
+	def run(self, path: str) -> Union[str, bool]:
 
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
@@ -116,4 +112,4 @@ class SpdxAlien(Command):
 			s2as.process()
 			write_spdx_tv(s2as.alien_spdx, alien_spdx_filename)
 
-		return True
+		return alien_spdx_filename

@@ -4,6 +4,7 @@
 import logging
 import os
 import tempfile
+from typing import Union, List
 
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.archive import Archive
@@ -19,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 class SpdxDebian(Command):
 
-	def __init__(self, session_id: str, use_oldmatcher: bool):
-		super().__init__(session_id, processing=Processing.MULTI)
+	def __init__(self, session_id: str, use_oldmatcher: bool, dryrun: bool):
+		super().__init__(session_id, Processing.MULTI, dryrun)
 		self.use_oldmatcher = use_oldmatcher
 
 	def hint(self) -> str:
@@ -29,16 +30,16 @@ class SpdxDebian(Command):
 	@staticmethod
 	def execute(
 		use_oldmatcher: bool = False,
-		session_id: str = ""
+		session_id: str = "",
+		dryrun: bool = False
 	) -> bool:
-		cmd = SpdxDebian(session_id, use_oldmatcher)
+		cmd = SpdxDebian(session_id, use_oldmatcher, dryrun)
 		return cmd.exec_with_paths(
 			FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH,
 			ignore_variant=True
 		)
 
-	def run(self, args) -> bool:
-		path = args[0]
+	def run(self, path: str) -> Union[List[str], bool]:
 
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
@@ -66,7 +67,7 @@ class SpdxDebian(Command):
 		if self.pool.cached(debian_spdx_filename, debug_prefix=f"[{package}] "):
 			return True
 
-		# FIXME Shouldn't this already has been done before?
+		# FIXME Move this logic in the Debian2SPDX class
 		if not match.debsrc_orig and match.debsrc_debian:
 			# support for debian format 1.0 native
 			match.debsrc_orig = match.debsrc_debian
@@ -124,10 +125,10 @@ class SpdxDebian(Command):
 			)
 			if os.path.isfile(debian_copyright_filename) and Settings.POOLCACHED:
 				logger.debug(f"[{package}] debian/copyright already extracted, skipping")
-				return True
-			logger.info(f"[{package}] extracting debian/copyright")
-			d2s.write_debian_copyright(debian_copyright_filename)
+			else:
+				logger.info(f"[{package}] extracting debian/copyright")
+				d2s.write_debian_copyright(debian_copyright_filename)
+			return([debian_copyright_filename, debian_spdx_filename])
 		except Debian2SPDXException as ex:
 			logger.warning(f"[{package}] {ex}")
-
-		return True
+			return True

@@ -4,6 +4,7 @@
 import json
 import logging
 import os
+from typing import List, Optional
 
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.archive import Archive
@@ -17,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 class Scan(Command):
 
-	def __init__(self, session_id: str, use_oldmatcher: bool):
-		super().__init__(session_id, processing=Processing.LOOP)
+	def __init__(self, session_id: str, use_oldmatcher: bool, dryrun: bool):
+		super().__init__(session_id, Processing.LOOP, dryrun)
 		self.use_oldmatcher = use_oldmatcher
 		self.scancode = Scancode(self.pool)
 
@@ -28,16 +29,16 @@ class Scan(Command):
 	@staticmethod
 	def execute(
 		use_oldmatcher: bool = False,
-		session_id: str = ""
+		session_id: str = "",
+		dryrun: bool = False
 	) -> bool:
-		cmd = Scan(session_id, use_oldmatcher)
+		cmd = Scan(session_id, use_oldmatcher, dryrun)
 		return cmd.exec_with_paths(
 			FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH,
 			ignore_variant=False
 		)
 
-	def run(self, args):
-		path = args
+	def run(self, path: str) -> List[Optional[str]]: 
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
 		result = []
@@ -98,4 +99,4 @@ class Scan(Command):
 
 		# Return a non-empty list, if we got no results but also no errors,
 		# otherwise correct runs which skip all files would fail!
-		return [ True ] if not result else result
+		return [ " " ] if not result else result

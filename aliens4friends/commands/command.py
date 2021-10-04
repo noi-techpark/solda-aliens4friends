@@ -1,14 +1,16 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
+import itertools
 from abc import abstractclassmethod
 from enum import IntEnum
 from aliens4friends.commons.utils import log_minimal_error
 import logging
 from aliens4friends.commons.settings import Settings
-from typing import Any, List
+from typing import Any, List, Union
 from aliens4friends.commons.pool import FILETYPE, Pool
 from aliens4friends.commons.session import Session
+from aliens4friends.commons.utils import get_func_arg_names
 from multiprocessing import Pool as MultiProcessingPool
 
 logger = logging.getLogger(__name__)
@@ -28,12 +30,14 @@ class Command:
 	def __init__(
 		self,
 		session_id: str,
-		processing: Processing
+		processing: Processing,
+		dryrun: bool = False
 	) -> None:
 		super().__init__()
 		self.pool = Pool(Settings.POOLPATH)
 		self.session = None
 		self.processing = processing
+		self.dryrun = dryrun
 
 		# Load a session if possible, or terminate otherwise
 		# Error messages are already inside load(), let the
@@ -74,7 +78,21 @@ class Command:
 
 		return filtered_paths
 
-	def _run(self, *args: Any) -> Any:
+	def _run(self, args: List[Any]) -> Any:
+		"""wrapper for the run() method, which does 2 things:
+		- error logging
+		- to avoid inconsistencies between LOOP and MULTI processing in argument
+		  handling, it takes a single list of arguments as input (which is the
+		  only input possible with MULTI processing) and then converts it into a
+		  series of arguments for the run() method
+		"""
+		if self.dryrun:
+			classname = self.__class__.__name__.upper()
+			run_arg_names = ", ".join(get_func_arg_names(self.__class__.run))
+			logger.info(
+				f"[DRYRUN] {classname}: calling run({run_arg_names}) with arguments {args}"
+			)
+			return True
 		try:
 			return self.run(*args)
 		except CommandError as ex:
@@ -89,27 +107,31 @@ class Command:
 			"Implement a run method giving any argument you need"
 		)
 
-	def exec(self, *args) -> bool:
+	def exec(self, *args: Union[List[Any], Any]) -> bool:
+		"""execute run() method, through _run() wrapper method, on the cartesian
+		product of *args; each arg can be a list of items or a single item of
+		whatever type (it will be automatically converted to a list with a
+		single item in order to generate the cartesian product)"""
 
-		cleaned_args = []
-		for arg in args:
-			if isinstance(arg, list):
-				cleaned_args = Command._inputlist_add_list(cleaned_args, arg)
-			else:
-				cleaned_args = Command._inputlist_add_constant(cleaned_args, arg)
+		args = [
+			[arg] if not isinstance(arg, list) else arg
+			for arg in args
+		]
+
+		run_args = list(itertools.product(*args))
 
 		results = []
 		if self.processing == Processing.MULTI:
 			mpool = MultiProcessingPool()
 			results = mpool.map(
 				self._run,
-				[ [i] for i in cleaned_args ]
+				run_args
 			)
 		elif self.processing == Processing.SINGLE:
-			results.append(self._run(cleaned_args))
+			results.append(self._run(run_args))
 		elif self.processing == Processing.LOOP:
-			for item in cleaned_args:
-				results.append(self._run(item))
+			for run_arg in run_args:
+				results.append(self._run(run_arg))
 		else:
 			raise CommandError(f"Unknown Processing Type {self.processing}.")
 
@@ -127,27 +149,6 @@ class Command:
 			)
 
 		return True
-
-	@staticmethod
-	def _inputlist_add_constant(inputlist: List, constant):
-		if inputlist and isinstance(inputlist[0], list):
-			return [
-				[ *l, constant ] for l in inputlist
-			]
-
-		return [
-			[
-				l, constant
-			] for l in inputlist
-		]
-
-	@staticmethod
-	def _inputlist_add_list(inputlist, list2):
-		if not inputlist:
-			return list2
-		return [
-			[*l1, l2] for l1 in inputlist for l2 in list2
-		]
 
 	def exec_with_paths(
 		self,

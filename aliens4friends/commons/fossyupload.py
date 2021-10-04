@@ -60,7 +60,7 @@ class UploadAliens2Fossy:
 			self.uploaded = False
 			self.uploaded_reason = "Package already present in Fossology"
 			logger.info(f"[{self.uploadname}] {self.uploaded_reason}")
-			return
+			return upload.id
 		logger.info(f"[{self.uploadname}] Preparing package for upload")
 		tmpdir_obj = tempfile.TemporaryDirectory()
 		tmpdir = tmpdir_obj.name
@@ -85,6 +85,7 @@ class UploadAliens2Fossy:
 
 		self.uploaded = True
 		self.uploaded_reason = "Package uploaded"
+		return self.upload.id
 
 
 	def run_fossy_scanners(self) -> None:

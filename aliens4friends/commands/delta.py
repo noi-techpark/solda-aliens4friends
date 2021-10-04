@@ -2,43 +2,47 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 import logging
-from typing import Any
+from typing import Union, List
 
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.deltacodeng import DeltaCodeNG
 from aliens4friends.commons.pool import FILETYPE
 from aliens4friends.models.alienmatcher import (AlienMatcherModel,
                                                 AlienSnapMatcherModel)
+from aliens4friends.models.deltacode import DeltaCodeModel	
 
 logger = logging.getLogger(__name__)
 
 class Delta(Command):
 
-	def __init__(self, session_id: str, use_oldmatcher: bool):
-		super().__init__(session_id, processing=Processing.MULTI)
+	def __init__(self, session_id: str, use_oldmatcher: bool, dryrun: bool):
+		super().__init__(session_id, Processing.MULTI, dryrun)
 		self.use_oldmatcher = use_oldmatcher
 
 	def hint(self) -> str:
 		return "match/snapmatch"
 
-	def print_results(self, results: Any) -> None:
+	def print_results(self, results: List[Union[DeltaCodeModel, bool]]) -> None:
 		for res in results:
-			print(res.to_json())
+			if isinstance(res, DeltaCodeModel):
+				print(res.to_json())
+			else:
+				print(res)
 
 	@staticmethod
 	def execute(
 		use_oldmatcher: bool = False,
-		session_id: str = ""
+		session_id: str = "",
+		dryrun: bool = True
 	) -> bool:
 
-		cmd = Delta(session_id, use_oldmatcher)
+		cmd = Delta(session_id, use_oldmatcher, dryrun)
 		return cmd.exec_with_paths(
 			FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH,
 			ignore_variant=True
 		)
 
-	def run(self, args) -> Any:
-		path = args[0]
+	def run(self, path: str) -> Union[DeltaCodeModel, bool]:
 
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"

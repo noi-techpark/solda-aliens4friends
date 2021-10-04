@@ -72,7 +72,7 @@ class AlienSnapMatcher:
 		return json.loads(response)
 
 	# name & version-match for debian packages.
-	def match(self, apkg: AlienPackage, amm: AlienSnapMatcherModel, results: List[Union[int, str]]) -> None:
+	def match(self, apkg: AlienPackage, amm: AlienSnapMatcherModel) -> None:
 
 		logger.debug(f"[{self.curpkg}] Find a matching package through Debian Snapshot API.")
 
@@ -88,19 +88,8 @@ class AlienSnapMatcher:
 		try:
 			main_match = self.pool.get_json(main_match_path)
 			main_match = main_match['debian']['match']
-			results.append(main_match['name'] or '-')
-			results.append(main_match['version'] or '-')
-			results.append('found' if main_match['debsrc_orig'] or main_match['debsrc_debian'] else '-')
-			# matcher distance
-			v1 = Version(main_match['version'])
-			distance = apkg.version.distance(v1)
-			results.append(distance)
 
 		except Exception as ex:
-			results.append('-')
-			results.append('-')
-			results.append('missing')
-			results.append('-')
 			logger.warning(
 				f"[{self.curpkg}] Unable to load current alienmatch from {main_match_path}."
 			)
@@ -120,10 +109,6 @@ class AlienSnapMatcher:
 					f" {int_arch_count} internal archives and no primary archive."
 					 " We support comparison of one archive only at the moment!"
 				)
-				results.append('-')
-				results.append('-')
-				results.append('no primary archive')
-				results.append('-')
 				amm.errors.append(
 					f"{int_arch_count} internal archives and no primary archive"
 				)
@@ -133,10 +118,6 @@ class AlienSnapMatcher:
 				f"[{apkg.name}-{apkg.version.str}] IGNORED: Alien Package has"
 				 " no internal archive, nothing to compare!"
 			)
-			results.append('-')
-			results.append('-')
-			results.append('no internal archive')
-			results.append('-')
 			amm.errors.append("no internal archive")
 			return
 
@@ -150,32 +131,13 @@ class AlienSnapMatcher:
 
 			amm.match = snap_match
 
-			results.append(amm.match.name)
-			results.append(amm.match.version)
-
-			results.append('found')
-
 			# snapmatcher distance
-			v1 = Version(amm.match.version)
-			distance = apkg.version.distance(v1)
-			results.append(distance)
-
-			results.append(snap_match.score)
-			results.append(snap_match.package_score)
-			results.append(snap_match.version_score)
 			logger.info(
 				f"[{self.curpkg}] MATCH: {snap_match.name} {snap_match.version}"
 				f" (score: {snap_match.score})"
 			)
 
 		else:
-			results.append('-')
-			results.append('-')
-			results.append('missing')
-			results.append('-')
-			results.append(snap_match.score)
-			results.append('-')
-			results.append('-')
 			amm.errors.append("NO MATCH without errors")
 			logger.info(f"[{self.curpkg}] NO MATCH")
 

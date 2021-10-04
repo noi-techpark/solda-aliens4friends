@@ -13,15 +13,14 @@ logger = logging.getLogger(__name__)
 
 class Match(Command):
 
-	def __init__(self, session_id: str) -> None:
-		super().__init__(session_id, processing=Processing.LOOP)
+	def __init__(self, session_id: str, dryrun: bool) -> None:
+		super().__init__(session_id, Processing.MULTI, dryrun)
 		self.alienmatcher = AlienMatcher(self.pool)
 
 	def hint(self) -> str:
 		return "add"
 
-	def run(self, args) -> Optional[AlienMatcherModel]:
-		path = args
+	def run(self, path: str) -> Optional[AlienMatcherModel]:
 		return self.alienmatcher.match(path)
 
 	def print_results(self, results: Any) -> None:
@@ -30,8 +29,8 @@ class Match(Command):
 				print(match.to_json())
 
 	@staticmethod
-	def execute(session_id: str = "") -> bool:
-		return Match(session_id).exec_with_paths(
+	def execute(session_id: str = "", dryrun: bool = False) -> bool:
+		return Match(session_id, dryrun).exec_with_paths(
 			FILETYPE.ALIENSRC,
 			ignore_variant=True
 		)

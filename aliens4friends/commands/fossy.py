@@ -3,6 +3,7 @@
 
 import logging
 import os
+from typing import Union
 
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.fossydownload import (GetFossyData,
@@ -18,20 +19,19 @@ logger = logging.getLogger(__name__)
 
 class Fossy(Command):
 
-	def __init__(self, session_id: str) -> None:
-		super().__init__(session_id, processing=Processing.LOOP)
+	def __init__(self, session_id: str, dryrun: bool) -> None:
+		super().__init__(session_id, Processing.LOOP, dryrun)
 		self.fossywrapper = FossyWrapper()
 
 	def hint(self) -> str:
 		return "add/match"
 
 	@staticmethod
-	def execute(session_id: str = "") -> bool:
-		cmd = Fossy(session_id)
+	def execute(session_id: str = "", dryrun: bool = False) -> bool:
+		cmd = Fossy(session_id, dryrun)
 		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
 
-	def run(self, args) -> bool:
-		path = args
+	def run(self, path) -> Union[str, bool]:
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 
 		cur_pckg = f"{name}-{version}"
@@ -90,5 +90,5 @@ class Fossy(Command):
 		except Exception as ex:
 			raise CommandError(f"[{cur_pckg}] ERROR: {ex}")
 
-		return True
+		return alien_fossy_json_filename
 

@@ -2,6 +2,8 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
 import logging
+from typing import Union
+
 from aliens4friends.commons.fossyupload import UploadAliens2Fossy
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.pool import FILETYPE
@@ -13,8 +15,8 @@ logger = logging.getLogger(__name__)
 
 class Upload(Command):
 
-	def __init__(self, session_id: str, folder: str):
-		super().__init__(session_id, processing=Processing.LOOP)
+	def __init__(self, session_id: str, folder: str, dryrun: bool):
+		super().__init__(session_id, Processing.LOOP, dryrun)
 		self.folder = folder
 		self.fossywrapper = FossyWrapper()
 
@@ -24,13 +26,13 @@ class Upload(Command):
 	@staticmethod
 	def execute(
 		folder: str,
-		session_id: str = ""
+		session_id: str = "",
+		dryrun: bool = False
 	) -> bool:
-		cmd = Upload(session_id, folder)
+		cmd = Upload(session_id, folder, dryrun)
 		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
 
-	def run(self, args):
-		path = args
+	def run(self, path: str) -> Union[int, bool]:
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 
 		cur_pckg = f"{name}-{version}"
@@ -69,7 +71,7 @@ class Upload(Command):
 			self.fossywrapper,
 			self.folder
 		)
-		a2f.get_or_do_upload()
+		upload_id = a2f.get_or_do_upload()
 		a2f.run_fossy_scanners()
 		a2f.import_spdx()
 
@@ -89,4 +91,4 @@ class Upload(Command):
 			apkg.variant
 		)
 
-		return True
+		return upload_id
