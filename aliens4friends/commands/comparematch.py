@@ -6,7 +6,7 @@ import csv
 import os
 
 from aliens4friends.commons.pool import FILETYPE
-from aliens4friends.commands.command import Command, CommandError, Processing
+from aliens4friends.commands.command import Command, Processing
 from aliens4friends.models.alienmatcher import (
     MatchResults, AlienMatcherModel, AlienSnapMatcherModel
 )
@@ -28,10 +28,11 @@ class CompareMatchResults(Command):
         pkg_id = f"{name}@{version}"
         if not self.pkgs.get(pkg_id):
             self.pkgs[pkg_id] = MatchResults(
-                alien_name=name, 
+                alien_name=name,
                 alien_version=version
             )
-        pkg = self.pkgs[pkg_id]       
+        pkg = self.pkgs[pkg_id]
+        command = ""
         try:
             if ext == FILETYPE.ALIENMATCHER:
                 command = "match"
@@ -67,7 +68,7 @@ class CompareMatchResults(Command):
         logger.info(f"writing csv data to {out}")
         rows = [ r.__dict__ for _, r in self.pkgs.items() ]
         with open(out, 'w') as f:
-            w = csv.DictWriter(f, rows[0].keys())
+            w = csv.DictWriter(f, rows[0].keys())	#pytype: disable=wrong-arg-types
             w.writeheader()
             for row in rows:
                 w.writerow(row)
