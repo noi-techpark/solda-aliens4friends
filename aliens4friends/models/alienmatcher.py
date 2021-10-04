@@ -114,3 +114,34 @@ class AlienSnapMatcherModel(BaseModel):
 		self.aliensrc = AlienSrc.decode(aliensrc)
 		self.match = DebianSnapMatch.decode(match)
 		self.errors = errors if errors else []
+
+class MatchResults(BaseModel):
+	def __init__(
+		self,
+		alien_name: str = "",
+		match_name: str = "",
+		snapmatch_name: str = "",
+		match_package_score: int = 0,
+		snapmatch_package_score: int = 0,
+		alien_version: str = "",
+		match_version: str = "",
+		snapmatch_version: str = "",
+		match_version_score: int = 0,
+		snapmatch_version_score: int = 0,
+		match_score: float = 0.0,
+		snapmatch_score: float = 0.0,
+		deltacode_proximity: float = 0.0
+	):
+		self.alien_name = alien_name
+		self.match_name = match_name
+		self.snapmatch_name = snapmatch_name
+		self.match_package_score = match_package_score
+		self.snapmatch_package_score = snapmatch_package_score
+		self.alien_version = alien_version
+		self.match_version = match_version
+		self.snapmatch_version = snapmatch_version
+		self.match_version_score = match_version_score
+		self.snapmatch_version_score = snapmatch_version_score
+		self.match_score = match_score
+		self.snapmatch_score = snapmatch_score
+		self.deltacode_proximity = deltacode_proximity

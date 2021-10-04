@@ -31,6 +31,7 @@ import sys
 from textwrap import dedent
 
 from aliens4friends.commands.add import Add
+from aliens4friends.commands.comparematch import CompareMatchResults
 from aliens4friends.commands.delta import Delta
 from aliens4friends.commands.fossy import Fossy
 from aliens4friends.commands.harvest import Harvest, Harvester
@@ -65,6 +66,7 @@ SUPPORTED_COMMANDS = [
 	"snapmatch",
 	"help",
 	"session",
+	"comparematch",
 	"listpool"
 ]
 
@@ -432,6 +434,14 @@ class Aliens4Friends:
 		)
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
+
+	def parser_comparematch(self, cmd:str) -> None:
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Compare match, snapmatch and deltacode results and write stats/comparematch.csv"
+		)
+		self._args_defaults(self.parsers[cmd])
+		self._args_session(self.parsers[cmd])
 	
 	def parser_listpool(self, cmd:str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -532,6 +542,12 @@ class Aliens4Friends:
 		return Harvest.execute(
 			self.args.add_missing,
 			self.args.use_oldmatcher,
+			self.args.session,
+			self.args.dryrun
+		)
+
+	def comparematch(self) -> bool:
+		return CompareMatchResults.execute(
 			self.args.session,
 			self.args.dryrun
 		)
