@@ -92,6 +92,9 @@ class SnapMatch(Command):
 				amm.errors.append("NO MATCH without errors")
 				outcome = "NO MATCH"
 			logger.debug(f"[{self.alienmatcher.curpkg}] Result already exists ({outcome}), skipping.")
+			if outcome == "MATCH":
+				self.alienmatcher.download_all_to_debian(amm.match)
+
 		except (PoolError, ModelError, FileNotFoundError) as ex:
 			if type(ex) == PoolError or type(ex) == ModelError:
 				logger.warning(
