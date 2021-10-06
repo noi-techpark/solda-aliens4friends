@@ -160,21 +160,7 @@ class AlienMatcher:
 		else:
 			logger.debug(f"[{self.curpkg}] Found no neighbor on Debian.")
 
-		# FIXME This code has been partly extracted from snap_match.py, we should
-		# create a method to solve scoring for all occasions (put it inside version.py)
-		cur_version_score = -100
-		if best_candidate[1] == 0:
-			cur_version_score = 100
-
-		# Warning: snap_match sets this to 10 only, but we would have too small thresholds
-		# and therefore catch only packages with a very small micro-version distance
-		elif best_candidate[1] <= 100:
-			cur_version_score = 99
-		elif best_candidate[1] < Version.KO_DISTANCE:
-			cur_version_score = 50
-		else:
-			cur_version_score = 10
-
+		cur_version_score = package.version.similarity(best_candidate[0])
 		return (
 			Package(name = cur_package_name, version = best_candidate[0]),
 			cur_package_score,

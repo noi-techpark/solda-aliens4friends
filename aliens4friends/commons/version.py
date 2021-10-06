@@ -138,8 +138,8 @@ class Version:
 			return n_max
 		return n
 
-	def similarity(self, other_version: Union[_TVersion, Any], simplified: bool = False) -> float:
-		dist = self.distance(other_version, simplified)
+	def similarity(self, other_version: Union[_TVersion, Any]) -> float:
+		dist = self.distance(other_version, True)
 
 		if dist == 0:
 			return 100
@@ -147,20 +147,23 @@ class Version:
 		# At least one major version bump
 		# we use a linear decrease here... 20% down for each major version difference
 		if dist >= 10000:
-			max_dist = 50000
-			return Version.clamp(100 - dist / max_dist * 100, 0, 80)
+			step = 20
+			bound = [0, 80]
 
 		# We have changes only in the minor version number
 		# we use a linear decrease of much smaller steps (2% each)
 		# The smallest possible value is 80% here, since we did not
 		# change the major number, which has a lower threshold at 80
-		if dist >= 100:
-			max_dist = 5000
-			return Version.clamp(100 - dist / max_dist * 100, 80, 99)
+		elif dist >= 100:
+			step = 2.0
+			bound = [82, 99]
 
 		# We have only changes in the micro version number
-		max_dist = 2000
-		return Version.clamp(100 - dist / max_dist * 100, 99, 100)
+		elif dist >= 0:
+			step = 0.2
+			bound = [99, 100]
+
+		return Version.clamp(100 - dist / (step * 2500) * 100, bound[0], bound[1])
 
 
 	def __lt__(self, other: _TVersion) -> bool:

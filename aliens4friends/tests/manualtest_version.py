@@ -15,6 +15,14 @@ if __name__ == '__main__':
 		for rec in reader:
 			c += 1
 			if c == 1:
+				results.append([
+					rec[0],
+					"v1",
+					"v2",
+					"sim",
+					rec[12],
+					"error"
+				])
 				continue
 			alien_version = rec[5]
 			match_version = rec[6]
@@ -23,7 +31,7 @@ if __name__ == '__main__':
 			try:
 				v1 = Version(alien_version)
 				v2 = Version(match_version)
-				sim = v1.similarity(v2, simplified=True)
+				sim = v1.similarity(v2)
 			except VersionError as ex:
 				error = str(ex)
 				continue
