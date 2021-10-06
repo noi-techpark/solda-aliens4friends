@@ -84,7 +84,7 @@ class Version:
 	def has_flag(self, flag: int) -> bool:
 		return (self.version_conversion & flag) != 0
 
-	def distance(self, other_version: Union[_TVersion, Any]) -> int:
+	def distance(self, other_version: Union[_TVersion, Any], simplified: bool = False) -> int:
 
 		if not isinstance(other_version, Version):
 			return Version.MAX_DISTANCE
@@ -110,6 +110,16 @@ class Version:
 			dist_revision2 = 1
 
 		# Defensive hierarchical distance, that is, consider subsequent versioning levels
+		# only if the level above is equal. This is the simple version, that is we ignore
+		# anything below the minor level
+		if simplified:
+			return (
+				Version.clamp(dist_major * 10000, 0, 50000)
+				+ Version.clamp((dist_minor * 100 if dist_major == 0 else 0), 0, 5000)
+				+ Version.clamp((dist_micro if dist_major == 0 and dist_minor == 0 else 0), 0, 50)
+			)
+
+		# Defensive hierarchical distance, that is, consider subsequent versioning levels
 		# only if the level above is equal.
 		return (
 			dist_major * 10000 +
@@ -118,18 +128,39 @@ class Version:
 			((dist_revision1 + dist_revision2 + dist_post) * 10 if dist_major == 0 and dist_minor == 0 and dist_micro == 0 else 0)
 		)
 
-	def similarity(self, other_version: Union[_TVersion, Any]) -> float:
-		dist = self.distance(other_version)
-		logdist = log(dist) if dist != 0 else 0 # to avoid a runtime warning in log()
-		sim = 100 - logdist / log(self.MAX_DISTANCE) * 100
+	@staticmethod
+	def clamp(n: Optional[int], n_min: int, n_max: int, n_default: int = 0):
+		if not n:
+			return n_default
+		if n < n_min:
+			return n_min
+		if n > n_max:
+			return n_max
+		return n
 
-		if sim > 100:
+	def similarity(self, other_version: Union[_TVersion, Any], simplified: bool = False) -> float:
+		dist = self.distance(other_version, simplified)
+
+		if dist == 0:
 			return 100
 
-		if sim < 0:
-			return 0
+		# At least one major version bump
+		# we use a linear decrease here... 20% down for each major version difference
+		if dist >= 10000:
+			max_dist = 50000
+			return Version.clamp(100 - dist / max_dist * 100, 0, 80)
 
-		return sim
+		# We have changes only in the minor version number
+		# we use a linear decrease of much smaller steps (2% each)
+		# The smallest possible value is 80% here, since we did not
+		# change the major number, which has a lower threshold at 80
+		if dist >= 100:
+			max_dist = 5000
+			return Version.clamp(100 - dist / max_dist * 100, 80, 99)
+
+		# We have only changes in the micro version number
+		max_dist = 2000
+		return Version.clamp(100 - dist / max_dist * 100, 99, 100)
 
 
 	def __lt__(self, other: _TVersion) -> bool:
