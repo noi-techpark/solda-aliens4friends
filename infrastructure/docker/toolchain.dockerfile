@@ -23,7 +23,6 @@ FROM python:3.6
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
     apt-get install -y openjdk-11-jdk-headless bzip2 && \
-	apt-get install -y 'ca-certificates=20210119~20.04.2' && \
 	apt-get autoremove --purge -y
 
 ### SPDXTOOL INSTALLATION
