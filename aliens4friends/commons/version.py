@@ -149,7 +149,7 @@ class Version:
 
 		# We have changes only in the minor version number
 		# we use a linear decrease of much smaller steps (2% each)
-		# The smallest possible value is 80% here, since we did not
+		# The smallest possible value is 82% here, since we did not
 		# change the major number, which has a lower threshold at 80
 		elif dist >= 100:
 			step = 2.0
