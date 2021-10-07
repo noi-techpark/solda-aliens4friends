@@ -156,7 +156,7 @@ class Version:
 			bound = [82, 99]
 
 		# We have only changes in the micro version number
-		elif dist >= 0:
+		else:
 			step = 0.2
 			bound = [99, 100]
 
