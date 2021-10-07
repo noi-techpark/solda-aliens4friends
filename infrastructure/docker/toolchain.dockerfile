@@ -20,9 +20,11 @@ FROM python:3.6
 # - cleanup apt-get caches
 # - combine layers that should be together with a single RUN command
 
+ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get -y install openjdk-11-jdk-headless bzip2 && \
-	DEBIAN_FRONTEND=noninteractive apt-get autoremove --purge -y
+    apt-get install -y openjdk-11-jdk-headless bzip2 && \
+	apt-get install -y 'ca-certificates=20210119~20.04.2' && \
+	apt-get autoremove --purge -y
 
 ### SPDXTOOL INSTALLATION
 #

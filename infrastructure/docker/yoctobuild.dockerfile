@@ -9,12 +9,14 @@ USER root
 COPY --chown=ostc-builder:ostc-builder infrastructure/utils/yoctobuilder.py /usr/local/bin/yoctobuilder
 RUN chmod +x /usr/local/bin/yoctobuilder
 
+ENV DEBIAN_FRONTEND=noninteractive
 RUN wget -qO /usr/local/bin/aliensrc_creator https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat/-/raw/master/aliensrc_creator.py && \
     wget -qO /usr/local/bin/tinfoilhat https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat/-/raw/master/tinfoilhat.py && \
 	chmod +x /usr/local/bin/aliensrc_creator /usr/local/bin/tinfoilhat && \
-	DEBIAN_FRONTEND=noninteractive apt-get update && \
-	DEBIAN_FRONTEND=noninteractive apt-get install -y python3-yaml rsync rpm && \
-	DEBIAN_FRONTEND=noninteractive apt-get autoremove --purge -y
+	apt-get update && \
+	apt-get install -y python3-yaml rsync rpm && \
+	apt-get install -y 'ca-certificates=20210119~20.04.2' && \
+	apt-get autoremove --purge -y
 
 USER ostc-builder
 CMD [ "bash" ]

@@ -5,7 +5,6 @@ import logging
 
 from aliens4friends.commons.pool import FILETYPE
 from aliens4friends.commands.command import Command, CommandError, Processing
-from aliens4friends.commons.utils import get_attr_names
 
 logger = logging.getLogger(__name__)
 
