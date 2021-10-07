@@ -5,7 +5,6 @@ import re
 from typing import Any, Optional, TypeVar, Union
 
 from debian.debian_support import Version as DebVersion
-from numpy import log
 from packaging.version import Version as PkgVersion
 
 _TVersion = TypeVar('_TVersion', bound='Version')
@@ -113,7 +112,7 @@ class Version:
 		# only if the level above is equal. This is the simple version, that is we ignore
 		# anything below the minor level
 		if simplified:
-			return (
+			return int(
 				Version.clamp(dist_major * 10000, 0, 50000)
 				+ Version.clamp((dist_minor * 100 if dist_major == 0 else 0), 0, 5000)
 				+ Version.clamp((dist_micro if dist_major == 0 and dist_minor == 0 else 0), 0, 50)
@@ -129,9 +128,7 @@ class Version:
 		)
 
 	@staticmethod
-	def clamp(n: Optional[int], n_min: int, n_max: int, n_default: int = 0):
-		if not n:
-			return n_default
+	def clamp(n: Union[float, int], n_min: Union[float, int], n_max: Union[float, int]) -> Union[float, int]:
 		if n < n_min:
 			return n_min
 		if n > n_max:

@@ -80,7 +80,7 @@ class AlienMatcher:
 		global DEB_ALL_SOURCES
 		DEB_ALL_SOURCES = json.loads(response)
 
-	def search(self, package: Package) -> Tuple[Package, int, int]:
+	def search(self, package: Package) -> Tuple[Package, int, float]:
 		logger.debug(f"[{self.curpkg}] Search for similar packages with {self.API_URL_ALLSRC}.")
 		if not isinstance(package, Package):
 			raise TypeError("Parameter must be a Package.")
