@@ -144,7 +144,7 @@ class Version:
 		# At least one major version bump
 		# we use a linear decrease here... 20% down for each major version difference
 		if dist >= 10000:
-			step = 20
+			step = 20.0
 			bound = [0, 80]
 
 		# We have changes only in the minor version number
