@@ -113,9 +113,9 @@ class Version:
 		# anything below the minor level
 		if simplified:
 			return int(
-				Version.clamp(dist_major * 10000, 0, 50000)
-				+ Version.clamp((dist_minor * 100 if dist_major == 0 else 0), 0, 5000)
-				+ Version.clamp((dist_micro if dist_major == 0 and dist_minor == 0 else 0), 0, 50)
+				Version._clamp(dist_major * 10000, 0, 50000)
+				+ Version._clamp((dist_minor * 100 if dist_major == 0 else 0), 0, 5000)
+				+ Version._clamp((dist_micro if dist_major == 0 and dist_minor == 0 else 0), 0, 50)
 			)
 
 		# Defensive hierarchical distance, that is, consider subsequent versioning levels
@@ -128,7 +128,7 @@ class Version:
 		)
 
 	@staticmethod
-	def clamp(n: Union[float, int], n_min: Union[float, int], n_max: Union[float, int]) -> Union[float, int]:
+	def _clamp(n: Union[float, int], n_min: Union[float, int], n_max: Union[float, int]) -> Union[float, int]:
 		if n < n_min:
 			return n_min
 		if n > n_max:
@@ -160,7 +160,7 @@ class Version:
 			step = 0.2
 			bound = [99, 100]
 
-		return Version.clamp(100 - dist / (step * 2500) * 100, bound[0], bound[1])
+		return Version._clamp(100 - dist / (step * 2500) * 100, bound[0], bound[1])
 
 
 	def __lt__(self, other: _TVersion) -> bool:
