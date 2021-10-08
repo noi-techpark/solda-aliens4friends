@@ -12,8 +12,8 @@ RUN chmod +x /usr/local/bin/yoctobuilder
 ENV DEBIAN_FRONTEND=noninteractive
 RUN wget -qO /usr/local/bin/aliensrc_creator https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat/-/raw/0bb3f8f1/aliensrc_creator.py && \
     wget -qO /usr/local/bin/tinfoilhat https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat/-/raw/0bb3f8f1/tinfoilhat.py && \
-	chmod +x /usr/local/bin/aliensrc_creator /usr/local/bin/tinfoilhat && \
-	apt-get update && \
+	chmod +x /usr/local/bin/aliensrc_creator /usr/local/bin/tinfoilhat
+RUN	apt-get update && \
 	apt-get install -y python3-yaml rsync rpm && \
 	apt-get install -y 'ca-certificates=20210119~20.04.2' && \
 	apt-get autoremove --purge -y
