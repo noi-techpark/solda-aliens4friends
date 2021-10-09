@@ -54,10 +54,19 @@ reuse:
 
   variables:
     CI_REGISTRY_BASE: $CI_REGISTRY/oss-compliance/toolchain/aliens4friends
+  before_script:
+    - apk update && apk add --no-cache git
   script:
     - CI_REGISTRY_IMAGE=$CI_REGISTRY_BASE/$REGISTRY_NAME
     - echo -n $CI_REGISTRY_PASSWORD | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
     - docker pull $CI_REGISTRY_IMAGE:latest || true
+    - |
+      if [ -n "$TINFOILHAT" ]; then
+        export GIT_COMMIT="$(git ls-remote https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat.git  HEAD | cut -f 1)"
+        docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest --build-arg GIT_REF="$GIT_COMMIT" . -f $DOCKERFILE
+      else
+        docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest . -f $DOCKERFILE
+      fi
     - docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest . -f $DOCKERFILE
     - docker push $CI_REGISTRY_IMAGE:latest
   needs:
@@ -76,3 +85,4 @@ dockerize yoctobuild:
   variables:
     REGISTRY_NAME: yoctobuild
     DOCKERFILE: infrastructure/docker/yoctobuild.dockerfile
+    TINFOILHAT: "yes"
