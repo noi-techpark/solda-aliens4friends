@@ -76,23 +76,7 @@ class AlienSnapMatcher:
 
 		logger.debug(f"[{self.curpkg}] Find a matching package through Debian Snapshot API.")
 
-		main_match = False
 		snap_match = False
-
-		main_match_path = self.pool.relpath_typed(
-			FILETYPE.ALIENMATCHER,
-			apkg.name,
-			apkg.version.str
-		)
-
-		try:
-			main_match = self.pool.get_json(main_match_path)
-			main_match = main_match['debian']['match']
-
-		except Exception as ex:
-			logger.warning(
-				f"[{self.curpkg}] Unable to load current alienmatch from {main_match_path}."
-			)
 
 		int_arch_count = apkg.internal_archive_count()
 		if int_arch_count > 1:
