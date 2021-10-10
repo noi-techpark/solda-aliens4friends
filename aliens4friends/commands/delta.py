@@ -42,7 +42,7 @@ class Delta(Command):
 			ignore_variant=True
 		)
 
-	def run(self, path: str) -> Union[DeltaCodeModel, bool]:
+	def run(self, path: str) -> Union[str, bool]:
 
 		name, version, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
