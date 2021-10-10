@@ -78,9 +78,9 @@ class Delta(Command):
 			self.pool.abspath_typed(FILETYPE.SCANCODE, alien.name, alien.version),
 			self.pool.abspath(result_path)
 		)
-		dcmodel = deltacode.compare()
+		deltacode.compare()
 		deltacode.write_results()
 		logger.debug(f'[{package}] Results written to {result_path}')
 		for stat in deltacode.get_stats():
 			logger.debug(f'[{package}] Stats: {stat}')
-		return dcmodel
+		return result_path
