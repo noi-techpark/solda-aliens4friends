@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 class Upload(Command):
 
 	def __init__(self, session_id: str, folder: str, dryrun: bool):
+		# Each run updates the session model! Change that, if you want to
+		# switch to multi-processing
 		super().__init__(session_id, Processing.LOOP, dryrun)
 		self.folder = folder
 		self.fossywrapper = FossyWrapper()
@@ -30,10 +32,13 @@ class Upload(Command):
 		dryrun: bool = False
 	) -> bool:
 		cmd = Upload(session_id, folder, dryrun)
-		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
+		results = cmd.exec_with_paths(FILETYPE.ALIENSRC)
+		cmd.session.write_package_list()
+		return results
+
 
 	def run(self, path: str) -> Union[int, bool]:
-		name, version, _, _ = self.pool.packageinfo_from_path(path)
+		name, version, variant, _ = self.pool.packageinfo_from_path(path)
 
 		cur_pckg = f"{name}-{version}"
 		cur_path = self.pool.relpath(
@@ -41,24 +46,39 @@ class Upload(Command):
 			name,
 			version
 		)
-		# TODO: check session file if already uploaded (True) or previously uploaded (False) -> skip, go only only il unknown (none/null)
+
+		# Skip the package, if it has been already uploaded in this run (True)
+		# or has been previously uploaded (False) in another job.
+		# Upload the package, if the current upload status is unknown (None).
+		session_pckg = self.session.get_package(name, version, variant)
+		if isinstance(session_pckg.uploaded, bool):
+			return True
 
 		try:
 			apkg = AlienPackage(path)
 			if not apkg.package_files:
-				logger.info(
-					f"[{cur_pckg}] package does not contain any files"
-					" (is it a meta-package?), skipping"
+				msg = "package does not contain any files (is it a meta-package?)"
+				logger.info(f"[{cur_pckg}] {msg}, skipping")
+				# De-select package in session if it's a metapackage
+				# This is OK, because we are in a loop and not multiprocessing environment
+				# FIXME Shouldn't this be done earlier?
+				self.session.set_package(
+					{
+						"selected": False,
+						"selected_reason": msg
+					},
+					apkg.name,
+					apkg.version.str,
+					apkg.variant
 				)
 				return True
-				# TODO: de-select package in session if it's a metapackage
 
 			logger.info(
 				f"[{cur_pckg}] expanding alien package,"
 				" it may require a lot of time"
 			)
 			apkg.expand(get_internal_archive_rootfolders=True)
-		except Exception as ex:
+		except Exception:
 			raise CommandError(f"[{cur_pckg}] Unable to load aliensrc from {path} ")
 
 		alien_spdx_filename = self.pool.abspath(
@@ -84,7 +104,8 @@ class Upload(Command):
 			f'{cur_pckg}.fossy.json'
 		)
 
-		self.session.package_list_set(
+		# This is OK, because we are in a loop and not multiprocessing environment
+		self.session.set_package(
 			{
 				"uploaded": a2f.uploaded,
 				"uploaded_reason": a2f.uploaded_reason

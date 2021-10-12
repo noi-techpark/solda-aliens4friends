@@ -94,7 +94,22 @@ class Session:
 			)
 		]
 
-	def package_list_set(
+	def get_package(
+		self,
+		name: str,
+		version: str,
+		variant: str
+	) -> Optional[SessionPackageModel]:
+		for pckg in self.session_model.package_list:
+			if (
+				pckg.name == name
+				and pckg.version == version
+				and pckg.variant == variant
+			):
+				return pckg
+		return None
+
+	def set_package(
 		self,
 		values: Dict[str, Any],
 		name: str,
@@ -116,14 +131,10 @@ class Session:
 		Returns:
 			bool: True, if a package could be found and updated
 		"""
-		for pckg in self.session_model.package_list:
-			if (
-				pckg.name == name
-				and pckg.version == version
-				and pckg.variant == variant
-			):
-				pckg.__dict__.update(values)
-				return True
+		pckg = self.get_package(name, version, variant)
+		if pckg:
+			pckg.__dict__.update(values)
+			return True
 		return False
 
 	def write_package_list(
