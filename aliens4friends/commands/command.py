@@ -94,7 +94,7 @@ class Command:
 			)
 			return True
 		try:
-			return self.run(*args)
+			return self.run(*args) if args else self.run([])
 		except CommandError as ex:
 			log_minimal_error(logger, ex, ex.prefix)
 		except Exception as ex:
