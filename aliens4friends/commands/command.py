@@ -128,7 +128,7 @@ class Command:
 				run_args
 			)
 		elif self.processing == Processing.SINGLE:
-			results.append(self._run(run_args))
+			results.append(self._run(args))
 		elif self.processing == Processing.LOOP:
 			for run_arg in run_args:
 				results.append(self._run(run_arg))
