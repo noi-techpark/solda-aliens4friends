@@ -33,7 +33,8 @@ class Upload(Command):
 		dryrun: bool = False
 	) -> bool:
 		cmd = Upload(session_id, dryrun)
-		return cmd.exec_with_paths(FILETYPE.ALIENSRC, folder, description)
+		return cmd.exec_with_paths(
+			FILETYPE.ALIENSRC, False, folder, description)
 
 	def run(self, path: str, folder:str, description: str) -> Union[int, bool]:
 		name, version, variant, _ = self.pool.packageinfo_from_path(path)
