@@ -56,7 +56,7 @@ class Upload(Command):
 			return False
 		if isinstance(session_pckg.uploaded, bool):
 			msg = "Package already processed in this session"
-			logger.warning(f"[{cur_pckg}] {msg}, skipping")
+			logger.info(f"[{cur_pckg}] {msg}, skipping")
 			return True
 
 		try:
