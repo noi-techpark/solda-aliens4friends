@@ -41,6 +41,7 @@ class Upload(Command):
 			name,
 			version
 		)
+		# TODO: check session file if already uploaded (True) or previously uploaded (False) -> skip, go only only il unknown (none/null)
 
 		try:
 			apkg = AlienPackage(path)
@@ -50,6 +51,7 @@ class Upload(Command):
 					" (is it a meta-package?), skipping"
 				)
 				return True
+				# TODO: de-select package in session if it's a metapackage
 
 			logger.info(
 				f"[{cur_pckg}] expanding alien package,"
@@ -72,6 +74,7 @@ class Upload(Command):
 			self.folder
 		)
 		upload_id = a2f.get_or_do_upload()
+		# if exists, a2f.uploaded is False
 		a2f.run_fossy_scanners()
 		a2f.import_spdx()
 

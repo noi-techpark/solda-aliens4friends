@@ -54,6 +54,7 @@ class UploadAliens2Fossy:
 			)
 
 	def get_or_do_upload(self) -> None:
+		# FIXME: fix typing; self.uploaded = True->uploaded, False->Exists, None-> Unkown 
 		upload = self.fossy.get_upload(self.uploadname)
 		if upload:
 			self.upload = upload
