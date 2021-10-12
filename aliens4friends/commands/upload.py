@@ -15,12 +15,11 @@ logger = logging.getLogger(__name__)
 
 class Upload(Command):
 
-	def __init__(self, session_id: str, folder: str, dryrun: bool):
+	def __init__(self, session_id: str, dryrun: bool):
 		# Each run updates the session model! I would not be possible if we used
 		# multi-processing, but we never use multiprocessing when dealing with
 		# Fossology API
 		super().__init__(session_id, Processing.LOOP, dryrun)
-		self.folder = folder
 		self.fossywrapper = FossyWrapper()
 
 	def hint(self) -> str:
@@ -30,12 +29,13 @@ class Upload(Command):
 	def execute(
 		folder: str,
 		session_id: str = "",
+		description: str = "uploaded by aliens4friends",
 		dryrun: bool = False
 	) -> bool:
-		cmd = Upload(session_id, folder, dryrun)
-		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
+		cmd = Upload(session_id, dryrun)
+		return cmd.exec_with_paths(FILETYPE.ALIENSRC, folder, description)
 
-	def run(self, path: str) -> Union[int, bool]:
+	def run(self, path: str, folder:str, description: str) -> Union[int, bool]:
 		name, version, variant, _ = self.pool.packageinfo_from_path(path)
 
 		cur_pckg = f"{name}-{version}"
@@ -96,7 +96,8 @@ class Upload(Command):
 			self.pool,
 			alien_spdx_filename,
 			self.fossywrapper,
-			self.folder
+			folder,
+			description
 		)
 		upload_id = a2f.get_or_do_upload() # if exists, a2f.uploaded is False
 		

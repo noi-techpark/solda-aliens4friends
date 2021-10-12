@@ -32,7 +32,8 @@ class UploadAliens2Fossy:
 		pool: Pool,
 		alien_spdx_filename: str,
 		fossy: FossyWrapper,
-		fossy_folder: str
+		fossy_folder: str,
+		description: str
 	) -> None:
 
 		self.fossy = fossy
@@ -43,6 +44,7 @@ class UploadAliens2Fossy:
 		self.pool = pool
 		self.alien_spdx_filename = pool.abspath(alien_spdx_filename)
 		self.fossy_folder = fossy_folder
+		self.description = description
 
 		if not alien_package.package_files:
 			raise UploadAliens2FossyException(
@@ -78,7 +80,7 @@ class UploadAliens2Fossy:
 		self.upload = self.fossy.upload(
 			tar2upload,
 			folder,
-			'uploaded by aliens4friends'
+			self.description
 		)
 		self.fossy.rename_upload(
 			self.upload,

@@ -400,6 +400,12 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self.parsers[cmd].add_argument(
+			"--description",
+			type = str,
+			default = "uploaded by aliens4friends",
+			help = "Fossology upload description"
+		)
+		self.parsers[cmd].add_argument(
 			"--folder",
 			type = str,
 			required = True,
@@ -529,6 +535,7 @@ class Aliens4Friends:
 		return Upload.execute(
 			self.args.folder,
 			self.args.session,
+			self.args.description,
 			self.args.dryrun
 		)
 
