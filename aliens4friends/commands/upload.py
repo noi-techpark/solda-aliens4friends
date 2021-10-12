@@ -106,7 +106,7 @@ class Upload(Command):
 		# been uploaded, just in case there has been an error after upload the
 		# previous time; the called methods (run_fossy_scanners and import_spdx)
 		# already check if such tasks have already been run and in the positive
-		# case it does not run them again, so we don't need to bother about it
+		# case they do not run them again, so we don't need to bother about it
 		# here
 		a2f.run_fossy_scanners() 
 		a2f.import_spdx() 
