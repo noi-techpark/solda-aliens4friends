@@ -10,7 +10,7 @@ from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.fossywrapper import FossyWrapper
 from aliens4friends.commons.spdxutils import fix_spdxtv, spdxtv2rdf, parse_spdx_tv, write_spdx_tv
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,8 @@ class UploadAliens2Fossy:
 	# Type hints for attributes not declared in __init__:
 	fossy_internal_archive_path: str
 	upload: Tuple[List[str], int]
+	uploaded: Optional[bool]   # True->uploaded, False->Exists in Fossology, None->Unknown
+	uploaded_reason: str
 
 	def __init__(
 		self,
@@ -53,8 +55,8 @@ class UploadAliens2Fossy:
 				" any internal archive"
 			)
 
-	def get_or_do_upload(self) -> None:
-		# FIXME: fix typing; self.uploaded = True->uploaded, False->Exists, None-> Unkown 
+	# The field "fossology.obj.Upload.id" is a integer
+	def get_or_do_upload(self) -> int:
 		upload = self.fossy.get_upload(self.uploadname)
 		if upload:
 			self.upload = upload

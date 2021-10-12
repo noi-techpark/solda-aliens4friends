@@ -51,13 +51,15 @@ class Upload(Command):
 		# or has been previously uploaded (False) in another job.
 		# Upload the package, if the current upload status is unknown (None).
 		session_pckg = self.session.get_package(name, version, variant)
+		if not session_pckg:
+			return False
 		if isinstance(session_pckg.uploaded, bool):
 			return True
 
 		try:
 			apkg = AlienPackage(path)
 			if not apkg.package_files:
-				msg = "package does not contain any files (is it a meta-package?)"
+				msg = "Package does not contain any files (is it a meta-package?)"
 				logger.info(f"[{cur_pckg}] {msg}, skipping")
 				# De-select package in session if it's a metapackage
 				# This is OK, because we are in a loop and not multiprocessing environment
