@@ -195,7 +195,7 @@ class Aliens4Friends:
 			default = False,
 			help = "Show only warnings and errors. This overrides the A4F_LOGLEVEL env var."
 		)
-		group.add_argument(
+		parser.add_argument(
 			"--dryrun",
 			help = "Log operations to be done without doing anything",
 			action = "store_true",
