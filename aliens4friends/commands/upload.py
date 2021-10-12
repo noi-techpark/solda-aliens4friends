@@ -16,8 +16,9 @@ logger = logging.getLogger(__name__)
 class Upload(Command):
 
 	def __init__(self, session_id: str, folder: str, dryrun: bool):
-		# Each run updates the session model! Change that, if you want to
-		# switch to multi-processing
+		# Each run updates the session model! I would not be possible if we used
+		# multi-processing, but we never use multiprocessing when dealing with
+		# Fossology API
 		super().__init__(session_id, Processing.LOOP, dryrun)
 		self.folder = folder
 		self.fossywrapper = FossyWrapper()
@@ -93,10 +94,16 @@ class Upload(Command):
 			self.fossywrapper,
 			self.folder
 		)
-		upload_id = a2f.get_or_do_upload()
-		# if exists, a2f.uploaded is False
-		a2f.run_fossy_scanners()
-		a2f.import_spdx()
+		upload_id = a2f.get_or_do_upload() # if exists, a2f.uploaded is False
+		
+		# we try to run scanners and to import spdx also if package has already
+		# been uploaded, just in case there has been an error after upload the
+		# previous time; the called methods (run_fossy_scanners and import_spdx)
+		# already check if such tasks have already been run and in the positive
+		# case it does not run them again, so we don't need to bother about it
+		# here
+		a2f.run_fossy_scanners() 
+		a2f.import_spdx() 
 
 		self.pool.write_json(
 			a2f.get_metadata_from_fossology(),
@@ -104,7 +111,9 @@ class Upload(Command):
 			f'{cur_pckg}.fossy.json'
 		)
 
-		# This is OK, because we are in a loop and not multiprocessing environment
+		# This is OK, because we are in a loop and not in a multiprocessing
+		# environment (we never use multiprocessing when dealing with fossology
+		# API)
 		self.session.set_package(
 			{
 				"uploaded": a2f.uploaded,
