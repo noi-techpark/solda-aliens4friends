@@ -32,10 +32,7 @@ class Upload(Command):
 		dryrun: bool = False
 	) -> bool:
 		cmd = Upload(session_id, folder, dryrun)
-		results = cmd.exec_with_paths(FILETYPE.ALIENSRC)
-		cmd.session.write_package_list()
-		return results
-
+		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
 
 	def run(self, path: str) -> Union[int, bool]:
 		name, version, variant, _ = self.pool.packageinfo_from_path(path)
@@ -73,6 +70,7 @@ class Upload(Command):
 					apkg.version.str,
 					apkg.variant
 				)
+				self.session.write_package_list()
 				return True
 
 			logger.info(
@@ -116,5 +114,6 @@ class Upload(Command):
 			apkg.version.str,
 			apkg.variant
 		)
+		self.session.write_package_list()
 
 		return upload_id
