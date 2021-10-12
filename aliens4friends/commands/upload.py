@@ -50,8 +50,12 @@ class Upload(Command):
 		# Upload the package, if the current upload status is unknown (None).
 		session_pckg = self.session.get_package(name, version, variant)
 		if not session_pckg:
+			msg = "Can't find package is session file"
+			logger.warning(f"[{cur_pckg}] {msg}, skipping")
 			return False
 		if isinstance(session_pckg.uploaded, bool):
+			msg = "Package already processed in this session"
+			logger.warning(f"[{cur_pckg}] {msg}, skipping")
 			return True
 
 		try:
