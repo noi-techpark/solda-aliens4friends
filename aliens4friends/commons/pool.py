@@ -18,6 +18,7 @@ from .archive import Archive
 
 from aliens4friends.models.base import BaseModelEncoder, BaseModel
 from aliens4friends.commons.spdxutils import write_spdx_tv
+from aliens4friends.commons.utils import bash, sha1sum
 
 logger = logging.getLogger(__name__)
 
@@ -317,6 +318,26 @@ class Pool:
 		history_filename = history_prefix + filename
 		history_path = os.path.join(dir_in_pool, "history")
 
+		# first add file to history and check if a file with the same content
+		# has already been added before
+		self._add(
+			src, history_path, history_filename, SRCTYPE.JSON, OVERWRITE.RAISE
+		)
+		history_files = os.path.join(self.abspath(history_path), f"*{filename}")
+		stdout, _ = bash(f"sha1sum {history_files} | cut -d' ' -f 1")
+		old_checksums = stdout.split("\n")
+		if '' in old_checksums:
+			old_checksums.remove('')
+		new_file = os.path.join(self.abspath(history_path), history_filename)
+		new_checksum = sha1sum(new_file)
+		if new_checksum in old_checksums:
+			bash(f"rm {new_file}")
+			logger.info(
+				f"'{filename}': a file with same content has been already"
+				 " added before, skipping"
+			)
+			return dir_in_pool
+
 		if not os.path.isfile(dest_full):
 			to_add = src
 		else:
@@ -324,7 +345,6 @@ class Pool:
 			old = model.from_file(dest_full)
 			new = src
 			to_add = model.merge(old, new) # type: ignore
-		self._add(src, history_path, history_filename, SRCTYPE.JSON, OVERWRITE.RAISE)
 		self._add(to_add, dir_in_pool, filename, SRCTYPE.JSON, OVERWRITE.ALWAYS)
 		return dir_in_pool
 
