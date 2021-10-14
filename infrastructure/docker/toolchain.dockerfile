@@ -52,7 +52,10 @@ COPY aliens4friends /code/aliens4friends/
 RUN cd /code && pip3 install python-dotenv && pip3 install . && \
 	python -c "from flanker.addresslib import address" >/dev/null 2>&1
 
-RUN useradd --create-home --uid 1000 --shell /usr/bin/bash a4fuser
+RUN apt-get install -y sudo && \
+	useradd --create-home --uid 1000 --shell /bin/bash a4fuser && \
+	usermod -aG sudo a4fuser && \
+	echo "a4fuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
 USER a4fuser
 CMD [ "bash" ]
