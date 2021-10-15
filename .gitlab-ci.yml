@@ -80,6 +80,16 @@ dockerize toolchain:
     REGISTRY_NAME: toolchain
     DOCKERFILE: infrastructure/docker/toolchain.dockerfile
 
+  # Install a self-signed certificate to the current toolchain image.
+  # These ENV variables must be provided from the Gitlab GUI...
+  # FIXME This is a hard-coded solution to avoid doing this during the
+  #       execution of each aliens4friends step in the CC pipelines.
+  before_script:
+    - echo "$FOSSY_IP_ADDRESS  $FOSSY_HOSTNAME" >> /etc/hosts
+    - echo "$FOSSY_SSL_CERT" > /usr/local/share/ca-certificates/fossology.crt
+    - update-ca-certificates --fresh > /dev/null
+    - cp /etc/ssl/certs/ca-certificates.crt /usr/local/lib/python3.6/site-packages/certifi/cacert.pem
+
 dockerize yoctobuild:
   extends: .dockerize
   variables:

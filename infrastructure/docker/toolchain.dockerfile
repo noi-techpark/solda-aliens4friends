@@ -26,18 +26,16 @@ RUN apt-get update && \
 	apt-get autoremove --purge -y
 
 ### SPDXTOOL INSTALLATION
-#
-ENV SPDXTOOL_RELEASE=2.2.5
+# (we no longer use ENV here for the version, since that would invalidate this layer every time)
 COPY infrastructure/utils/spdxtool-wrapper /usr/local/bin/spdxtool
 RUN wget -P /usr/local/lib \
-    https://github.com/spdx/tools/releases/download/v${SPDXTOOL_RELEASE}/spdx-tools-${SPDXTOOL_RELEASE}-jar-with-dependencies.jar && \
+    https://github.com/spdx/tools/releases/download/v2.2.5/spdx-tools-2.2.5-jar-with-dependencies.jar && \
 	chmod +x /usr/local/bin/spdxtool
 
 ### SCANCODE INSTALLATION
-#
-ENV SCANCODE_RELEASE=3.2.3
+# (we no longer use ENV here for the version, since that would invalidate this layer every time)
 ENV PATH=/scancode-toolkit:$PATH
-RUN wget https://github.com/nexB/scancode-toolkit/releases/download/v${SCANCODE_RELEASE}/scancode-toolkit-${SCANCODE_RELEASE}.tar.bz2 && \
+RUN wget https://github.com/nexB/scancode-toolkit/releases/download/v3.2.3/scancode-toolkit-3.2.3.tar.bz2 && \
 	mkdir /scancode-toolkit && \
     tar xjvf scancode-toolkit-*.tar.bz2 -C scancode-toolkit --strip-components=1 && \
 	rm -f scancode-toolkit-*.tar.bz2 && \
@@ -53,9 +51,7 @@ RUN cd /code && pip3 install python-dotenv && pip3 install . && \
 	python -c "from flanker.addresslib import address" >/dev/null 2>&1
 
 RUN apt-get install -y sudo && \
-	useradd --create-home --uid 1000 --shell /bin/bash a4fuser && \
-	usermod -aG sudo a4fuser && \
-	echo "a4fuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+	useradd --create-home --uid 1000 --shell /bin/bash a4fuser
 
 USER a4fuser
 CMD [ "bash" ]
