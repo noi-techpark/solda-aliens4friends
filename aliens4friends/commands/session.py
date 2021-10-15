@@ -39,9 +39,9 @@ def filter_score_gt(
 		return False, reason
 
 	if amm.match.score > param:
-		return False, f"score > {param}"
+		return False, f"Exclude: score > {param}"
 
-	return True, f"score <= {param}"
+	return True, f"Include: score <= {param}"
 
 def filter_include_exclude(
 	session: Session,
@@ -58,19 +58,32 @@ def filter_include_exclude(
 	if 'include' in j:
 		for pattern in j['include']:
 			if re.match(pattern, package.name):
-				return True, f"Included manually with pattern '{pattern}'"
+				return True, f"Include: selected with pattern '{pattern}'"
 
 	if 'exclude' in j:
 		for pattern in j['exclude']:
 			if re.match(pattern, package.name):
-				return False, f"Excluded manually with pattern '{pattern}'"
+				return False, f"Exclude: selected with pattern '{pattern}'"
 
 	# Keep all packages as-is, if they are not inside the include/exclude lists
 	return package.selected, package.selected_reason
 
+def filter_only_uploaded(
+	session: Session,
+	pool: Pool,
+	package: SessionPackageModel,
+	param: str
+) -> Tuple[bool, str]:
+
+	if package.uploaded == True:
+		return True, "Include: uploaded in this run"
+	return False, "Exclude: not uploaded in this run"
+
+
 FILTERS = {
 	"score-gt": filter_score_gt,
-	"include-exclude": filter_include_exclude
+	"include-exclude": filter_include_exclude,
+	"only-uploaded": filter_only_uploaded,
 }
 
 class SessionCmd(Command):
