@@ -148,6 +148,15 @@ class UploadAliens2Fossy:
 		self.fossy_internal_archive_path = self.fossy_internal_archive_path.replace('/', '\\/')
 
 		if os.path.getsize(self.alien_spdx_filename) > 13000000:
+			
+			# FIXME: temporary workaround
+			logger.warning(
+				'Temporary workaround: SPDX file is too big, skipping reportImport for'
+				f' {self.upload.uploadname}'
+			)
+			return
+			# end workaround
+
 			logger.info(
 				f"[{self.upload.uploadname}] alien spdx is too big to be"
 				" uploaded, splitting it in two files"
