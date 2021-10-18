@@ -22,22 +22,20 @@ FROM python:3.6
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
-    apt-get install -y openjdk-11-jdk-headless bzip2 && \
+    apt-get install -y openjdk-11-jdk-headless bzip2 sudo && \
 	apt-get autoremove --purge -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ### SPDXTOOL INSTALLATION
-#
-ENV SPDXTOOL_RELEASE=2.2.5
+# Do not use ENV SPDXTOOL_RELEASE=2.2.5, to leverage the docker build cache
 COPY infrastructure/utils/spdxtool-wrapper /usr/local/bin/spdxtool
 RUN wget -P /usr/local/lib \
-    https://github.com/spdx/tools/releases/download/v${SPDXTOOL_RELEASE}/spdx-tools-${SPDXTOOL_RELEASE}-jar-with-dependencies.jar && \
+    https://github.com/spdx/tools/releases/download/v2.2.5/spdx-tools-2.2.5-jar-with-dependencies.jar && \
 	chmod +x /usr/local/bin/spdxtool
 
 ### SCANCODE INSTALLATION
-#
-ENV SCANCODE_RELEASE=3.2.3
+# Do not use ENV SCANCODE_RELEASE=3.2.3, to leverage the docker build cache
 ENV PATH=/scancode-toolkit:$PATH
-RUN wget https://github.com/nexB/scancode-toolkit/releases/download/v${SCANCODE_RELEASE}/scancode-toolkit-${SCANCODE_RELEASE}.tar.bz2 && \
+RUN wget https://github.com/nexB/scancode-toolkit/releases/download/v3.2.3/scancode-toolkit-3.2.3.tar.bz2 && \
 	mkdir /scancode-toolkit && \
     tar xjvf scancode-toolkit-*.tar.bz2 -C scancode-toolkit --strip-components=1 && \
 	rm -f scancode-toolkit-*.tar.bz2 && \
@@ -49,11 +47,12 @@ ENV PATH=/code/bin:$PATH
 COPY setup.py README.md /code/
 COPY bin/* /code/bin/
 COPY aliens4friends /code/aliens4friends/
-RUN cd /code && pip3 install python-dotenv && pip3 install . && \
+RUN cd /code && \
+	pip3 install python-dotenv && \
+	pip3 install . && \
 	python -c "from flanker.addresslib import address" >/dev/null 2>&1
 
-RUN apt-get install -y sudo && \
-	useradd --create-home --uid 1000 --shell /bin/bash a4fuser && \
+RUN useradd --create-home --uid 1000 --shell /bin/bash a4fuser && \
 	usermod -aG sudo a4fuser && \
 	echo "a4fuser ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
