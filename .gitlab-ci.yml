@@ -60,14 +60,12 @@ reuse:
     - CI_REGISTRY_IMAGE=$CI_REGISTRY_BASE/$REGISTRY_NAME
     - echo -n $CI_REGISTRY_PASSWORD | docker login $CI_REGISTRY -u $CI_REGISTRY_USER --password-stdin
     - docker pull $CI_REGISTRY_IMAGE:latest || true
-    - |
-      if [ -n "$TINFOILHAT" ]; then
-        export GIT_COMMIT="$(git ls-remote https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat.git  HEAD | cut -f 1)"
-        docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest --build-arg GIT_REF="$GIT_COMMIT" . -f $DOCKERFILE
-      else
-        docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest . -f $DOCKERFILE
-      fi
-    - docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest . -f $DOCKERFILE
+    - test -n "$FOSSY_IP_ADDRESS" && BUILD_ARGS="$BUILD_ARGS --build-arg FOSSY_IP_ADDRESS=$FOSSY_IP_ADDRESS"
+    - test -n "$FOSSY_HOSTNAME" && BUILD_ARGS="$BUILD_ARGS --build-arg FOSSY_HOSTNAME=$FOSSY_HOSTNAME"
+    - test -n "$FOSSY_SSL_CERT" && BUILD_ARGS="$BUILD_ARGS --build-arg FOSSY_SSL_CERT=$FOSSY_SSL_CERT"
+    - test -n "$TINFOILHAT" && BUILD_ARGS="$BUILD_ARGS --build-arg GIT_REF=$(git ls-remote https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat.git  HEAD | cut -f 1)"
+    - DOCKER_BUILDKIT=1 docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest $BUILD_ARGS . -f $DOCKERFILE
+    # --secret id=mysecret,src=mysecret.txt
     - docker push $CI_REGISTRY_IMAGE:latest
   needs:
     - pytype
@@ -80,19 +78,16 @@ dockerize toolchain:
     REGISTRY_NAME: toolchain
     DOCKERFILE: infrastructure/docker/toolchain.dockerfile
 
-  # Install a self-signed certificate to the current toolchain image.
-  # These ENV variables must be provided from the Gitlab GUI...
-  # FIXME This is a hard-coded solution to avoid doing this during the
-  #       execution of each aliens4friends step in the CC pipelines.
-  before_script:
-    - echo "$FOSSY_IP_ADDRESS  $FOSSY_HOSTNAME" >> /etc/hosts
-    - echo "$FOSSY_SSL_CERT" > /usr/local/share/ca-certificates/fossology.crt
-    - update-ca-certificates --fresh > /dev/null
-    - cp /etc/ssl/certs/ca-certificates.crt /usr/local/lib/python3.6/site-packages/certifi/cacert.pem
-
+# Install a self-signed certificate to the current toolchain image.
+# These ENV variables must be provided from the Gitlab GUI...
+# FIXME This is a hard-coded solution to avoid doing this during the
+#       execution of each aliens4friends step in the CC pipelines.
 dockerize yoctobuild:
   extends: .dockerize
   variables:
     REGISTRY_NAME: yoctobuild
     DOCKERFILE: infrastructure/docker/yoctobuild.dockerfile
     TINFOILHAT: "yes"
+    FOSSY_IP_ADDRESS: $FOSSY_IP_ADDRESS
+    FOSSY_HOSTNAME: $FOSSY_HOSTNAME
+    FOSSY_SSL_CERT: $FOSSY_SSL_CERT

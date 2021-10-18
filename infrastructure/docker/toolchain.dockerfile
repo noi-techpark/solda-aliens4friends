@@ -41,6 +41,16 @@ RUN wget https://github.com/nexB/scancode-toolkit/releases/download/v3.2.3/scanc
 	rm -f scancode-toolkit-*.tar.bz2 && \
 	scancode --reindex-licenses
 
+### CERTIFICATE INSTALLATION
+# This is needed for the fossology-wrapper to access a protected fossology instance
+ARG FOSSY_IP_ADDRESS=127.0.0.1
+ARG FOSSY_HOSTNAME=localhost
+ARG FOSSY_SSL_CERT
+RUN echo "$FOSSY_IP_ADDRESS  $FOSSY_HOSTNAME" >> /etc/hosts && \
+    echo "$FOSSY_SSL_CERT" > /usr/local/share/ca-certificates/fossology.crt  && \
+    update-ca-certificates --fresh > /dev/null  && \
+    cp /etc/ssl/certs/ca-certificates.crt /usr/local/lib/python3.6/site-packages/certifi/cacert.pem
+
 ### Prepare Python development prerequisites
 #
 ENV PATH=/code/bin:$PATH
