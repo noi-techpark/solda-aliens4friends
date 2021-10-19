@@ -41,7 +41,7 @@ def main():
 		amount = len(flavour['machines']) * len(flavour['images'])
 		count = 0
 		failed = 0
-		templateconf = f"TEMPLATECONF=../sources/meta-ohos/flavours/{flavour_id} "
+		templateconf = f"TEMPLATECONF=../oniro/flavours/{flavour_id} "
 		print(f'YOCTO BUILDER: Processing flavour {flavour_id} (with {amount} machine/image combinations)', flush=True)
 		for machine_id in flavour['machines']:
 
@@ -51,7 +51,7 @@ def main():
 				continue
 
 			bash(
-				f"{templateconf} . ./sources/poky/oe-init-build-env {flavour_id}-{machine_id}"
+				f"{templateconf} . ./oe-core/oe-init-build-env {flavour_id}-{machine_id}"
 			)
 			_conf_update(flavour_id, machine_id, cache_dir, flavour['configs'])
 
@@ -62,7 +62,7 @@ def main():
 					continue
 				try:
 					bash_live(
-						f'{templateconf} . ./sources/poky/oe-init-build-env {flavour_id}-{machine_id}; '
+						f'{templateconf} . ./oe-core/oe-init-build-env {flavour_id}-{machine_id}; '
 						f'bitbake {image_id}'
 					)
 					count += 1
