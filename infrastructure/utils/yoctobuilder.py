@@ -51,7 +51,7 @@ def main():
 				continue
 
 			bash(
-				f"{templateconf} . ./oe-core/oe-init-build-env {flavour_id}-{machine_id}"
+				f"{templateconf} . ./oe-core/oe-init-build-env build-{flavour_id}-{machine_id}"
 			)
 			_conf_update(flavour_id, machine_id, cache_dir, flavour['configs'])
 
@@ -62,7 +62,7 @@ def main():
 					continue
 				try:
 					bash_live(
-						f'{templateconf} . ./oe-core/oe-init-build-env {flavour_id}-{machine_id}; '
+						f'{templateconf} . ./oe-core/oe-init-build-env build-{flavour_id}-{machine_id}; '
 						f'bitbake {image_id}'
 					)
 					count += 1
