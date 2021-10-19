@@ -29,10 +29,6 @@ def main():
 
 	print("YOCTO BUILDER: Yaml parsed...", flush=True)
 
-	_repo_sync(yml['repo']['url'], yml['repo']['branch'])
-
-	print("YOCTO BUILDER: Repo synced...", flush=True)
-
 	cache_dir = yml['cache_dir']
 	failed_flavours = []
 
@@ -97,10 +93,6 @@ def main():
 		sys.stderr.write(f"There are failed builds for {', '.join(failed_flavours)}\n")
 		sys.exit(1)
 
-
-def _repo_sync(url, branch):
-	bash(f"repo init -u {url} -b {branch}")
-	bash(f"repo sync --no-clone-bundle")
 
 def _conf_update(flavour, machine, cache_dir, configs = None):
 	#FIXME We should copy the first local.conf to local.conf.orig and for each step

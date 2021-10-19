@@ -1,9 +1,6 @@
 # Example
 
 version: 1
-  repo:
-    url: $MANIFEST_URL
-    branch: $BRANCH
   cache_dir: /build/common
   flavours:
     linux:
