@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 
-import yaml
-import subprocess
 import argparse
 import os
+import subprocess
 import sys
-from typing import List, Tuple, Type, Dict, Union, NoReturn
+from typing import Tuple, Type
+
+import yaml
 
 PROGNAME = "yoctobuilder"
 

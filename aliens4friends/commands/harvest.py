@@ -37,7 +37,7 @@ class Harvest(Command):
 		return files
 
 	def print_results(self, results: Any) -> None:
-		print(results.to_json())
+		print(results[0].to_json(indent=2))
 
 	@staticmethod
 	def execute(
@@ -61,4 +61,4 @@ class Harvest(Command):
 		harvest.readfile()
 		harvest.write_results()
 		logger.info(f'Results written to {self.pool.clnpath(self.output)}.')
-		return self.output
+		return harvest.result
