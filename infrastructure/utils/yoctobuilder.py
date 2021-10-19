@@ -98,7 +98,7 @@ def _conf_update(flavour, machine, cache_dir, configs = None):
 	#FIXME We should copy the first local.conf to local.conf.orig and for each step
 	#      use that for substitution, and not re-substitute already changed files,
 	#      which could lead to unknown errors.
-	filepath = f'{flavour}-{machine}/conf/local.conf'
+	filepath = f'build-{flavour}-{machine}/conf/local.conf'
 	if not os.path.isfile(f'{filepath}.bak'):
 		bash(f'cp {filepath} {filepath}.bak')
 
