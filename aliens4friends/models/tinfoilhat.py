@@ -11,6 +11,7 @@ from deepdiff import DeepDiff
 
 from .base import BaseModel, DictModel, ModelError
 from aliens4friends.commons.utils import sha1sum_str
+from aliens4friends.commons.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +82,7 @@ class DependsProvidesContainer(DictModel):
 			if id in new and id in old:
 				logger.debug(f"{id} found in new and old, checking consistency")
 				diff = DeepDiff(old[id].depends, new[id].depends, ignore_order=True)
-				if diff:
+				if diff and diff not in Settings.DIFFS2IGNORE:
 					raise ModelError(
 						"can't merge, depends mismatch for machine"
 						f" '{id}', diff is: {diff}"
