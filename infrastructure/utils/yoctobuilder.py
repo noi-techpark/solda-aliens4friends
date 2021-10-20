@@ -22,6 +22,12 @@ def main():
 		default="yoctobuilder.yml",
 		nargs="?"
 	)
+	parser.add_argument(
+		"--ignore-failed-builds",
+		action = "store_true",
+		default = False,
+		help = "Return exit code 0 even if some (or all) builds failed"
+	)
 	args = parser.parse_args()
 
 	with open(args.configyaml, 'r') as f:
@@ -91,7 +97,10 @@ def main():
 		sys.exit(0)
 	else:
 		sys.stderr.write(f"There are failed builds for {', '.join(failed_flavours)}\n")
-		sys.exit(1)
+		if args.ignore_failed_builds:
+			sys.exit(0)
+		else:
+			sys.exit(1)
 
 
 def _conf_update(flavour, machine, cache_dir, configs = None):
