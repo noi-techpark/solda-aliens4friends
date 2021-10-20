@@ -3,12 +3,13 @@
 
 import logging
 import os
-from typing import Any, List
+from typing import Any, List, Optional
 
 from aliens4friends.commands.command import Command, Processing
 from aliens4friends.commons.harvester import Harvester
 from aliens4friends.commons.pool import FILETYPE
 from aliens4friends.commons.settings import Settings
+from aliens4friends.models.harvest import HarvestModel
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ class Harvest(Command):
 		return files
 
 	def print_results(self, results: Any) -> None:
-		print(results.to_json())
+		print(results[0].to_json(indent=2))
 
 	@staticmethod
 	def execute(
@@ -49,7 +50,7 @@ class Harvest(Command):
 		cmd = Harvest(session_id, add_missing, use_oldmatcher, dryrun)
 		return cmd.exec(cmd.get_filelist())
 
-	def run(self, files: List[str]) -> str:
+	def run(self, files: List[str]) -> Optional[HarvestModel]:
 		harvest = Harvester(
 			self.pool,
 			files,
@@ -61,4 +62,4 @@ class Harvest(Command):
 		harvest.readfile()
 		harvest.write_results()
 		logger.info(f'Results written to {self.pool.clnpath(self.output)}.')
-		return self.output
+		return harvest.result
