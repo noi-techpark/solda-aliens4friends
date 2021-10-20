@@ -318,16 +318,16 @@ class Pool:
 		history_filename = history_prefix + filename
 		history_path = os.path.join(dir_in_pool, "history")
 
-		# first add file to history and check if a file with the same content
+		# add file to history and check if a file with the same content
 		# has already been added before
-		self._add(
-			src, history_path, history_filename, SRCTYPE.JSON, OVERWRITE.RAISE
-		)
 		history_files = os.path.join(self.abspath(history_path), f"*{filename}")
 		stdout, _ = bash(f"sha1sum {history_files} | cut -d' ' -f 1")
 		old_checksums = stdout.split("\n")
 		if '' in old_checksums:
 			old_checksums.remove('')
+		self._add(
+			src, history_path, history_filename, SRCTYPE.JSON, OVERWRITE.RAISE
+		)
 		new_file = os.path.join(self.abspath(history_path), history_filename)
 		new_checksum = sha1sum(new_file)
 		if new_checksum in old_checksums:
