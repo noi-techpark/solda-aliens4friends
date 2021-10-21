@@ -49,12 +49,13 @@ class Session:
 		)
 		logger.debug(f"Session data written to '{self.file_path}'.")
 
-	def create(self) -> SessionModel:
+	def create(self, write_to_disk: bool = True) -> SessionModel:
 		self.session_model = SessionModel(
 			Tool(__name__, Settings.VERSION),
 			self.session_id
 		)
-		self.write_session()
+		if write_to_disk:
+			self.write_session()
 		return self.session_model
 
 	def load(self, create: bool = False) -> SessionModel:
@@ -150,7 +151,8 @@ class Session:
 
 	def write_package_list(
 		self,
-		package_list: Optional[List[SessionPackageModel]] = None
+		package_list: Optional[List[SessionPackageModel]] = None,
+		overwrite: bool = False
 	) -> bool:
 		if not self.session_model:
 			return False
@@ -158,9 +160,23 @@ class Session:
 		# We have a new package_list, otherwise we had probably some in-place modifications
 		# therefore we should write it down onto disk
 		if package_list:
-			self.session_model.package_list = package_list
+			if overwrite:
+				self.session_model.package_list = package_list
+			else:
+				self.merge_package_lists(package_list)
 
 		self.write_session()
+
+	def merge_package_lists(self, package_list: List[SessionPackageModel]) -> None:
+		for pckg in package_list:
+			pckg_existing = self.get_package(pckg.name, pckg.version, pckg.variant)
+			if pckg_existing:
+				pckg_existing.selected = True
+				pckg_existing.selected_reason = "Added again"
+			else:
+				self.session_model.package_list.append(
+					SessionPackageModel(pckg.name, pckg.version, pckg.variant)
+				)
 
 	def write_joined_package_lists(
 		self,
@@ -217,7 +233,7 @@ class Session:
 				candidate.selected = False
 				candidate.selected_reason = f"No {FILETYPE.TINFOILHAT.value} found"
 
-		self.write_package_list(candidates)
+		self.write_package_list(candidates, overwrite=False)
 
 	@staticmethod
 	def _random_string(length: int = 16):

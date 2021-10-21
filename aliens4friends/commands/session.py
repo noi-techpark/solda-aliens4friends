@@ -108,7 +108,7 @@ class SessionCmd(Command):
 		if self.create:
 			if not self.session:
 				self.session = Session(self.pool)
-			self.session.create()
+			self.session.create(write_to_disk=not self.add_all)
 			if self.add_all:
 				self.session.add_all()
 			print(self.session.session_id)
