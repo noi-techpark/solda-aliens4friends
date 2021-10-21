@@ -350,7 +350,7 @@ class Pool:
 				# delete history file if merge fails
 				bash(f"rm {new_file}")
 				raise ex
-			
+
 		self._add(to_add, dir_in_pool, filename, SRCTYPE.JSON, OVERWRITE.ALWAYS)
 		return dir_in_pool
 
@@ -417,10 +417,6 @@ class Pool:
 
 	def absglob(self, glob: str, *path_args: str) -> Generator[Path, None, None]:
 		path = self.abspath(*path_args)
-		return Path(path).rglob(glob)
-
-	def relglob(self, glob: str, *path_args: str) -> Generator[Path, None, None]:
-		path = self.relpath(*path_args)
 		return Path(path).rglob(glob)
 
 	def rm(self, *path_args: str) -> None:

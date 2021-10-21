@@ -310,6 +310,13 @@ class Aliens4Friends:
 			default = False,
 			help = "Create a new session from a given SESSION or random ID (if absent)"
 		)
+		self.parsers[cmd].add_argument(
+			"-a",
+			"--add-all",
+			action = "store_true",
+			default = False,
+			help = "Add all packages from the pool to the current session."
+		)
 		self._args_session(self.parsers[cmd], required=False)
 
 	def parser_add(self, cmd: str) -> None:
@@ -448,7 +455,7 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
-	
+
 	def parser_listpool(self, cmd:str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
@@ -479,7 +486,8 @@ class Aliens4Friends:
 		return SessionCmd.execute(
 			self.args.session,
 			self.args.create,
-			self.args.filter
+			self.args.filter,
+			self.args.add_all
 		)
 
 	def add(self) -> bool:
