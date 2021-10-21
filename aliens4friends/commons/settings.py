@@ -1,8 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
-import json
-
 from dotenv import dotenv_values, find_dotenv # pip install -U python-dotenv
 
 class Settings:
@@ -86,8 +84,3 @@ class Settings:
 		SESSION_ID = DOTENV["A4F_SESSION_ID"]
 	except KeyError:
 		SESSION_ID = ""
-
-	try:
-		DIFFS2IGNORE = json.loads(DOTENV['DIFFS2IGNORE'])
-	except KeyError:
-		DIFFS2IGNORE = ""
