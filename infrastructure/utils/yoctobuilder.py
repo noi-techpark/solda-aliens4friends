@@ -29,6 +29,12 @@ def main():
 		default = False,
 		help = "Return exit code 0 even if some (or all) builds failed"
 	)
+	parser.add_argument(
+		"--skip-failed-builds",
+		action = "store_true",
+		default = False,
+		help = "don't retry failed builds"
+	)
 	args = parser.parse_args()
 
 	with open(args.configyaml, 'r') as f:
@@ -66,6 +72,10 @@ def main():
 				print(f'YOCTO BUILDER: [{flavour_id}][{machine_id}] Processing image {image_id}', flush=True)
 				if os.path.isfile(f'.success-yoctobuild-{flavour_id}-{machine_id}-{image_id}'):
 					print(f'{flavour_id}-{machine_id}-{image_id} already exists... skipping')
+					continue
+				if args.skip_failed_builds and os.path.isfile(f'.failure-yoctobuild-{flavour_id}-{machine_id}-{image_id}'):
+					print(f'{flavour_id}-{machine_id}-{image_id} already failed... skipping')
+					failed += 1
 					continue
 				try:
 					bash_live(
