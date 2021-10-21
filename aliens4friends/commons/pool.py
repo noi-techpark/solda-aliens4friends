@@ -16,7 +16,7 @@ from .utils import copy, mkdir, get_prefix_formatted
 from .settings import Settings
 from .archive import Archive
 
-from aliens4friends.models.base import BaseModelEncoder, BaseModel
+from aliens4friends.models.base import BaseModelEncoder, BaseModel, ModelError
 from aliens4friends.commons.spdxutils import write_spdx_tv
 from aliens4friends.commons.utils import bash, sha1sum
 
@@ -344,7 +344,13 @@ class Pool:
 			model = type(src)
 			old = model.from_file(dest_full)
 			new = src
-			to_add = model.merge(old, new) # type: ignore
+			try:
+				to_add = model.merge(old, new) # type: ignore
+			except ModelError as ex:
+				# delete history file if merge fails
+				bash(f"rm {new_file}")
+				raise ex
+			
 		self._add(to_add, dir_in_pool, filename, SRCTYPE.JSON, OVERWRITE.ALWAYS)
 		return dir_in_pool
 
