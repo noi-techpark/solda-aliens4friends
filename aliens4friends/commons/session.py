@@ -49,12 +49,13 @@ class Session:
 		)
 		logger.debug(f"Session data written to '{self.file_path}'.")
 
-	def create(self) -> SessionModel:
+	def create(self, write_to_disk: bool = True) -> SessionModel:
 		self.session_model = SessionModel(
 			Tool(__name__, Settings.VERSION),
 			self.session_id
 		)
-		self.write_session()
+		if write_to_disk:
+			self.write_session()
 		return self.session_model
 
 	def load(self, create: bool = False) -> SessionModel:
@@ -137,9 +138,21 @@ class Session:
 			return True
 		return False
 
+	def add_all(self) -> None:
+		tinfoilhat_list = []
+		for path in self.pool.absglob(f"*.{FILETYPE.TINFOILHAT}"):
+			name, version, variant, _ = self.pool.packageinfo_from_path(path)
+			tinfoilhat_list.append(SessionPackageModel(name, version, variant))
+		aliensrc_list = []
+		for path in self.pool.absglob(f"*.{FILETYPE.ALIENSRC}"):
+			name, version, variant, _ = self.pool.packageinfo_from_path(path)
+			aliensrc_list.append(SessionPackageModel(name, version, variant))
+		self.write_joined_package_lists(tinfoilhat_list, aliensrc_list)
+
 	def write_package_list(
 		self,
-		package_list: Optional[List[SessionPackageModel]] = None
+		package_list: Optional[List[SessionPackageModel]] = None,
+		overwrite: bool = False
 	) -> bool:
 		if not self.session_model:
 			return False
@@ -147,9 +160,80 @@ class Session:
 		# We have a new package_list, otherwise we had probably some in-place modifications
 		# therefore we should write it down onto disk
 		if package_list:
-			self.session_model.package_list = package_list
+			if overwrite:
+				self.session_model.package_list = package_list
+			else:
+				self.merge_package_lists(package_list)
 
 		self.write_session()
+
+	def merge_package_lists(self, package_list: List[SessionPackageModel]) -> None:
+		for pckg in package_list:
+			pckg_existing = self.get_package(pckg.name, pckg.version, pckg.variant)
+			if pckg_existing:
+				pckg_existing.selected = True
+				pckg_existing.selected_reason = "Added again"
+			else:
+				self.session_model.package_list.append(
+					SessionPackageModel(pckg.name, pckg.version, pckg.variant)
+				)
+
+	def write_joined_package_lists(
+		self,
+		tinfoilhat_list: List[SessionPackageModel],
+		aliensrc_list: List[SessionPackageModel]
+	) -> None:
+		"""
+		Write a package list for all packages that have a tinfoilhat *and*
+		aliensrc file, that is join these two lists into one without duplicates.
+		If the counterpart of some entries in these two lists cannot be found in
+		the other list, we search the pool.
+
+		Args:
+			tinfoilhat_list (List[SessionPackageModel]): Some tinfoilhat models
+		    aliensrc_list (List[SessionPackageModel]): Some aliensrc models
+		"""
+
+		# Since lists are not hashable, we need a custom duplicate removal here
+		exists = set()
+		candidates = []
+		for c in aliensrc_list + tinfoilhat_list:
+			if f"{c.name}-{c.version}-{c.variant}" not in exists:
+				candidates.append(c)
+				exists.add(f"{c.name}-{c.version}-{c.variant}")
+
+		# Now got through all candidates and check each of them has a tinfilhat
+		# and aliensrc file, either within the given file list of the ADD command
+		# or already stored inside the pool.
+		for candidate in candidates:
+			if (
+				candidate not in aliensrc_list
+				and not self.pool.exists(
+					self.pool.relpath_typed(FILETYPE.ALIENSRC,
+						candidate.name,
+						candidate.version,
+						candidate.variant
+					)
+				)
+			):
+				candidate.selected = False
+				candidate.selected_reason = f"No {FILETYPE.ALIENSRC.value} found"
+				continue
+
+			if (
+				candidate not in tinfoilhat_list
+				and not self.pool.exists(
+					self.pool.relpath_typed(FILETYPE.TINFOILHAT,
+						candidate.name,
+						candidate.version,
+						candidate.variant
+					)
+				)
+			):
+				candidate.selected = False
+				candidate.selected_reason = f"No {FILETYPE.TINFOILHAT.value} found"
+
+		self.write_package_list(candidates, overwrite=False)
 
 	@staticmethod
 	def _random_string(length: int = 16):

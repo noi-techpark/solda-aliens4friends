@@ -88,25 +88,29 @@ FILTERS = {
 
 class SessionCmd(Command):
 
-	def __init__(self, session_id: str, create: bool, filter_str: str):
+	def __init__(self, session_id: str, create: bool, filter_str: str, add_all: bool):
 		super().__init__(session_id, processing=Processing.SINGLE)
 		self.create = create
 		self.filter_str = filter_str
+		self.add_all = add_all
 
 	@staticmethod
 	def execute(
 		session_id: str = "",
 		create: bool = False,
-		filter_str: str = ""
+		filter_str: str = "",
+		add_all: bool = False
 	) -> bool:
-		cmd = SessionCmd(session_id, create, filter_str)
+		cmd = SessionCmd(session_id, create, filter_str, add_all)
 		return cmd.exec()
 
 	def run(self, args):
 		if self.create:
 			if not self.session:
 				self.session = Session(self.pool)
-			self.session.create()
+			self.session.create(write_to_disk=not self.add_all)
+			if self.add_all:
+				self.session.add_all()
 			print(self.session.session_id)
 			return True
 

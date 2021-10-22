@@ -105,46 +105,10 @@ class Add(Command):
 		if not self.session or self.dryrun:
 			return
 
-		# Since lists are not hashable, we need a custom duplicate removal here
-		exists = set()
-		candidates = []
-		for c in self.session_list_aliensrc + self.session_list_tinfoilhat:
-			if f"{c.name}-{c.version}-{c.variant}" not in exists:
-				candidates.append(c)
-				exists.add(f"{c.name}-{c.version}-{c.variant}")
-
-		# Now got through all candidates and check each of them has a tinfilhat
-		# and aliensrc file, either within the given file list of the ADD command
-		# or already stored inside the pool.
-		for candidate in candidates:
-			if (
-				candidate not in self.session_list_aliensrc
-				and not self.pool.exists(
-					self.pool.relpath_typed(FILETYPE.ALIENSRC,
-						candidate.name,
-						candidate.version,
-						candidate.variant
-					)
-				)
-			):
-				candidate.selected = False
-				candidate.selected_reason = f"No {FILETYPE.ALIENSRC.value} found"
-				continue
-
-			if (
-				candidate not in self.session_list_tinfoilhat
-				and not self.pool.exists(
-					self.pool.relpath_typed(FILETYPE.TINFOILHAT,
-						candidate.name,
-						candidate.version,
-						candidate.variant
-					)
-				)
-			):
-				candidate.selected = False
-				candidate.selected_reason = f"No {FILETYPE.TINFOILHAT.value} found"
-
-		self.session.write_package_list(candidates)
+		self.session.write_joined_package_lists(
+			self.session_list_tinfoilhat,
+			self.session_list_aliensrc
+		)
 
 	def run(self, path: str, force: bool) -> bool:
 		logger.info(f"ADD: {path}")
