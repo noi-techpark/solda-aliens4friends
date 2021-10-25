@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from spdx.checksum import Algorithm as SPDXAlgorithm
 from spdx.creationinfo import Tool
-from spdx.document import Document as SPDXDocument
+from spdx.document import Document as SPDXDocument, License as SPDXLicense
 from spdx.file import File as SPDXFile
 from spdx.utils import NoAssert, SPDXNone
 
@@ -115,7 +115,34 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 							deb2alien_file.conc_lics = NoAssert()
 							# if there are no copyright/license statements in
 							# file, do not apply decisions from debian/copyright
-							# in order to be consistent with Fossology's "style"
+						else:
+							licenses_in_file_ids = [ 
+								l.identifier 
+								for l in deb2alien_file.licenses_in_file 
+								if isinstance(l, SPDXLicense)
+							]
+							conc_lics_ids = (
+								(
+									deb2alien_file.conc_lics.identifier
+									.replace("(", "").replace(")","")
+									.replace("AND","").replace("OR","")
+									.split()
+								) 
+								if isinstance(
+									deb2alien_file.conc_lics, SPDXLicense
+								) 
+								else []
+							)
+							if licenses_in_file_ids and conc_lics_ids:
+								count = 0
+								for conc_lic_id in conc_lics_ids:
+									if conc_lic_id in licenses_in_file_ids:
+										count += 1
+								if count != len(conc_lics_ids):
+									deb2alien_file.conc_lics = NoAssert()
+									# if a debian decision do not match any
+									# license_in_file(i.e. any scancode finding)
+									# do not apply it
 					else:
 						raise MakeAlienSPDXException(
 							 "Something's wrong, can't find"
