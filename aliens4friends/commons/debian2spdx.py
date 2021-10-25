@@ -365,10 +365,7 @@ class Debian2SPDX:
 			deb_license = self.catchall_deb_files.license
 		else:
 			raise Debian2SPDXException("No license declared in package")
-		(
-			spdx_pkg.conc_lics,
-			spdx_pkg.licenses_from_files,
-		) = self.process_deb_license_expr(deb_license)
+		spdx_pkg.conc_lics = self.process_deb_license_expr(deb_license)
 		if self.deb_copyright.header.copyright:
 			spdx_pkg.cr_text = self.deb_copyright.header.copyright
 		elif self.catchall_deb_files and self.catchall_deb_files.copyright:
