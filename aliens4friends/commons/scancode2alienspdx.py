@@ -103,6 +103,9 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 				if alien_spdx_file in deb_spdx_files:
 					deb2alien_file = deb_spdx_files[alien_spdx_file]
 					deb2alien_file.chk_sum = SPDXAlgorithm("SHA1", alien_file_sha1)
+					# there should be no licenseInfoInFile in SPDX generated 
+					# from Debian, but just in case, we delete everything:
+					deb2alien_file.licenses_in_file = [ NoAssert(), ] 
 					scancode_spdx_file = scancode_spdx_files.get(alien_spdx_file)
 					if scancode_spdx_file:
 						if alien_spdx_file in results.changed_files_with_updated_copyright_year_only:
