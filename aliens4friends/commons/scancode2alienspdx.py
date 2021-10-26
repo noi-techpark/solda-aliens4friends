@@ -14,6 +14,7 @@ from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.spdxutils import EMPTY_FILE_SHA1
 from aliens4friends.commons.utils import md5
 from aliens4friends.models.deltacode import DeltaCodeModel
+from aliens4friends.commons.debian2spdx import SPDX_LICENSE_IDS
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +144,15 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 									# if a debian decision do not match any
 									# license_in_file(i.e. any scancode finding)
 									# do not apply it
+							if licenses_in_file_ids:
+								deb2alien_file.licenses_in_file = [ 
+									l for l in deb2alien_file.licenses_in_file 
+									if isinstance(l, SPDXLicense) 
+									and 
+									SPDX_LICENSE_IDS.get(l.identifier.lower())
+								]
+								# remove non-standard SPDX licenses from 
+								# scancode
 					else:
 						raise MakeAlienSPDXException(
 							 "Something's wrong, can't find"
@@ -157,6 +167,20 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 			elif scancode_spdx_files.get(alien_spdx_file):
 				alien_file = scancode_spdx_files[alien_spdx_file]
 				alien_file.spdx_id = f'SPDXRef-file-{md5(name)}'
+				if (
+					alien_file.licenses_in_file 
+					and type(alien_file.licenses_in_file[0]) not in [ 
+						NoAssert, SPDXNone, type(None) 
+					]
+				):
+					alien_file.licenses_in_file = [ 
+						l for l in alien_file.licenses_in_file 
+						if isinstance(l, SPDXLicense) 
+						and 
+						SPDX_LICENSE_IDS.get(l.identifier.lower())
+					]
+					# remove non-standard SPDX licenses from 
+					# scancode
 				alien_spdx_files.append(alien_file)
 			else:
 				alien_file = SPDXFile(
@@ -170,6 +194,7 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 				alien_spdx_files.append(alien_file)
 		self.alien_spdx = self._debian_spdx
 		self.alien_spdx.package.files = alien_spdx_files
+
 		if proximity < NEARLY_FULL_PROXIMITY:
 			logger.info(
 				f"[{curpkg}] proximity is not ~100%, do not apply main package"
