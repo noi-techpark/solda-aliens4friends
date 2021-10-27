@@ -135,14 +135,31 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 								else []
 							)
 							if licenses_in_file_ids and conc_lics_ids:
-								count = 0
+								e = deb2alien_file.conc_lics.identifier
+								is_and_expr = not any([ 
+									"(" in e, ")" in e, " OR " in e 
+								]) and " AND " in e
+								is_or_expr = not any([ 
+									"(" in e, ")" in e, " AND " in e 
+								]) and " OR " in e
+								same_lics = []
 								for conc_lic_id in conc_lics_ids:
 									if conc_lic_id in licenses_in_file_ids:
-										count += 1
-								if count != len(conc_lics_ids):
+										same_lics.append(conc_lic_id)
+								if is_and_expr and same_lics:
+									deb2alien_file.conc_lics = " AND ".join(same_lics)
+									# if conc_lics is an AND-only expression,
+									# add as conc_lics only licenses that match
+									# some scancode finding
+								elif is_or_expr and same_lics:
+									deb2alien_file.conc_lics = " OR ".join(same_lics)
+									# if conc_lics is an OR-only expression, 
+									# add as conc_lics only licenses that match
+									# some scancode finding
+								elif len(same_lics) != len(conc_lics_ids):
 									deb2alien_file.conc_lics = NoAssert()
-									# if a debian decision do not match any
-									# license_in_file(i.e. any scancode finding)
+									# if conc_lics (debian) do not match
+									# all licenses_in file (scancode)
 									# do not apply it
 							if licenses_in_file_ids:
 								deb2alien_file.licenses_in_file = [ 
