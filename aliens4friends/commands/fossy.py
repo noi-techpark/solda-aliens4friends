@@ -56,7 +56,7 @@ class Fossy(Command):
 
 		try:
 			alien_spdx = [
-				p for p in self.pool.absglob(f"{cur_path}/*.alien.spdx")
+				p for p in self.pool.absglob(f"*.{FILETYPE.ALIENSPDX}", cur_path)
 			]
 			if len(alien_spdx) == 0:
 				alien_spdx_filename = None
