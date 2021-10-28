@@ -32,7 +32,7 @@ class Fossy(Command):
 		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
 
 	def run(self, path) -> Union[str, bool]:
-		name, version, _, _ = self.pool.packageinfo_from_path(path)
+		name, version, variant, _ = self.pool.packageinfo_from_path(path)
 
 		cur_pckg = f"{name}-{version}"
 		cur_path = os.path.join(
@@ -68,7 +68,12 @@ class Fossy(Command):
 					f"[{cur_pckg}] Something's wrong, more than one alien spdx"
 					f" file found in pool: {alien_spdx}"
 				)
-			alien_fossy_json_filename = self.pool.relpath(cur_path, f'{cur_pckg}.{FILETYPE.FOSSY}')
+			alien_fossy_json_filename = self.pool.relpath_typed(
+				FILETYPE.FOSSY,
+				name,
+				version,
+				variant
+			)
 			logger.info(f"[{cur_pckg}] Getting spdx and json data from Fossology")
 			gfd = GetFossyData(self.fossywrapper, apkg, alien_spdx_filename)
 			doc = gfd.get_spdx()
