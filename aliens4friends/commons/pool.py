@@ -195,9 +195,27 @@ class Pool:
 
 		name = p[-3]
 		version = p[-2]
-		variant = package_id[len(name)+len(version)+2:]
 
-		return name, version, variant, ext
+		# Types that have a variant in their filename
+		variant = ""
+		if ext in [
+			FILETYPE.ALIENSRC,
+			FILETYPE.TINFOILHAT,
+			FILETYPE.FOSSY
+		]:
+			pos = len(name)+len(version)+2
+			variant = package_id[pos:pos+8]
+
+		# Handle filenames with group IDs
+		group_id = ""
+		if ext in [
+			FILETYPE.FOSSY,
+			FILETYPE.ALIENSPDX
+		]:
+			pos = package_id.index("-gid")
+			group_id = package_id[pos+4:]
+
+		return name, version, variant, group_id, ext
 
 
 	def abspath_typed(

@@ -9,7 +9,7 @@ from aliens4friends.commons.deltacodeng import DeltaCodeNG
 from aliens4friends.commons.pool import FILETYPE
 from aliens4friends.models.alienmatcher import (AlienMatcherModel,
                                                 AlienSnapMatcherModel)
-from aliens4friends.models.deltacode import DeltaCodeModel	
+from aliens4friends.models.deltacode import DeltaCodeModel
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class Delta(Command):
 
 	def run(self, path: str) -> Union[str, bool]:
 
-		name, version, _, _ = self.pool.packageinfo_from_path(path)
+		name, version, _, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
 
 		try:

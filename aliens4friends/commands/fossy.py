@@ -32,7 +32,7 @@ class Fossy(Command):
 		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
 
 	def run(self, path) -> Union[str, bool]:
-		name, version, variant, _ = self.pool.packageinfo_from_path(path)
+		name, version, variant, _, _ = self.pool.packageinfo_from_path(path)
 
 		cur_pckg = f"{name}-{version}"
 		cur_path = os.path.join(

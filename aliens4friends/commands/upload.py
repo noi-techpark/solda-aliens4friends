@@ -39,7 +39,7 @@ class Upload(Command):
 			FILETYPE.ALIENSRC, False, folder, description)
 
 	def run(self, path: str, folder:str, description: str) -> Union[int, bool]:
-		name, version, variant, _ = self.pool.packageinfo_from_path(path)
+		name, version, variant, _, _ = self.pool.packageinfo_from_path(path)
 
 		cur_pckg = f"{name}-{version}"
 		cur_path = self.pool.relpath(
