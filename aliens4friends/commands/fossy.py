@@ -68,7 +68,7 @@ class Fossy(Command):
 					f"[{cur_pckg}] Something's wrong, more than one alien spdx"
 					f" file found in pool: {alien_spdx}"
 				)
-			alien_fossy_json_filename = self.pool.relpath_typed(
+			alien_fossy_json_path = self.pool.relpath_typed(
 				FILETYPE.FOSSY,
 				name,
 				version,
@@ -89,11 +89,11 @@ class Fossy(Command):
 
 			fossy_data = FossyModel.decode(fossy_json)
 			self.pool.write_json_with_history(
-				fossy_data, get_prefix_formatted(), alien_fossy_json_filename
+				fossy_data, get_prefix_formatted(), alien_fossy_json_path
 			)
 
 		except Exception as ex:
 			raise CommandError(f"[{cur_pckg}] ERROR: {ex}")
 
-		return alien_fossy_json_filename
+		return alien_fossy_json_path
 
