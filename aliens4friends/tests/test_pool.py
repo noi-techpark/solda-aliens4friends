@@ -118,5 +118,26 @@ class TestingPool(unittest.TestCase):
 		except PoolError:
 			pass
 
+	def test_package_info_from_path(self):
+		inputs = [
+			"userland/tar/1.32-r0/tar-1.32.tar.bz2-gid3.alien.spdx",
+			"userland/tar/1.32-r0/tar-1.32-r0-05be69c9-gid3.fossy.json",
+			"userland/tar/1.32-r0/tar-1.32-r0-05be69c9-gid123.fossy.json",
+		]
+
+		expect = [
+			["tar", "1.32-r0", "", "3", "alien.spdx"],
+			["tar", "1.32-r0", "05be69c9", "3", "fossy.json"],
+			["tar", "1.32-r0", "05be69c9", "123", "fossy.json"],
+		]
+
+		for i, v in enumerate(inputs):
+			name, version, variant, gid, ext = self.shared_pool.packageinfo_from_path(v)
+			self.assertEqual(name, expect[i][0])
+			self.assertEqual(version, expect[i][1])
+			self.assertEqual(variant, expect[i][2])
+			self.assertEqual(gid, expect[i][3])
+			self.assertEqual(ext, expect[i][4])
+
 if __name__ == '__main__':
     unittest.main()

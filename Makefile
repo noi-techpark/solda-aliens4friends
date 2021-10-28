@@ -7,4 +7,7 @@ pytype:
 test:
 	python -m unittest discover aliens4friends/tests/
 
-.PHONY: pytype test
+itest:
+	cd testint/t1; ./run.sh
+
+.PHONY: pytype test itest

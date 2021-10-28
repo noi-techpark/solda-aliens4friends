@@ -129,7 +129,7 @@ class Harvester:
 			try:
 				logger.debug(f"Parsing {self.pool.clnpath(path)}... ")
 				try:
-					name, version, variant, ext = self.pool.packageinfo_from_path(path)
+					name, version, variant, gid, ext = self.pool.packageinfo_from_path(path)
 				except PoolErrorUnsupportedFiletype:
 					logger.debug(f"File {self.pool.clnpath(path)} is not supported. Skipping...")
 					continue

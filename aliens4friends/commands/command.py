@@ -68,7 +68,7 @@ class Command:
 		candidates = []
 		filtered_paths = []
 		for path in paths:
-			name, version, _, _ = self.pool.packageinfo_from_path(path)
+			name, version, _, _, _ = self.pool.packageinfo_from_path(path)
 			if ignore_variant:
 				package_id = f"{name}:::{version}"
 				if package_id in candidates:

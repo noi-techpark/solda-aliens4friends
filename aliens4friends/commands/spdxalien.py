@@ -42,7 +42,7 @@ class SpdxAlien(Command):
 
 	def run(self, path: str) -> Union[str, bool]:
 
-		name, version, _, _ = self.pool.packageinfo_from_path(path)
+		name, version, _, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
 
 		#FIXME Move this run code to Debian2AlienSPDX

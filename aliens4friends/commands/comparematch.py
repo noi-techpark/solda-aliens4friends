@@ -24,7 +24,7 @@ class CompareMatchResults(Command):
 		if not os.path.isfile(path):
 			logger.debug(f"{path} does not exist, skipping")
 			return True
-		name, version, _, ext = self.pool.packageinfo_from_path(path)
+		name, version, _, _, ext = self.pool.packageinfo_from_path(path)
 		pkg_id = f"{name}@{version}"
 		if not self.pkgs.get(pkg_id):
 			self.pkgs[pkg_id] = MatchResults(
