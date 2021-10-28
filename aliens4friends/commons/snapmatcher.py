@@ -231,14 +231,14 @@ class AlienSnapMatcher:
 			)
 			snap_match.dsc_format = debian_control['Format']
 			if snap_match.dsc_format == "1.0":
-				if 'orig' in srcfile.name:
+				if '.orig.' in srcfile.name:
 					snap_match.debsrc_orig = debian_relpath
 				else: # XXX Assume archives without patterns in name are from Debian
 					snap_match.debsrc_debian = debian_relpath
 			elif snap_match.dsc_format == "3.0 (quilt)":
-				if 'debian' in srcfile.name:
+				if '.debian.' in srcfile.name:
 					snap_match.debsrc_debian = debian_relpath
-				elif 'orig' in srcfile.name:
+				elif '.orig.' in srcfile.name:
 					snap_match.debsrc_orig = debian_relpath
 			elif snap_match.dsc_format == "3.0 (native)":
 				snap_match.debsrc_orig = debian_relpath

@@ -250,14 +250,14 @@ class AlienMatcher:
 			try:
 				archive = Archive(elem[2])
 				if debian_control['Format'] == "1.0":
-					if 'orig' in archive.path:
+					if '.orig.' in archive.path:
 						debsrc_orig = debian_relpath
 					else: # XXX Assume archives without patterns in name are from Debian
 						debsrc_debian = debian_relpath
 				elif debian_control['Format'] == "3.0 (quilt)":
-					if 'debian' in archive.path:
+					if '.debian.' in archive.path:
 						debsrc_debian = debian_relpath
-					elif 'orig' in archive.path:
+					elif '.orig.' in archive.path:
 						debsrc_orig = debian_relpath
 				elif debian_control['Format'] == "3.0 (native)":
 					debsrc_orig = debian_relpath

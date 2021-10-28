@@ -29,7 +29,7 @@ from spdx.document import ExtractedLicense as SPDXExtractedLicense
 from spdx.document import License as SPDXLicense
 from spdx.file import File as SPDXFile
 from spdx.package import Package as SPDXPackage
-from spdx.utils import SPDXNone
+from spdx.utils import NoAssert, SPDXNone
 from spdx.version import Version as SPDXVersion
 from spdx.writers.tagvalue import write_document
 
@@ -304,22 +304,19 @@ class Debian2SPDX:
 			if license_id.startswith("LicenseRef-"):
 				self.add_spdx_extracted_license(license_id, deb_license)
 		spdx_conc_lics = SPDXLicense.from_identifier(spdx_lic_expr)
-		spdx_licenses_in_file = [
-			SPDXLicense.from_identifier(license_id) for license_id in license_ids
-		]
-		return spdx_conc_lics, spdx_licenses_in_file
+		return spdx_conc_lics
 
 	def process_deb_files_and_license(self) -> None:
 		"""Process debian Files and License Paragraphs"""
 		for deb_files in self.deb_copyright.all_files_paragraphs():
-			spdx_conc_lics, spdx_licenses_in_file = self.process_deb_license_expr(
+			spdx_conc_lics = self.process_deb_license_expr(
 				deb_files.license
 			)
 			pattern = deb_files.files_pattern()
 			spdx_file_paths = list(filter(pattern.match, self.spdx_files))
 			for path in spdx_file_paths:
 				self.spdx_files[path].conc_lics = spdx_conc_lics
-				self.spdx_files[path].licenses_in_file = spdx_licenses_in_file
+				self.spdx_files[path].licenses_in_file = [ NoAssert(), ]
 				if deb_files.files != ("*",):
 					self.spdx_files[path].copyright = deb_files.copyright
 					# even if it is not compliant with DEP5 specs, sometimes
@@ -368,10 +365,7 @@ class Debian2SPDX:
 			deb_license = self.catchall_deb_files.license
 		else:
 			raise Debian2SPDXException("No license declared in package")
-		(
-			spdx_pkg.conc_lics,
-			spdx_pkg.licenses_from_files,
-		) = self.process_deb_license_expr(deb_license)
+		spdx_pkg.conc_lics = self.process_deb_license_expr(deb_license)
 		if self.deb_copyright.header.copyright:
 			spdx_pkg.cr_text = self.deb_copyright.header.copyright
 		elif self.catchall_deb_files and self.catchall_deb_files.copyright:

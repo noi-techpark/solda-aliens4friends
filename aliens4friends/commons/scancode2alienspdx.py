@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from spdx.checksum import Algorithm as SPDXAlgorithm
 from spdx.creationinfo import Tool
-from spdx.document import Document as SPDXDocument
+from spdx.document import Document as SPDXDocument, License as SPDXLicense
 from spdx.file import File as SPDXFile
 from spdx.utils import NoAssert, SPDXNone
 
@@ -14,6 +14,7 @@ from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.spdxutils import EMPTY_FILE_SHA1
 from aliens4friends.commons.utils import md5
 from aliens4friends.models.deltacode import DeltaCodeModel
+from aliens4friends.commons.debian2spdx import SPDX_LICENSE_IDS
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +104,9 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 				if alien_spdx_file in deb_spdx_files:
 					deb2alien_file = deb_spdx_files[alien_spdx_file]
 					deb2alien_file.chk_sum = SPDXAlgorithm("SHA1", alien_file_sha1)
+					# there should be no licenseInfoInFile in SPDX generated 
+					# from Debian, but just in case, we delete everything:
+					deb2alien_file.licenses_in_file = [ NoAssert(), ] 
 					scancode_spdx_file = scancode_spdx_files.get(alien_spdx_file)
 					if scancode_spdx_file:
 						if alien_spdx_file in results.changed_files_with_updated_copyright_year_only:
@@ -112,7 +116,60 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 							deb2alien_file.conc_lics = NoAssert()
 							# if there are no copyright/license statements in
 							# file, do not apply decisions from debian/copyright
-							# in order to be consistent with Fossology's "style"
+						else:
+							licenses_in_file_ids = [ 
+								l.identifier 
+								for l in deb2alien_file.licenses_in_file 
+								if isinstance(l, SPDXLicense)
+							]
+							conc_lics_ids = (
+								(
+									deb2alien_file.conc_lics.identifier
+									.replace("(", "").replace(")","")
+									.replace("AND","").replace("OR","")
+									.split()
+								) 
+								if isinstance(
+									deb2alien_file.conc_lics, SPDXLicense
+								) 
+								else []
+							)
+							if licenses_in_file_ids and conc_lics_ids:
+								e = deb2alien_file.conc_lics.identifier
+								is_and_expr = not any([ 
+									"(" in e, ")" in e, " OR " in e 
+								]) and " AND " in e
+								is_or_expr = not any([ 
+									"(" in e, ")" in e, " AND " in e 
+								]) and " OR " in e
+								same_lics = []
+								for conc_lic_id in conc_lics_ids:
+									if conc_lic_id in licenses_in_file_ids:
+										same_lics.append(conc_lic_id)
+								if is_and_expr and same_lics:
+									deb2alien_file.conc_lics = " AND ".join(same_lics)
+									# if conc_lics is an AND-only expression,
+									# add as conc_lics only licenses that match
+									# some scancode finding
+								elif is_or_expr and same_lics:
+									deb2alien_file.conc_lics = " OR ".join(same_lics)
+									# if conc_lics is an OR-only expression, 
+									# add as conc_lics only licenses that match
+									# some scancode finding
+								elif len(same_lics) != len(conc_lics_ids):
+									deb2alien_file.conc_lics = NoAssert()
+									# if conc_lics (debian) do not match
+									# all licenses_in file (scancode)
+									# do not apply it
+							if licenses_in_file_ids:
+								deb2alien_file.licenses_in_file = [ 
+									l for l in deb2alien_file.licenses_in_file 
+									if isinstance(l, SPDXLicense) 
+									and 
+									SPDX_LICENSE_IDS.get(l.identifier.lower())
+								]
+								# remove non-standard SPDX licenses from 
+								# scancode
 					else:
 						raise MakeAlienSPDXException(
 							 "Something's wrong, can't find"
@@ -127,6 +184,20 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 			elif scancode_spdx_files.get(alien_spdx_file):
 				alien_file = scancode_spdx_files[alien_spdx_file]
 				alien_file.spdx_id = f'SPDXRef-file-{md5(name)}'
+				if (
+					alien_file.licenses_in_file 
+					and type(alien_file.licenses_in_file[0]) not in [ 
+						NoAssert, SPDXNone, type(None) 
+					]
+				):
+					alien_file.licenses_in_file = [ 
+						l for l in alien_file.licenses_in_file 
+						if isinstance(l, SPDXLicense) 
+						and 
+						SPDX_LICENSE_IDS.get(l.identifier.lower())
+					]
+					# remove non-standard SPDX licenses from 
+					# scancode
 				alien_spdx_files.append(alien_file)
 			else:
 				alien_file = SPDXFile(
@@ -140,6 +211,7 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 				alien_spdx_files.append(alien_file)
 		self.alien_spdx = self._debian_spdx
 		self.alien_spdx.package.files = alien_spdx_files
+
 		if proximity < NEARLY_FULL_PROXIMITY:
 			logger.info(
 				f"[{curpkg}] proximity is not ~100%, do not apply main package"
