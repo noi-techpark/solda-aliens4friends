@@ -67,9 +67,9 @@ class Archive:
 
 	def rootfolder(self) -> str:
 		"""Get archive rootfolder, eg. 'foo-1.0.0/'"""
-		stdout, _ = bash(f'tar {self.tar_param}tf {self.path} | cut -d"/" -f 1 | uniq')
+		stdout, _ = bash(f'tar {self.tar_param}tf {self.path} | sed -E "s#^\./##" | cut -d"/" -f 1 | uniq')	
 		r = stdout.split('\n')
-		if '' in r:
+		while '' in r:
 			r.remove('')
 		if len(r) != 1:
 			return '' # suited to be used with (and ignored by) os.path.join
