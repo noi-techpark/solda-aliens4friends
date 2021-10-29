@@ -15,7 +15,7 @@ include:
 
 .pythonreq:
   stage: test
-  only: [ branches, tags, merge_requests ]
+  only: [ branches, tags, merge_requests ]  # Add this, because merge requests are not triggered by default
   tags: [ soldademo, docker ]
   image: python:3.8
   script:
@@ -36,9 +36,9 @@ unittests:
     - python -m unittest discover aliens4friends/tests/
 
 reuse:
-  tags: [ soldademo, docker ]
   stage: test
   extends: .reuse
+  only: [ branches, tags, merge_requests ]
 
 .dockerize:
   tags: [ soldademo, docker ]
