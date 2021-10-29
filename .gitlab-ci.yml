@@ -15,6 +15,7 @@ include:
 
 .pythonreq:
   stage: test
+  only: [ branches, tags, merge_requests ]
   tags: [ soldademo, docker ]
   image: python:3.8
   script:
