@@ -228,7 +228,7 @@ class AlienSnapMatcher:
 				snap_match.name,
 				snap_match.version,
 				srcfile.name
-			)P
+			)
 			snap_match.dsc_format = debian_control['Format']
 			if snap_match.dsc_format == "1.0":
 				if '.orig.' in srcfile.name:
