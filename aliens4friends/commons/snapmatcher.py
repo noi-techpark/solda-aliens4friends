@@ -244,34 +244,22 @@ class AlienSnapMatcher:
 				snap_match.debsrc_orig = debian_relpath
 
 
-	def get_all_sourcefiles(self, snap_match, bin_files = False) -> None:
+	def get_all_sourcefiles(self, snap_match: DebianSnapMatch) -> None:
 		uri = AlienSnapMatcher.API_URL_ALLSRC + snap_match.name +"/"+ snap_match.version +"/allfiles"
 		logger.info(f"[{self.curpkg}] Acquire package sources from " + uri)
 		hashes = self.get_data(uri)
 
 		snap_match.srcfiles = []
 
-		if bin_files:
-			for binary in hashes["result"]["binaries"]:
-				for file in binary["files"]:
-					info = self.get_file_info(file["hash"])
-					source = SourceFile(
-						name=info["name"],
-						sha1_cksum=file["hash"],
-						src_uri=AlienSnapMatcher.API_URL_FILES + file["hash"],
-						paths=[info["path"]]
-					)
-					snap_match.srcfiles.append(source)
-		else:
-			for file in hashes["result"]["source"]:
-				info = self.get_file_info(file["hash"])
-				source = SourceFile(
-					name=info["name"],
-					sha1_cksum=file["hash"],
-					src_uri=AlienSnapMatcher.API_URL_FILES + file["hash"],
-					paths=[info["path"]]
-				)
-				snap_match.srcfiles.append(source)
+		for file in hashes["result"]["source"]:
+			info = self.get_file_info(file["hash"])
+			source = SourceFile(
+				name=info["name"],
+				sha1_cksum=file["hash"],
+				src_uri=AlienSnapMatcher.API_URL_FILES + file["hash"],
+				paths=[info["path"]]
+			)
+			snap_match.srcfiles.append(source)
 
 
 	# search for package string, if found check version and return an overall matching score
