@@ -228,7 +228,7 @@ class AlienSnapMatcher:
 				snap_match.name,
 				snap_match.version,
 				srcfile.name
-			)
+			)P
 			snap_match.dsc_format = debian_control['Format']
 			if snap_match.dsc_format == "1.0":
 				if '.orig.' in srcfile.name:
@@ -273,19 +273,6 @@ class AlienSnapMatcher:
 				)
 				snap_match.srcfiles.append(source)
 
-
-	@staticmethod
-	def clearDiff():
-		pool = Pool(Settings.POOLPATH)
-
-		compare_csv = pool.abspath(
-			Settings.PATH_USR,
-			f"match_vs_snapmatch.csv"
-		)
-
-		with open(compare_csv, 'w+') as csvfile:
-			csvwriter = csv.writer(csvfile, delimiter=';', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-			csvwriter.writerow(["alien name", "alien version", "name match", "version match", "match status", "version match distance", "name snapmatch", "version snapmatch", "snapmatch status", "version snapmatch distance", "snapscore", "package match info", "version match info"])
 
 	# search for package string, if found check version and return an overall matching score
 	def _searchPackage(self, apkg : AlienPackage, altSearch = True) -> DebianSnapMatch:
