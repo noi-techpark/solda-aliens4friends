@@ -183,7 +183,7 @@ class Pool:
 		p = str(path).split("/")
 		path = os.path.basename(path)
 		package_id, mainext = os.path.splitext(path)
-		if mainext == ".aliensrc":
+		if mainext == f".{FILETYPE.ALIENSRC}":
 			ext = mainext
 		else:
 			package_id, subext = os.path.splitext(package_id)
@@ -212,7 +212,7 @@ class Pool:
 			FILETYPE.FOSSY,
 			FILETYPE.ALIENSPDX
 		]:
-			pos = package_id.index("-gid")
+			pos = package_id.rindex("-gid")
 			group_id = package_id[pos+4:]
 
 		return name, version, variant, group_id, ext
