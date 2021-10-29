@@ -56,6 +56,15 @@ class Scancode2AlienSPDX:
 				f.chk_sum = SPDXAlgorithm("SHA1", EMPTY_FILE_SHA1)
 			elif not f.chk_sum.value:
 				f.chk_sum.value = EMPTY_FILE_SHA1
+			if f.licenses_in_file and f.licenses_in_file[0] not in [ NoAssert, SPDXNone, type(None) ]:
+				f.licenses_in_file = [ 
+					l for l in f.licenses_in_file 
+					if isinstance(l, SPDXLicense) 
+					and 
+					SPDX_LICENSE_IDS.get(l.identifier.lower())
+				]
+				# remove non-standard SPDX licenses from 
+				# scancode
 		self.set_package_and_document_metadata()
 
 
