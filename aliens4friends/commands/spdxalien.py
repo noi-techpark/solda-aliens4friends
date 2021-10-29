@@ -42,7 +42,7 @@ class SpdxAlien(Command):
 
 	def run(self, path: str) -> Union[str, bool]:
 
-		name, version, _, _ = self.pool.packageinfo_from_path(path)
+		name, version, _, _, _ = self.pool.packageinfo_from_path(path)
 		package = f"{name}-{version}"
 
 		#FIXME Move this run code to Debian2AlienSPDX
@@ -59,11 +59,11 @@ class SpdxAlien(Command):
 			return True
 
 		alien = model.aliensrc
-		alien_spdx_filename = self.pool.abspath(
-			Settings.PATH_USR,
+		alien_spdx_filename = self.pool.abspath_typed(
+			FILETYPE.ALIENSPDX,
 			alien.name,
 			alien.version,
-			f'{alien.internal_archive_name}.alien.spdx'
+			filename=alien.internal_archive_name
 		)
 
 		if self.pool.cached(alien_spdx_filename, debug_prefix=f"[{package}] "):

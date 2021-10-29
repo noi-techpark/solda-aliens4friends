@@ -122,14 +122,16 @@ class Harvester:
 		for path in self.input_files:
 
 			# We do not need to do much here, we get a missing file list at the end of the
-			# harvesting job...
+			# harvesting job... This already skips all filetypes that have the Fossology
+			# group ID inside their name, which is different from the currently configured
+			# one. See Settings and pool.filename() for further information...
 			if not self.pool.exists(path):
 				continue
 
 			try:
 				logger.debug(f"Parsing {self.pool.clnpath(path)}... ")
 				try:
-					name, version, variant, ext = self.pool.packageinfo_from_path(path)
+					name, version, variant, gid, ext = self.pool.packageinfo_from_path(path)
 				except PoolErrorUnsupportedFiletype:
 					logger.debug(f"File {self.pool.clnpath(path)} is not supported. Skipping...")
 					continue

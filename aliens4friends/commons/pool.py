@@ -44,6 +44,7 @@ class FILETYPE(str, Enum):
 	SCANCODE_SPDX = "scancode.spdx"
 	FOSSY = "fossy.json"
 	SESSION = "session.json"
+	ALIENSPDX = "alien.spdx"
 	# TODO Extend when needed, use it everywhere
 
 class PoolError(Exception):
@@ -90,6 +91,10 @@ class Pool:
 		if type == FILETYPE.SESSION:
 			return f"{name}.{type}"
 
+		# Special type ALIENSPDX, name is the internal archive name, contains also the group ID
+		if type == FILETYPE.ALIENSPDX:
+			return f"{name}-gid{Settings.FOSSY_GROUP_ID}.{type}"
+
 		# Types without variants
 		if type in [
 			FILETYPE.ALIENMATCHER,
@@ -104,12 +109,19 @@ class Pool:
 		# Types that have a variant in their filename
 		if type in [
 			FILETYPE.ALIENSRC,
-			FILETYPE.TINFOILHAT,
-			FILETYPE.FOSSY
+			FILETYPE.TINFOILHAT
 		]:
 			if variant:
 				variant = f"-{variant}"
 			return f"{name}-{version}{variant}.{type}"
+
+		# Types with variant and group ID in their filename
+		if type in [
+			FILETYPE.FOSSY
+		]:
+			if variant:
+				variant = f"-{variant}"
+			return f"{name}-{version}{variant}-gid{Settings.FOSSY_GROUP_ID}.{type}"
 
 		raise PoolError(f"Unable to find a path for the file type '{type}'")
 
@@ -119,10 +131,13 @@ class Pool:
 		name: str,
 		version: str = "",
 		variant: str = "",
+		filename: str = "",
 		with_filename: bool = True,
 		in_userland: bool = True
 	) -> str:
-		"""Get a relative path to the corresponding file of a certain type"""
+		"""
+		Get a relative path to the corresponding file of a certain type
+		"""
 
 		# File that is located inside <PATH_SES>
 		if type == FILETYPE.SESSION:
@@ -135,7 +150,8 @@ class Pool:
 			FILETYPE.ALIENSRC,
 			FILETYPE.TINFOILHAT,
 			FILETYPE.DELTACODE,
-			FILETYPE.FOSSY
+			FILETYPE.FOSSY,
+			FILETYPE.ALIENSPDX
 		]:
 			relpath = self.relpath(Settings.PATH_USR, name, version)
 
@@ -159,7 +175,7 @@ class Pool:
 		if with_filename:
 			relpath = os.path.join(
 				relpath,
-				self.filename(type, name, version, variant)
+				self.filename(type, filename if filename else name, version, variant)
 			)
 		return relpath
 
@@ -167,7 +183,7 @@ class Pool:
 		p = str(path).split("/")
 		path = os.path.basename(path)
 		package_id, mainext = os.path.splitext(path)
-		if mainext == ".aliensrc":
+		if mainext == f".{FILETYPE.ALIENSRC}":
 			ext = mainext
 		else:
 			package_id, subext = os.path.splitext(package_id)
@@ -179,9 +195,27 @@ class Pool:
 
 		name = p[-3]
 		version = p[-2]
-		variant = package_id[len(name)+len(version)+2:]
 
-		return name, version, variant, ext
+		# Types that have a variant in their filename
+		variant = ""
+		if ext in [
+			FILETYPE.ALIENSRC,
+			FILETYPE.TINFOILHAT,
+			FILETYPE.FOSSY
+		]:
+			pos = len(name)+len(version)+2
+			variant = package_id[pos:pos+8]
+
+		# Handle filenames with group IDs
+		group_id = ""
+		if ext in [
+			FILETYPE.FOSSY,
+			FILETYPE.ALIENSPDX
+		]:
+			pos = package_id.rindex("-gid")
+			group_id = package_id[pos+4:]
+
+		return name, version, variant, group_id, ext
 
 
 	def abspath_typed(
@@ -190,11 +224,12 @@ class Pool:
 		name: str,
 		version: str = "",
 		variant: str = "",
+		filename: str = "",
 		with_filename: bool = True,
 		in_userland: bool = True
 	) -> str:
 		return self.abspath(
-			self.relpath_typed(type, name, version, variant, with_filename, in_userland)
+			self.relpath_typed(type, name, version, variant, filename, with_filename, in_userland)
 		)
 
 	def clnpath(self, path: Union[Path, str]) -> str:

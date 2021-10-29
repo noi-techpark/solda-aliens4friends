@@ -10,6 +10,8 @@ from aliens4friends.commons.pool import FILETYPE
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
 from aliens4friends.commons.fossywrapper import FossyWrapper
+from aliens4friends.commons.utils import get_prefix_formatted
+from aliens4friends.models.fossy import FossyModel
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +39,7 @@ class Upload(Command):
 			FILETYPE.ALIENSRC, False, folder, description)
 
 	def run(self, path: str, folder:str, description: str) -> Union[int, bool]:
-		name, version, variant, _ = self.pool.packageinfo_from_path(path)
+		name, version, variant, _, _ = self.pool.packageinfo_from_path(path)
 
 		cur_pckg = f"{name}-{version}"
 		cur_path = self.pool.relpath(
@@ -101,20 +103,34 @@ class Upload(Command):
 			description
 		)
 		upload_id = a2f.get_or_do_upload() # if exists, a2f.uploaded is False
-		
+
 		# we try to run scanners and to import spdx also if package has already
 		# been uploaded, just in case there has been an error after upload the
 		# previous time; the called methods (run_fossy_scanners and import_spdx)
 		# already check if such tasks have already been run and in the positive
 		# case they do not run them again, so we don't need to bother about it
 		# here
-		a2f.run_fossy_scanners() 
-		a2f.import_spdx() 
+		a2f.run_fossy_scanners()
+		a2f.import_spdx()
 
-		self.pool.write_json(
-			a2f.get_metadata_from_fossology(),
-			cur_path,
-			f'{cur_pckg}.fossy.json'
+		alien_fossy_json_path = self.pool.relpath_typed(
+			FILETYPE.FOSSY,
+			name,
+			version,
+			variant
+		)
+		fossy_json = a2f.get_metadata_from_fossology()
+
+		fossy_json['metadata'] = {
+			"name": apkg.name,
+			"version": apkg.metadata['version'],
+			"revision": apkg.metadata['revision'],
+			"variant": apkg.variant
+		}
+
+		fossy_data = FossyModel.decode(fossy_json)
+		self.pool.write_json_with_history(
+			fossy_data, get_prefix_formatted(), alien_fossy_json_path
 		)
 
 		# This is OK, because we are in a loop and not in a multiprocessing
