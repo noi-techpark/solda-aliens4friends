@@ -23,7 +23,6 @@ class SnapMatch(Command):
 
 	def __init__(self, session_id: str, dryrun: bool) -> None:
 		super().__init__(session_id, Processing.LOOP, dryrun)
-		AlienSnapMatcher.clearDiff() #FIXME Should we move this into AlienSnapMatcher itself?
 		self.alienmatcher = AlienSnapMatcher(self.pool)
 
 	def print_results(self, results: Any) -> None:
