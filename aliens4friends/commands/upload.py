@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
+import os
 import logging
 from typing import Union
 
@@ -89,9 +90,12 @@ class Upload(Command):
 		except Exception:
 			raise CommandError(f"[{cur_pckg}] Unable to load aliensrc from {path} ")
 
-		alien_spdx_filename = self.pool.abspath(
+		alien_spdx_filename = os.path.join(
 			cur_path,
-			f'{apkg.internal_archive_name}.alien.spdx'
+			self.pool.filename(
+				FILETYPE.ALIENSPDX,
+				apkg.internal_archive_name
+			)
 		) if apkg.internal_archive_name else ""
 
 		a2f = UploadAliens2Fossy(
