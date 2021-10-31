@@ -109,6 +109,9 @@ def mkdir(*sub_folders: str) -> str:
 def md5(string: str) -> str:
 	return hashlib.md5(string.encode('utf-8')).hexdigest()
 
+def md5bin(binary: bytes) -> str:
+	return hashlib.md5(binary).hexdigest()
+
 def sha1sum_str(string):
     return hashlib.sha1(string.encode('utf-8')).hexdigest()
 
