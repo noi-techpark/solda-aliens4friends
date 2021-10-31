@@ -292,7 +292,7 @@ class AlienSnapMatcher:
 		self,
 		snap_match: DebianSnapMatch,
 		srcfile: SourceFile,
-	) -> None:
+	) -> bytes:
 		return self.pool.get_binary(
 			Settings.PATH_DEB,
 			snap_match.name,
