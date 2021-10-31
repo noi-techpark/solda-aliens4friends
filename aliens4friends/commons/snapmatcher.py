@@ -155,8 +155,8 @@ class AlienSnapMatcher:
 		# Occasionally there may be source package variants also in Debian, i.e.
 		# packages with the same name and version but with a different set of
 		# source files depending on target arch or on other factors: more
-		# precisely, there may be multiple checksums for the same file name (eg.
-		# in perl 5.30.1~rc1-1) or multiple file names for the same checksum
+		# precisely, there may be multiple file names for the checksum (eg.
+		# in perl 5.30.1~rc1-1) or multiple checksums for the same file name
 		# (eg. in libaio 0.3.111-1).
 		# This means that there may be even more than one .dsc file for the same
 		# source package (eg. in libaio 0.3.111-1).
