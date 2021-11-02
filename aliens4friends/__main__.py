@@ -240,6 +240,14 @@ class Aliens4Friends:
 			default = False,
 			help = "Use the old alienmatcher.json input files, not snapmatch.json."
 		)
+	
+	def _args_apply_debian_full(self, parser: argparse.ArgumentParser) -> None:
+		parser.add_argument(
+			"--apply-debian-full",
+			action = "store_true",
+			default= False,
+			help= "apply all debian/copyright decisions as LicenseConcluded in full, without any filter"
+		)
 
 	def config(self) -> None:
 		for k, v in Settings.DOTENV.items():
@@ -396,6 +404,7 @@ class Aliens4Friends:
 			help="Generate SPDX files out of Alien Package and Deltacode information"
 		)
 		self._args_defaults(self.parsers[cmd])
+		self._args_apply_debian_full(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
@@ -535,6 +544,7 @@ class Aliens4Friends:
 	def spdxalien(self) -> bool:
 		return SpdxAlien.execute(
 			self.args.use_oldmatcher,
+			self.args.apply_debian_full,
 			self.args.session,
 			self.args.dryrun
 		)
