@@ -132,20 +132,23 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 					scancode_spdx_file = scancode_spdx_files.get(alien_spdx_file)
 					if scancode_spdx_file:
 						if alien_spdx_file in results.changed_files_with_updated_copyright_year_only:
-							deb2alien_file.copyright = scancode_spdx_file.copyright
-						deb2alien_file.licenses_in_file = (
-							Scancode2AlienSPDX.remove_non_spdx_lics(
-								scancode_spdx_file.licenses_in_file
-							)
-						)		
-						if self.apply_debian_full:
-							# add debian results and skip all checks and filters
-							alien_spdx_files.append(deb2alien_file)
-							continue
+							deb2alien_file.copyright = scancode_spdx_file.copyright	
+						deb2alien_file.licenses_in_file = scancode_spdx_file.licenses_in_file	
 						if type(scancode_spdx_file.licenses_in_file[0]) in [ NoAssert, SPDXNone, type(None) ]:
 							deb2alien_file.conc_lics = NoAssert()
 							# if there are no copyright/license statements in
 							# file, do not apply decisions from debian/copyright
+							# otherwise it would mess up audit work on fossology
+						if self.apply_debian_full:
+							# add only filtered scancode finding and debian
+							# results and skip all checks and filters
+							deb2alien_file.licenses_in_file = (
+								Scancode2AlienSPDX.remove_non_spdx_lics(
+									deb2alien_file.licenses_in_file
+								)
+							)
+							alien_spdx_files.append(deb2alien_file)
+							continue
 						else:
 							licenses_in_file_ids = [ 
 								l.identifier 
@@ -165,32 +168,20 @@ class Debian2AlienSPDX(Scancode2AlienSPDX):
 								else []
 							)
 							if licenses_in_file_ids and conc_lics_ids:
-								e = deb2alien_file.conc_lics.identifier
-								is_and_expr = not any([ 
-									"(" in e, ")" in e, " OR " in e 
-								]) and " AND " in e
-								is_or_expr = not any([ 
-									"(" in e, ")" in e, " AND " in e 
-								]) and " OR " in e
 								same_lics = []
 								for conc_lic_id in conc_lics_ids:
 									if conc_lic_id in licenses_in_file_ids:
 										same_lics.append(conc_lic_id)
-								if is_and_expr and same_lics:
-									deb2alien_file.conc_lics = " AND ".join(same_lics)
-									# if conc_lics is an AND-only expression,
-									# add as conc_lics only licenses that match
-									# some scancode finding
-								elif is_or_expr and same_lics:
-									deb2alien_file.conc_lics = " OR ".join(same_lics)
-									# if conc_lics is an OR-only expression, 
-									# add as conc_lics only licenses that match
-									# some scancode finding
-								elif len(same_lics) != len(conc_lics_ids):
+								if len(same_lics) != len(licenses_in_file_ids):
 									deb2alien_file.conc_lics = NoAssert()
 									# if conc_lics (debian) do not match
 									# all licenses_in file (scancode)
 									# do not apply it
+						deb2alien_file.licenses_in_file = (
+							Scancode2AlienSPDX.remove_non_spdx_lics(
+								deb2alien_file.licenses_in_file
+							)
+						)
 						alien_spdx_files.append(deb2alien_file)
 					else:
 						raise MakeAlienSPDXException(
