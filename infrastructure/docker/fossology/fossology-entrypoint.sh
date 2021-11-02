@@ -165,6 +165,165 @@ EOT
 ) || true
 cd -
 
+echo ""
+echo ""
+echo "***************************************************"
+echo "*    PATCHING REST API to correctly use           *"
+echo "*    group ID for uploads and jobs                *"
+echo "*    and to get job queue agent names             *"
+echo "***************************************************"
+
+cd /usr/local/share
+patch -p1 << EOT
+diff -ruN fossology.orig/fossology/lib/php/Dao/UploadDao.php fossology.mod/fossology/lib/php/Dao/UploadDao.php
+--- fossology.orig/fossology/lib/php/Dao/UploadDao.php	2020-12-01 10:20:03.000000000 +0100
++++ fossology.mod/fossology/lib/php/Dao/UploadDao.php	2021-11-01 20:52:57.000000000 +0100
+@@ -197,7 +197,7 @@
+   public function getStatus(\$uploadId, \$groupId)
+   {
+     if (\$this->isAccessible(\$uploadId, \$groupId)) {
+-      \$row = \$this->dbManager->getSingleRow("SELECT status_fk FROM upload_clearing WHERE upload_fk = \$1", array(\$uploadId));
++      \$row = \$this->dbManager->getSingleRow("SELECT status_fk FROM upload_clearing WHERE upload_fk = \$1 AND group_fk = \$2", array(\$uploadId, \$groupId));
+       if (false === \$row) {
+         throw new \Exception("cannot find uploadId=\$uploadId");
+       }
+diff -ruN fossology.orig/fossology/www/ui/api/Controllers/JobController.php fossology.mod/fossology/www/ui/api/Controllers/JobController.php
+--- fossology.orig/fossology/www/ui/api/Controllers/JobController.php	2021-11-01 10:30:17.000000000 +0100
++++ fossology.mod/fossology/www/ui/api/Controllers/JobController.php	2021-11-01 23:40:22.000000000 +0100
+@@ -178,7 +178,7 @@
+    */
+   private function getAllResults(\$id, \$response, \$limit, \$page)
+   {
+-    list(\$jobs, \$count) = \$this->dbHelper->getJobs(\$id, \$limit, \$page);
++    list(\$jobs, \$count) = \$this->dbHelper->getJobs(\$id, \$limit, \$page, null, \$this->restHelper->getGroupId());
+     \$finalJobs = [];
+     foreach (\$jobs as \$job) {
+       \$this->updateEtaAndStatus(\$job);
+@@ -206,7 +206,7 @@
+         InfoType::ERROR);
+       return \$response->withJson(\$returnVal->getArray(), \$returnVal->getCode());
+     }
+-    list(\$jobs, \$count) = \$this->dbHelper->getJobs(null, \$limit, \$page, \$uploadId);
++    list(\$jobs, \$count) = \$this->dbHelper->getJobs(null, \$limit, \$page, \$uploadId, \$this->restHelper->getGroupId());
+     \$finalJobs = [];
+     foreach (\$jobs as \$job) {
+       \$this->updateEtaAndStatus(\$job);
+diff -ruN fossology.orig/fossology/www/ui/api/Controllers/UploadController.php fossology.mod/fossology/www/ui/api/Controllers/UploadController.php
+--- fossology.orig/fossology/www/ui/api/Controllers/UploadController.php	2020-12-01 10:20:09.000000000 +0100
++++ fossology.mod/fossology/www/ui/api/Controllers/UploadController.php	2021-11-01 16:06:41.000000000 +0100
+@@ -83,7 +83,7 @@
+         return \$temp;
+       }
+     }
+-    \$uploads = \$this->dbHelper->getUploads(\$this->restHelper->getUserId(), \$id);
++    \$uploads = \$this->dbHelper->getUploads(\$this->restHelper->getUserId(), \$id, \$this->restHelper->getGroupId());
+     if (\$id !== null) {
+       \$uploads = \$uploads[0];
+     }
+diff -ruN fossology.orig/fossology/www/ui/api/Helper/DbHelper.php fossology.mod/fossology/www/ui/api/Helper/DbHelper.php
+--- fossology.orig/fossology/www/ui/api/Helper/DbHelper.php	2020-12-01 10:20:09.000000000 +0100
++++ fossology.mod/fossology/www/ui/api/Helper/DbHelper.php	2021-11-02 00:07:25.000000000 +0100
+@@ -77,7 +77,7 @@
+    * @param integer \$uploadId Pass the upload id to check for single upload.
+    * @return Upload[][] Uploads as an associative array
+    */
+-  public function getUploads(\$userId, \$uploadId = null)
++  public function getUploads(\$userId, \$uploadId = null, \$groupId = 0)
+   {
+     if (\$uploadId == null) {
+       \$sql = "SELECT
+@@ -87,10 +87,15 @@
+ INNER JOIN folderlist ON folderlist.upload_pk = upload.upload_pk
+ INNER JOIN folder ON folder.folder_pk = folderlist.parent
+ INNER JOIN pfile ON pfile.pfile_pk = upload.pfile_fk
+-WHERE upload.user_fk = \$1
++WHERE upload.user_fk = \$1 OR upload.public_perm > 0 OR EXISTS(
++  SELECT * FROM perm_upload
++  WHERE perm_upload.upload_fk = upload.upload_pk
++  AND group_fk=\$2
++  AND perm_upload.perm > 0
++)
+ ORDER BY upload.upload_pk;";
+       \$statementName = __METHOD__ . ".getAllUploads";
+-      \$params = [\$userId];
++      \$params = [\$userId,\$groupId];
+     } else {
+       \$sql = "SELECT
+ upload.upload_pk, upload.upload_desc, upload.upload_ts, upload.upload_filename,
+@@ -99,11 +104,16 @@
+ INNER JOIN folderlist ON folderlist.upload_pk = upload.upload_pk
+ INNER JOIN folder ON folder.folder_pk = folderlist.parent
+ INNER JOIN pfile ON pfile.pfile_pk = upload.pfile_fk
+-WHERE upload.user_fk = \$1
++WHERE upload.user_fk = \$1 OR upload.public_perm > 0 OR EXISTS(
++  SELECT * FROM perm_upload
++  WHERE perm_upload.upload_fk = upload.upload_pk
++  AND group_fk=\$3
++  AND perm_upload.perm > 0
++)
+ AND upload.upload_pk = \$2
+ ORDER BY upload.upload_pk;";
+       \$statementName = __METHOD__ . ".getSpecificUpload";
+-      \$params = [\$userId,\$uploadId];
++      \$params = [\$userId,\$uploadId,\$groupId];
+     }
+     \$result = \$this->dbManager->getRows(\$sql, \$params, \$statementName);
+     \$uploads = [];
+@@ -212,28 +222,34 @@
+    * @return array[] List of jobs at first index and total number of pages at
+    *         second.
+    */
+-  public function getJobs(\$id = null, \$limit = 0, \$page = 1, \$uploadId = null)
++  public function getJobs(\$id = null, \$limit = 0, \$page = 1, \$uploadId = null, \$groupId = 0)
+   {
+-    \$jobSQL = "SELECT job_pk, job_queued, job_name, job_upload_fk," .
+-      " job_user_fk, job_group_fk FROM job";
+-    \$totalJobSql = "SELECT count(*) AS cnt FROM job";
++    \$jobSQL = "SELECT j.job_pk, j.job_queued, string_agg(jq.jq_type, ',') as job_name," .
++      " j.job_upload_fk, j.job_user_fk, j.job_group_fk FROM job j" .
++      " INNER JOIN jobqueue jq ON j.job_pk = jq.jq_job_fk ";
++    \$totalJobSql = "SELECT count(*) AS cnt FROM job j";
++
++    \$groupBy = "GROUP BY j.job_pk, j.job_queued, j.job_upload_fk, j.job_user_fk, j.job_group_fk";
+ 
+     \$filter = "";
+     \$pagination = "";
+ 
+     \$params = [];
++    \$params[] = \$groupId;
+     \$statement = __METHOD__ . ".getJobs";
+     \$countStatement = __METHOD__ . ".getJobCount";
+     if (\$id == null) {
+       if (\$uploadId !== null) {
+         \$params[] = \$uploadId;
+-        \$filter = "WHERE job_upload_fk = \$" . count(\$params);
++        \$filter = "WHERE j.job_upload_fk = \$2 AND j.job_group_fk = \$1";
+         \$statement .= ".withUploadFilter";
+         \$countStatement .= ".withUploadFilter";
++      } else {
++        \$filter = "WHERE j.job_group_fk = \$1";
+       }
+     } else {
+       \$params[] = \$id;
+-      \$filter = "WHERE job_pk = \$" . count(\$params);
++      \$filter = "WHERE j.job_pk = \$2 AND j.job_group_fk = \$1";
+       \$statement .= ".withJobFilter";
+       \$countStatement .= ".withJobFilter";
+     }
+@@ -256,7 +272,7 @@
+     }
+ 
+     \$jobs = [];
+-    \$result = \$this->dbManager->getRows("\$jobSQL \$filter \$pagination;", \$params,
++    \$result = \$this->dbManager->getRows("\$jobSQL \$filter \$groupBy \$pagination;", \$params,
+       \$statement);
+     foreach (\$result as \$row) {
+       \$job = new Job(\$row["job_pk"]);
+EOT
+cd -
+
+
+
 if [[ $db_host == 'localhost' ]]; then
 	#https://github.com/fossology/fossology/wiki/Configuration-and-Tuning#preparing-postgresql
 	mem=$(free --giga | grep Mem | awk '{print $2}')

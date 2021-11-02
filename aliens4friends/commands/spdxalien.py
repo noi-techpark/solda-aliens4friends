@@ -21,9 +21,16 @@ logger = logging.getLogger(__name__)
 
 class SpdxAlien(Command):
 
-	def __init__(self, session_id: str, use_oldmatcher: bool, dryrun: bool):
+	def __init__(
+		self, 
+		session_id: str, 
+		use_oldmatcher: bool, 
+		apply_debian_full: bool, 
+		dryrun: bool
+	):
 		super().__init__(session_id, Processing.MULTI, dryrun)
 		self.use_oldmatcher = use_oldmatcher
+		self.apply_debian_full = apply_debian_full
 
 	def hint(self) -> str:
 		return "match/snapmatch"
@@ -31,10 +38,11 @@ class SpdxAlien(Command):
 	@staticmethod
 	def execute(
 		use_oldmatcher: bool = False,
+		apply_debian_full: bool = False,
 		session_id: str = "",
 		dryrun: bool = False
 	) -> bool:
-		cmd = SpdxAlien(session_id, use_oldmatcher, dryrun)
+		cmd = SpdxAlien(session_id, use_oldmatcher, apply_debian_full, dryrun)
 		return cmd.exec_with_paths(
 			FILETYPE.ALIENMATCHER if use_oldmatcher else FILETYPE.SNAPMATCH,
 			ignore_variant=True
@@ -102,12 +110,13 @@ class SpdxAlien(Command):
 				scancode_spdx,
 				alien_package,
 				debian_spdx,
-				deltacodeng_results
+				deltacodeng_results,
+				self.apply_debian_full
 			)
 			d2as.process()
 			write_spdx_tv(d2as.alien_spdx, alien_spdx_filename)
 		else:
-			logger.info(f"[{package}] No debian spdx available, using scancode spdx for package {alien.name}-{alien.version}")
+			logger.info(f"[{package}] No debian spdx available ({debian_spdx_filename} not found), using scancode spdx for package {alien.name}-{alien.version}")
 			s2as = Scancode2AlienSPDX(scancode_spdx, alien_package)
 			s2as.process()
 			write_spdx_tv(s2as.alien_spdx, alien_spdx_filename)
