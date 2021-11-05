@@ -15,10 +15,18 @@ logger = logging.getLogger(__name__)
 
 class Harvest(Command):
 
-	def __init__(self, session_id: str, add_missing: bool, use_oldmatcher: bool, dryrun: bool):
+	def __init__(
+		self,
+		session_id: str,
+		add_missing: bool,
+		with_binaries: List[str],
+		use_oldmatcher: bool,
+		dryrun: bool
+	) -> None:
 		super().__init__(session_id, Processing.SINGLE, dryrun)
 		self.use_oldmatcher = use_oldmatcher
 		self.add_missing = add_missing
+		self.with_binaries = with_binaries
 		result_path = self.pool.relpath(Settings.PATH_STT)
 		self.pool.mkdir(result_path)
 		result_file = 'report.harvest.json'
@@ -43,11 +51,12 @@ class Harvest(Command):
 	@staticmethod
 	def execute(
 		add_missing: bool,
+		with_binaries: List[str],
 		use_oldmatcher: bool = False,
 		session_id: str = "",
 		dryrun: bool = False
 	) -> bool:
-		cmd = Harvest(session_id, add_missing, use_oldmatcher, dryrun)
+		cmd = Harvest(session_id, add_missing, with_binaries, use_oldmatcher, dryrun)
 		return cmd.exec(cmd.get_filelist())
 
 	def run(self, files: List[str]) -> Optional[HarvestModel]:
@@ -56,6 +65,7 @@ class Harvest(Command):
 			files,
 			self.output,
 			self.add_missing,
+			self.with_binaries,
 			self.use_oldmatcher,
 			session=self.session
 		)
