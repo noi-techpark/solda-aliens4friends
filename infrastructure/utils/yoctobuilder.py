@@ -42,7 +42,6 @@ def main():
 
 	print("YOCTO BUILDER: Yaml parsed...", flush=True)
 
-	cache_dir = yml['cache_dir']
 	failed_flavours = []
 
 	for flavour_id, flavour in yml['flavours'].items():
@@ -66,7 +65,7 @@ def main():
 			bash(
 				f"{templateconf} . ./oe-core/oe-init-build-env build-{flavour_id}-{machine_id}"
 			)
-			_conf_update(flavour_id, machine_id, cache_dir, flavour['configs'])
+			_conf_update(flavour_id, machine_id, yml.get('common_configs'), flavour.get('configs'))
 
 			for image_id in flavour['images']:
 				print(f'YOCTO BUILDER: [{flavour_id}][{machine_id}] Processing image {image_id}', flush=True)
@@ -78,10 +77,12 @@ def main():
 					failed += 1
 					continue
 				try:
-					bash_live(
+					cmdstr=(
 						f'{templateconf} . ./oe-core/oe-init-build-env build-{flavour_id}-{machine_id}; '
 						f'bitbake {image_id}'
 					)
+					print(f"\n{cmdstr}\n")
+					bash_live(cmdstr, logfile=f'.log-yoctobuild-{flavour_id}-{machine_id}-{image_id}')
 					count += 1
 					print(f'YOCTO BUILDER: {count}/{amount} done!')
 					bash(f'touch .success-yoctobuild-{flavour_id}-{machine_id}-{image_id}')
@@ -114,7 +115,7 @@ def main():
 			sys.exit(1)
 
 
-def _conf_update(flavour, machine, cache_dir, configs = None):
+def _conf_update(flavour, machine, common_configs = None, configs = None):
 	#FIXME We should copy the first local.conf to local.conf.orig and for each step
 	#      use that for substitution, and not re-substitute already changed files,
 	#      which could lead to unknown errors.
@@ -127,8 +128,6 @@ def _conf_update(flavour, machine, cache_dir, configs = None):
 		'#INHERIT += "own-mirrors"',
 		'#SOURCE_MIRROR_URL',
 		'#SSTATE_MIRRORS',
-		f'SSTATE_DIR ?= "{cache_dir}/sstate-cache"',
-		f'DL_DIR ?= "{cache_dir}/downloads"'
 	]
 
 	conf_params = { c: False for c in CONF_PARAMS }
@@ -158,12 +157,14 @@ def _conf_update(flavour, machine, cache_dir, configs = None):
 							line = line[1:] # uncomment
 
 				fout.write(line)
-		cfglist = configs['_all'] if '_all' in configs else []
-		cfglist += configs[machine] if machine in configs else []
-		cfglist += [
-			par for par, found in conf_params.items()
-			if (not found) and len(par.split()) > 2 and (not par.startswith("#"))
-		]
+		cfglist = common_configs.copy() if common_configs else []
+		if configs:
+			cfglist += configs.get('_all') or []
+			cfglist += configs.get(machine) or []
+			cfglist += [
+				par for par, found in conf_params.items()
+				if (not found) and len(par.split()) > 2 and (not par.startswith("#"))
+			]
 		for line in cfglist:
 			if line not in orig_lines:
 				fout.write(f'\n{line}\n')
@@ -202,7 +203,8 @@ def bash_live(
 	command: str,
 	cwd: str = None,
 	exception: Type[Exception] = Exception,
-	prefix: str = ""
+	prefix: str = "",
+	logfile = None
 ) -> None:
 	"""Run a command in bash shell in live mode to fetch output when it is available
 	:param command: the command to run
@@ -210,6 +212,7 @@ def bash_live(
 	:param exception: Exception to raise when an error occurs
 	:param prefix: Prefix of output streams
 	"""
+	log = open(logfile, "w") if logfile else None
 	with subprocess.Popen(
 		command, shell=True, executable="/bin/bash", cwd=cwd,
 		stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
@@ -222,12 +225,16 @@ def bash_live(
 			out = output.strip()
 			if out:
 				print(out, flush=True)
-
+				if log:
+					log.write(f"{out}\n")
 		rc = proc.wait()
+		if log:
+			log.close()
 		if rc != 0:
 			raise exception(
 				f"{prefix} (ERROR) >>> Command {command} failed! Return code = {rc}"
 			)
+
 
 if __name__ == "__main__":
 	main()
