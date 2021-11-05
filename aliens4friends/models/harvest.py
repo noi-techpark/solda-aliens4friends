@@ -4,7 +4,7 @@
 
 from .base import BaseModel
 from .common import License, Tool, SourceFile
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set, Union
 
 class DebianMatchBasic(BaseModel):
 	def __init__(
@@ -98,7 +98,7 @@ class BinaryPackage(BaseModel):
 		self.tags = aggregate_tags(tags)
 
 
-def aggregate_tags(tags: List[str]) -> Dict[str, Any]:
+def aggregate_tags(tags: List[str]) -> Dict[str, Union[List[str], Set[str]]]:
 	if not tags:
 		return {}
 
@@ -110,6 +110,8 @@ def aggregate_tags(tags: List[str]) -> Dict[str, Any]:
 				res[key].add(elem.split("/")[i])
 			except IndexError:
 				pass
+	for key in keys:
+		res[key] = sorted(res[key])
 	return res
 
 class SessionState(BaseModel):

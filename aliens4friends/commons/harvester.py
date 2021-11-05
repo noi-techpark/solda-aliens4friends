@@ -57,6 +57,7 @@ class Harvester:
 		input_files: List[str],
 		result_file : str,
 		add_missing : bool = False,
+		with_binaries: Optional[List[str]] = None,
 		use_oldmatcher: bool = False,
 		package_id_ext : str = Settings.PACKAGE_ID_EXT,
 		session: Optional[Session] = None
@@ -68,6 +69,7 @@ class Harvester:
 		self.result = None
 		self.package_id_ext = package_id_ext
 		self.add_missing = add_missing
+		self.with_binaries = with_binaries
 		self.use_oldmatcher = use_oldmatcher
 		self.session = session
 
@@ -365,7 +367,13 @@ class Harvester:
 	def _parse_tinfoilhat_packages(self, cur: Dict[str, PackageWithTags]) -> List[BinaryPackage]:
 		result = []
 		for name, package in cur.items():
-			result.append(self._parse_tinfoilhat_package(name, package))
+			new_tags = [
+				tag for tag in package.tags
+				if tag.startswith(self.with_binaries[0])
+			]
+			if new_tags:
+				package.tags = new_tags
+				result.append(self._parse_tinfoilhat_package(name, package))
 		return result
 
 	def _parse_tinfoilhat_package(self, name: str, cur: PackageWithTags) -> BinaryPackage:
