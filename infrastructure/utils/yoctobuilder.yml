@@ -5,6 +5,7 @@
     - SSTATE_MIRRORS ?= "file://.* file:///ostc/common/bitbake/sstate-cache/PATH"
     - INHERIT += "own-mirrors"
     - SOURCE_MIRROR_URL = "file:///ostc/common/bitbake/downloads"
+    - INHERIT += "cve-check"
   flavours:
     linux:
       machines:
