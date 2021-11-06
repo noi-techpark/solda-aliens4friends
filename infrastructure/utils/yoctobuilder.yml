@@ -6,6 +6,7 @@
     - INHERIT += "own-mirrors"
     - SOURCE_MIRROR_URL = "file:///ostc/common/bitbake/downloads"
     - INHERIT += "cve-check"
+    - INHERIT += "rm_work"
   flavours:
     linux:
       machines:
