@@ -1,8 +1,10 @@
   version: 1.1
+  flavour_dir: oniro/flavours
+  oe_init_build_env_dir: oe-core    
   common_configs:
-    - SSTATE_DIR ?= "/build/common/sstate-cache"
-    - DL_DIR ?= "/build/common/downloads"
-    - SSTATE_MIRRORS ?= "file://.* file:///ostc/common/bitbake/sstate-cache/PATH"
+    - SSTATE_DIR = "/build/common/sstate-cache"
+    - DL_DIR = "/build/common/downloads"
+    - SSTATE_MIRRORS = "file://.* file:///ostc/common/bitbake/sstate-cache/PATH"
     - INHERIT += "own-mirrors"
     - SOURCE_MIRROR_URL = "file:///ostc/common/bitbake/downloads"
     - INHERIT += "cve-check"

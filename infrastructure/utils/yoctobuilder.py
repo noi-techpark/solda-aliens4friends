@@ -43,6 +43,8 @@ def main():
 	print("YOCTO BUILDER: Yaml parsed...", flush=True)
 
 	failed_flavours = []
+	flavour_dir = yml['flavour_dir']
+	oe_init_build_env_dir = yml['oe_init_build_env_dir']
 
 	for flavour_id, flavour in yml['flavours'].items():
 
@@ -53,7 +55,7 @@ def main():
 		amount = len(flavour['machines']) * len(flavour['images'])
 		count = 0
 		failed = 0
-		templateconf = f"TEMPLATECONF=../oniro/flavours/{flavour_id} "
+		templateconf = f"TEMPLATECONF=../{flavour_dir}/{flavour_id} "
 		print(f'YOCTO BUILDER: Processing flavour {flavour_id} (with {amount} machine/image combinations)', flush=True)
 		for machine_id in flavour['machines']:
 
@@ -63,7 +65,7 @@ def main():
 				continue
 
 			bash(
-				f"{templateconf} . ./oe-core/oe-init-build-env build-{flavour_id}-{machine_id}"
+				f"{templateconf} . ./{oe_init_build_env_dir}/oe-init-build-env build-{flavour_id}-{machine_id}"
 			)
 			_conf_update(flavour_id, machine_id, yml.get('common_configs'), flavour.get('configs'))
 
@@ -78,7 +80,7 @@ def main():
 					continue
 				try:
 					cmdstr=(
-						f'{templateconf} . ./oe-core/oe-init-build-env build-{flavour_id}-{machine_id}; '
+						f'{templateconf} . ./{oe_init_build_env_dir}/oe-init-build-env build-{flavour_id}-{machine_id}; '
 						f'bitbake {image_id}'
 					)
 					print(f"\n{cmdstr}\n")
