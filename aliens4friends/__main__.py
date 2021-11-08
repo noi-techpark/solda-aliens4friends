@@ -206,13 +206,13 @@ class Aliens4Friends:
 		parser.add_argument(
 			"glob_name",
 			help="Wildcard pattern to filter by package names. Do not forget to quote it!",
-			default="*",
+			default="",
 			nargs="?"
 		)
 		parser.add_argument(
 			"glob_version",
 			help="Wildcard pattern to filter by package versions. Do not forget to quote it!",
-			default="*",
+			default="",
 			nargs="?"
 		)
 
@@ -316,16 +316,17 @@ class Aliens4Friends:
 			"--create",
 			action = "store_true",
 			default = False,
-			help = "Create a new session from a given SESSION or random ID (if absent)"
+			help = "Create and fill a session from a given ID or random string (if absent)"
 		)
-		self.parsers[cmd].add_argument(
-			"-a",
-			"--add-all",
+		group.add_argument(
+			"-n",
+			"--new",
 			action = "store_true",
 			default = False,
-			help = "Add all packages from the pool to the current session."
+			help = "Create a new empty session from a given ID or random string (if absent)"
 		)
 		self._args_session(self.parsers[cmd], required=False)
+		self._args_glob(self.parsers[cmd])
 
 	def parser_add(self, cmd: str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
@@ -501,11 +502,19 @@ class Aliens4Friends:
 		self._args_session(self.parsers[cmd])
 
 	def session(self) -> bool:
+		if (self.args.glob_name or self.args.glob_version) and (self.args.new or self.args.filter):
+			logging.getLogger(PROGNAME).error(
+				f"-n or -f with globs are not allowed: '{self.args.glob_name} {self.args.glob_version}' given!"
+			)
+			sys.exit(1)
+
 		return SessionCmd.execute(
 			self.args.session,
 			self.args.create,
 			self.args.filter,
-			self.args.add_all
+			self.args.new,
+			self.args.glob_name,
+   			self.args.glob_version,
 		)
 
 	def add(self) -> bool:

@@ -138,13 +138,13 @@ class Session:
 			return True
 		return False
 
-	def add_all(self) -> None:
+	def add(self, glob_name: str, glob_version: str) -> None:
 		tinfoilhat_list = []
-		for path in self.pool.absglob(f"userland/*/*/*.{FILETYPE.TINFOILHAT}"):
+		for path in self.pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.{FILETYPE.TINFOILHAT}"):
 			name, version, variant, _, _ = self.pool.packageinfo_from_path(path)
 			tinfoilhat_list.append(SessionPackageModel(name, version, variant))
 		aliensrc_list = []
-		for path in self.pool.absglob(f"userland/*/*/*.{FILETYPE.ALIENSRC}"):
+		for path in self.pool.absglob(f"{Settings.PATH_USR}/{glob_name}/{glob_version}/*.{FILETYPE.ALIENSRC}"):
 			name, version, variant, _, _ = self.pool.packageinfo_from_path(path)
 			aliensrc_list.append(SessionPackageModel(name, version, variant))
 		self.write_joined_package_lists(tinfoilhat_list, aliensrc_list)
