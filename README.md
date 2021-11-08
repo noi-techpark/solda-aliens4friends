@@ -1183,6 +1183,9 @@ Where `/build/gitlab-runner` is your hosts build directory, where
 access the docker daemon on the host. We need also to set `privileged = true`
 to make it work.
 
+The log output can be really long, so to see everything we need also to 
+increase the `output_limit = 102400` inside `[[runners]]`.
+
 ## Configure a Gitlab container registry
 
 The `dockerize` stages inside `.gitlab-ci.yml` need a container registry to upload
