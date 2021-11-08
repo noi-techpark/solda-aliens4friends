@@ -93,8 +93,8 @@ class SessionCmd(Command):
 		self.create = create
 		self.filter_str = filter_str
 		self.new = new
-		self.glob_name = glob_name
-		self.glob_version = glob_version
+		self.glob_name = "*" if create and not glob_name else glob_name
+		self.glob_version = "*" if create and not glob_version else glob_version
 
 	@staticmethod
 	def execute(
