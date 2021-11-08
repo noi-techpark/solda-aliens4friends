@@ -108,7 +108,7 @@ class SessionCmd(Command):
 		cmd = SessionCmd(session_id, create, filter_str, new, glob_name, glob_version)
 		return cmd.exec()
 
-	def run(self, args) -> bool:
+	def run(self, _) -> bool:
 		if self.new:
 			if not self.session:
 				self.session = Session(self.pool)
@@ -118,6 +118,8 @@ class SessionCmd(Command):
 		if self.create:
 			if not self.session:
 				self.session = Session(self.pool)
+
+			# Do no write to disk immediately, since "add" will do that nevertheless
 			self.session.create(write_to_disk=False)
 			self.session.add(self.glob_name, self.glob_version)
 			print(self.session.session_id)

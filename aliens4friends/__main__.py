@@ -206,13 +206,13 @@ class Aliens4Friends:
 		parser.add_argument(
 			"glob_name",
 			help="Wildcard pattern to filter by package names. Do not forget to quote it!",
-			default="*",
+			default="",
 			nargs="?"
 		)
 		parser.add_argument(
 			"glob_version",
 			help="Wildcard pattern to filter by package versions. Do not forget to quote it!",
-			default="*",
+			default="",
 			nargs="?"
 		)
 
@@ -502,6 +502,12 @@ class Aliens4Friends:
 		self._args_session(self.parsers[cmd])
 
 	def session(self) -> bool:
+		if (self.args.glob_name or self.args.glob_version) and (self.args.new or self.args.filter):
+			logging.getLogger(PROGNAME).error(
+				f"-n or -f with globs are not allowed: '{self.args.glob_name} {self.args.glob_version}' given!"
+			)
+			sys.exit(1)
+
 		return SessionCmd.execute(
 			self.args.session,
 			self.args.create,
