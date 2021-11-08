@@ -150,7 +150,9 @@ class AlienPackage(Package):
 			if archive_checksum_set != metadata_checksum_set:
 				raise PackageError(
 					f"File checksum mismatch between {self.ALIEN_MATCHER_JSON} and actual files"
-					f" in package {self.name}-{self.version.str}"
+					f" in package {self.name}-{self.version.str}:"
+					f" calculated checksum list is {archive_checksum_set} while"
+					f" checksums in json file are {metadata_checksum_set}"
 				)
 
 		self.internal_archive_name = None
@@ -207,9 +209,10 @@ class AlienPackage(Package):
 					f" adding internal archive {src_file.name}")
 
 		if check_checksums and len(checksums) != count_files:
-			raise PackageError(
+			logger.warning(
 				"We do not have the same count of files and checksums"
-				f" inside {self.ALIEN_MATCHER_JSON} of package {self.name}-{self.version.str}"
+				f" inside {self.ALIEN_MATCHER_JSON} of package {self.name}-{self.version.str}:"
+				" maybe a duplicate file entry?"
 			)
 
 		primary = None
