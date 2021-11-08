@@ -364,12 +364,18 @@ class Harvester:
 			)
 		)
 
+	def _parse_tinfoilhat_tag_filter(self, tag: str) -> bool:
+		for prefix in self.with_binaries:
+			if tag.startswith(prefix):
+				return True
+		return False
+
 	def _parse_tinfoilhat_packages(self, cur: Dict[str, PackageWithTags]) -> List[BinaryPackage]:
 		result = []
 		for name, package in cur.items():
 			new_tags = [
 				tag for tag in package.tags
-				if tag.startswith(self.with_binaries[0])
+				if self._parse_tinfoilhat_tag_filter(tag)
 			]
 			if new_tags:
 				package.tags = new_tags
@@ -390,7 +396,7 @@ class Harvester:
 		cur = TinfoilHatModel.from_file(path)
 		cur = cur._container
 
-		for recipe_name, container in cur.items():
+		for _, container in cur.items():
 			source_package.name = container.recipe.metadata.name
 			source_package.version = container.recipe.metadata.version
 			source_package.revision = container.recipe.metadata.revision
