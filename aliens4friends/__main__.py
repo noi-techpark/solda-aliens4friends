@@ -240,7 +240,7 @@ class Aliens4Friends:
 			default = False,
 			help = "Use the old alienmatcher.json input files, not snapmatch.json."
 		)
-	
+
 	def _args_apply_debian_full(self, parser: argparse.ArgumentParser) -> None:
 		parser.add_argument(
 			"--apply-debian-full",
@@ -454,6 +454,15 @@ class Aliens4Friends:
 			default = False,
 			help = "Add missing input files to the report while harvesting."
 		)
+		self.parsers[cmd].add_argument(
+			"-b",
+			"--with-binaries",
+			type = str,
+			required = False,
+			default = [],
+			nargs = "+",
+			help = "Add only given binary_packages to the report while harvesting, separate multiple entries with space."
+		)
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
@@ -566,6 +575,7 @@ class Aliens4Friends:
 	def harvest(self) -> bool:
 		return Harvest.execute(
 			self.args.add_missing,
+			self.args.with_binaries,
 			self.args.use_oldmatcher,
 			self.args.session,
 			self.args.dryrun
