@@ -257,15 +257,7 @@ class FossyWrapper:
 		return self.get_licenses(upload, agents) if agents else []
 
 	def check_already_imported_report(self, upload: Upload):
-		# FIXME This method assumes that fossology API DbHelper.php has been
-		# patched to return a comma-separated list of job queue agent names
-		# in the "name" field of each job (instead of uploadname, which is of
-		# no use...). This fossology patch needs to be pushed upstream, though!
-		upload_jobs = [
-			f"{j.name} {j.status}"
-			for j in self.fossology.list_jobs(upload=upload)
-		]
-		return 'reportImport Completed' in upload_jobs
+		return self.get_licenses(upload, ["reportImport",], test=True)
 
 	def get_licenses(self, upload: Upload, agents: list, test: bool = False) -> Union[bool, Any]:
 		params = { "agent":  agents}
