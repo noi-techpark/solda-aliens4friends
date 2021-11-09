@@ -21,7 +21,8 @@ ALIASES = {
 	"tcl": "tcl8.6",
 	"xz": "xz-utils",
 	"wpa-supplicant": "wpa",
-	"zlib-intel": "zlib"
+	"zlib-intel": "zlib",
+	"python3-dbus": "dbus-python",
 }
 
 # Exclude these packages from Debian package searches, since we
