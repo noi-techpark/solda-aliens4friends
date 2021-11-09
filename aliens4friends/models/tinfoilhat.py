@@ -179,7 +179,6 @@ class PackageContainer(DictModel):
 									# tinfoilhat files to merge have been
 									# generated in different local builds, but
 									# it doesn't matter here
-						'root.recipe.source_files',
 					]
 				)
 				if diff:
