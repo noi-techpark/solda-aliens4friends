@@ -179,11 +179,8 @@ class PackageContainer(DictModel):
 									# tinfoilhat files to merge have been
 									# generated in different local builds, but
 									# it doesn't matter here
-					],
-					#exclude_regex_paths=[
-					#	r'root.package.files.files\[\d+\].sha1'
-					#] # this should not be needed, if we have reproducible
-					# builds in bitbake! Leaving it here, for future tests
+						'root.recipe.source_files',
+					]
 				)
 				if diff:
 					raise ModelError(
@@ -348,6 +345,7 @@ class Container(BaseModel):
 						r"root.recipe.source_files\[\d+\].tags", # (M)
 						r"root.recipe.source_files\[\d+\].src_uri", # (U)
 						r"root.recipe.source_files\[\d+\].rootpath", # (I)
+						r"root.recipe.source_files\[\d+\].relpath", # (U) # FIXME workaround, handlye filename changes instead
 					]
 				)
 				if diff:
@@ -381,9 +379,10 @@ class Container(BaseModel):
 					# it has been deepcopied from new[id]
 				} 
 				for file_id in new_files:
-					new_files[file_id].tags = list(set(
-						old_files[file_id].tags + new_files[file_id].tags
-					))
+					if old_files.get(file_id): # FIMXE workaround (see above)
+						new_files[file_id].tags = list(set(
+							old_files[file_id].tags + new_files[file_id].tags
+						))
 			elif id in new:
 				logger.debug(f"{id} found in new")
 				res[id] = new[id]
