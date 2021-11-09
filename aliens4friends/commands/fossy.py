@@ -75,7 +75,8 @@ class Fossy(Command):
 				version,
 				variant
 			)
-			logger.info(f"[{cur_pckg}] Getting spdx and json data from Fossology")
+			spdx_and_ = "spdx and " if self.sbom else ""
+			logger.info(f"[{cur_pckg}] Getting {spdx_and_}json data from Fossology")
 			gfd = GetFossyData(self.fossywrapper, apkg, alien_spdx_filename)
 			if self.sbom:
 				doc = gfd.get_spdx()
