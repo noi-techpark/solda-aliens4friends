@@ -413,7 +413,11 @@ class AlienSnapMatcher:
 				itemVersion = Version(item["version"])
 
 				# zero distance
-				distance = itemVersion.distance(apkg.version)
+				distance = itemVersion.distance(
+					apkg.version if apkg.name != "intel-microcode"
+					else Version("3."+apkg.version.str)
+					# FIXME upstream! workaround for missing major version in Yocto recipe
+				)
 
 				logger.debug(f"[{needle}]  { apkg.version } vs { itemVersion }")
 
@@ -433,7 +437,6 @@ class AlienSnapMatcher:
 					bestVersion["version"] = item['version']
 					bestVersion["distance"] = distance
 
-				# TODO: sometimes the major-version is missing: intel-microcode
 		else:
 			# should not be the case, cause if we find a package by name there should be at least 1 available version
 			res['score'] = -99
