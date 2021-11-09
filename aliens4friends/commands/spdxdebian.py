@@ -114,7 +114,8 @@ class SpdxDebian(Command):
 
 		try:
 			d2s = Debian2SPDX(debsrc_orig, debsrc_debian)
-			d2s.generate_SPDX()
+			if not d2s.generate_SPDX():
+				raise Debian2SPDXException("cannot generate debian spdx file")
 			logger.info(f"[{package}] writing spdx to {self.pool.clnpath(debian_spdx_filename)}")
 			d2s.write_SPDX(debian_spdx_filename)
 			debian_copyright_filename = self.pool.abspath(

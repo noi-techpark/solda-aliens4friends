@@ -230,7 +230,7 @@ class Debian2SPDX:
 			)
 			self.spdx_files.update({path: spdx_file})
 
-	def parse_deb_copyright(self) -> None:
+	def parse_deb_copyright(self) -> bool:
 		"""Extract and parse debian/copyright"""
 		try:
 			content = self.debarchive_debian.readfile(f"{self.native_rootdir}debian/copyright")
@@ -243,15 +243,17 @@ class Debian2SPDX:
 				raise ex
 		try:
 			self.deb_copyright = DebCopyright(content)
+			self.deb_license_defs = {
+				lp.license.synopsis: lp
+				for lp in self.deb_copyright.all_license_paragraphs()
+			}
+			return True
 		except (NotMachineReadableError, MachineReadableFormatError):
-			raise Debian2SPDXException(
+			logger.warning(
 				"Debian Copyright file is not machine readable,"
 				" can't convert it to SPDX"
 			)
-		self.deb_license_defs = {
-			lp.license.synopsis: lp
-			for lp in self.deb_copyright.all_license_paragraphs()
-		}
+			return False
 
 	def parse_deb_changelog(self) -> None:
 		"""Extract and parse debian/changelog"""
@@ -306,12 +308,19 @@ class Debian2SPDX:
 		spdx_conc_lics = SPDXLicense.from_identifier(spdx_lic_expr)
 		return spdx_conc_lics
 
-	def process_deb_files_and_license(self) -> None:
+	def process_deb_files_and_license(self) -> bool:
 		"""Process debian Files and License Paragraphs"""
 		for deb_files in self.deb_copyright.all_files_paragraphs():
-			spdx_conc_lics = self.process_deb_license_expr(
-				deb_files.license
-			)
+			try:
+				spdx_conc_lics = self.process_deb_license_expr(
+					deb_files.license
+				)
+			except MachineReadableFormatError as ex:
+				logger.warning(
+					"Debian Copyright file is not machine readable,"
+					" can't convert it to SPDX"
+				)
+				return False
 			pattern = deb_files.files_pattern()
 			spdx_file_paths = list(filter(pattern.match, self.spdx_files))
 			for path in spdx_file_paths:
@@ -328,6 +337,7 @@ class Debian2SPDX:
 					# statements of the whole package, which is wrong!
 				else:
 					self.catchall_deb_files = deb_files
+			return True
 
 	def create_spdx_package(self) -> None:
 		"""create SPDX Package object with package data taken from
@@ -404,17 +414,20 @@ class Debian2SPDX:
 			spdx_doc.add_extr_lic(extracted_license)
 		self.spdx_doc = spdx_doc
 
-	def generate_SPDX(self) -> None:
+	def generate_SPDX(self) -> bool:
 		"""main method: perform all processing operations to generate SPDX file
 		from debian/copyright and original source tarball
 		"""
 		self.get_files_sha1s()
-		self.parse_deb_copyright()
+		if not self.parse_deb_copyright():
+			return False
 		self.parse_deb_changelog()
 		self.parse_deb_control()
-		self.process_deb_files_and_license()
+		if not self.process_deb_files_and_license():
+			return False
 		self.create_spdx_package()
 		self.create_spdx_document()
+		return True
 
 	def write_SPDX(self, filename: Optional[str] = None) -> None:
 		"""write SPDX Document object to file (in tagvalue format)"""
