@@ -25,6 +25,9 @@ class Archive:
 		},
 		".aliensrc": {
 			"tarparam": ""
+		},
+		".lz": {
+			"tarparam": "--lzip -"
 		}
 	}
 
