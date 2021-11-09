@@ -19,16 +19,17 @@ logger = logging.getLogger(__name__)
 
 class Fossy(Command):
 
-	def __init__(self, session_id: str, dryrun: bool) -> None:
+	def __init__(self, session_id: str, dryrun: bool, sbom: bool) -> None:
 		super().__init__(session_id, Processing.LOOP, dryrun)
 		self.fossywrapper = FossyWrapper()
+		self.sbom = sbom
 
 	def hint(self) -> str:
 		return "add/match"
 
 	@staticmethod
-	def execute(session_id: str = "", dryrun: bool = False) -> bool:
-		cmd = Fossy(session_id, dryrun)
+	def execute(session_id: str = "", dryrun: bool = False, sbom: bool = False) -> bool:
+		cmd = Fossy(session_id, dryrun, sbom)
 		return cmd.exec_with_paths(FILETYPE.ALIENSRC)
 
 	def run(self, path) -> Union[str, bool]:
@@ -76,8 +77,9 @@ class Fossy(Command):
 			)
 			logger.info(f"[{cur_pckg}] Getting spdx and json data from Fossology")
 			gfd = GetFossyData(self.fossywrapper, apkg, alien_spdx_filename)
-			doc = gfd.get_spdx()
-			self.pool.write_spdx_with_history(doc, get_prefix_formatted(), out_spdx_filename)
+			if self.sbom:
+				doc = gfd.get_spdx()
+				self.pool.write_spdx_with_history(doc, get_prefix_formatted(), out_spdx_filename)
 			fossy_json = gfd.get_metadata_from_fossology()
 
 			fossy_json['metadata'] = {

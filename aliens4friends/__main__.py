@@ -435,6 +435,12 @@ class Aliens4Friends:
 			cmd,
 			help="Get final SPDX and json data from Fossology"
 		)
+		self.parsers[cmd].add_argument(
+			"--sbom",
+			action = "store_true",
+			default = False,
+			help = "Create a SPDX Bill Of Material (sbom) file"
+		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
@@ -578,7 +584,8 @@ class Aliens4Friends:
 	def fossy(self) -> bool:
 		return Fossy.execute(
 			self.args.session,
-			self.args.dryrun
+			self.args.dryrun,
+			self.args.sbom
 	)
 
 	def harvest(self) -> bool:
