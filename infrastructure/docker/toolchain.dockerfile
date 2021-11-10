@@ -22,7 +22,7 @@ FROM python:3.6
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && \
-    apt-get install -y openjdk-11-jdk-headless bzip2 sudo && \
+    apt-get install -y openjdk-11-jdk-headless bzip2 sudo lzip && \
 	apt-get autoremove --purge -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ### SPDXTOOL INSTALLATION
