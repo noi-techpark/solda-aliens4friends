@@ -112,7 +112,15 @@ def aggregate_tags(tags: List[str]) -> Dict[str, Union[List[str], Set[str]]]:
 				pass
 	for key in keys:
 		res[key] = sorted(res[key])
+	for key in [ 'distro', 'image' ]:
+		new = set()
+		for tag in res[key]:
+			for project in res['project']:
+				tag = tag.replace(f'{project}-', '')
+			new.add(tag)
+		res[key] = sorted(new)
 	return res
+
 
 class SessionState(BaseModel):
 	def __init__(
