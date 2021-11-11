@@ -113,6 +113,7 @@ class SessionCmd(Command):
 			if not self.session:
 				self.session = Session(self.pool)
 			self.session.create(write_to_disk=True)
+			print(self.session.session_id)
 			return True
 
 		if self.create:
