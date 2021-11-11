@@ -22,16 +22,22 @@ class Harvest(Command):
 		with_binaries: List[str],
 		use_oldmatcher: bool,
 		dryrun: bool,
-		filter_snapshot: Optional[str] = None
+		filter_snapshot: Optional[str] = None,
+		output_file: Optional[str] = None,
 	) -> None:
 		super().__init__(session_id, Processing.SINGLE, dryrun)
 		self.use_oldmatcher = use_oldmatcher
 		self.add_missing = add_missing
 		self.with_binaries = with_binaries
-		result_path = self.pool.relpath(Settings.PATH_STT)
-		self.pool.mkdir(result_path)
-		result_file = 'report.harvest.json'
-		self.output = os.path.join(result_path, result_file)
+		self.inside_pool = False if output_file else True
+
+		if output_file:
+			self.output = output_file
+		else:
+			result_path = self.pool.relpath(Settings.PATH_STT)
+			result_file = 'report.harvest.json'
+			self.pool.mkdir(result_path)
+			self.output = os.path.join(result_path, result_file)
 		self.filter_snapshot = filter_snapshot
 
 	def get_filelist(self) -> List[str]:
@@ -57,9 +63,10 @@ class Harvest(Command):
 		use_oldmatcher: bool = False,
 		session_id: str = "",
 		dryrun: bool = False,
-		filter_snapshot: Optional[str] = None
+		filter_snapshot: Optional[str] = None,
+		output_file: Optional[str] = ""
 	) -> bool:
-		cmd = Harvest(session_id, add_missing, with_binaries, use_oldmatcher, dryrun, filter_snapshot)
+		cmd = Harvest(session_id, add_missing, with_binaries, use_oldmatcher, dryrun, filter_snapshot, output_file)
 		return cmd.exec(cmd.get_filelist())
 
 	def run(self, files: List[str]) -> Optional[HarvestModel]:
@@ -67,6 +74,7 @@ class Harvest(Command):
 			self.pool,
 			files,
 			self.output,
+			self.inside_pool,
 			self.add_missing,
 			self.with_binaries,
 			self.use_oldmatcher,
@@ -76,5 +84,8 @@ class Harvest(Command):
 		if self.filter_snapshot:
 			harvest.filter_snapshot(self.filter_snapshot)
 		harvest.write_results()
-		logger.info(f'Results written to {self.pool.clnpath(self.output)}.')
+		if self.inside_pool:
+			logger.info(f'Results written to the POOL with history: {self.pool.clnpath(self.output)}.')
+		else:
+			logger.info(f'Results written to: {self.output}.')
 		return harvest.result

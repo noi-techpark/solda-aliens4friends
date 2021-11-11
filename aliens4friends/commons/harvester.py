@@ -16,6 +16,7 @@ from aliens4friends.commons.utils import (get_prefix_formatted,
                                           log_minimal_error)
 from aliens4friends.models.alienmatcher import (AlienMatcherModel,
                                                 AlienSnapMatcherModel)
+from aliens4friends.models.base import BaseModelEncoder
 from aliens4friends.models.deltacode import DeltaCodeModel
 from aliens4friends.models.fossy import FossyModel
 from aliens4friends.models.harvest import (AuditFindings, BinaryPackage,
@@ -57,6 +58,7 @@ class Harvester:
 		pool: Pool,
 		input_files: List[str],
 		result_file : str,
+		with_history: bool,
 		add_missing : bool = False,
 		with_binaries: Optional[List[str]] = None,
 		use_oldmatcher: bool = False,
@@ -67,6 +69,7 @@ class Harvester:
 		self.pool = pool
 		self.input_files = sorted(input_files)
 		self.result_file = result_file
+		self.with_history = with_history
 		self.result = None
 		self.package_id_ext = package_id_ext
 		self.add_missing = add_missing
@@ -285,7 +288,7 @@ class Harvester:
 			filtered_release_tags = []
 			for release in source_package.tags['release']:
 				if (
-					re.match(r'^.+-g[0-9a-f]+$', release) 
+					re.match(r'^.+-g[0-9a-f]+$', release)
 					and release != snapshot_release
 				):
 					continue
@@ -297,11 +300,15 @@ class Harvester:
 		self.result.source_packages = filtered_source_packages
 
 	def write_results(self):
-		self.pool.write_json_with_history(
-			self.result,
-			get_prefix_formatted(),
-			self.result_file
-		)
+		if self.with_history:
+			self.pool.write_json_with_history(
+				self.result,
+				get_prefix_formatted(),
+				self.result_file
+			)
+		else:
+			with open(self.result_file, 'w') as f:
+				json.dump(self.result, f, indent = 2, cls = BaseModelEncoder)
 
 	def _parse_aliensrc_main(self, path, source_package: SourcePackage) -> None:
 		apkg = AlienPackage(path)

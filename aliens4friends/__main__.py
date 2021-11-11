@@ -476,6 +476,13 @@ class Aliens4Friends:
 			nargs = "+",
 			help = "Add only given binary_packages to the report while harvesting, separate multiple entries with space."
 		)
+		self.parsers[cmd].add_argument(
+			"-o",
+			"--output",
+			type = str,
+			required = False,
+			help = "Write results into this path"
+		)
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
@@ -601,7 +608,8 @@ class Aliens4Friends:
 			self.args.use_oldmatcher,
 			self.args.session,
 			self.args.dryrun,
-			self.args.filter_snapshot
+			self.args.filter_snapshot,
+			self.args.output
 		)
 
 	def comparematch(self) -> bool:
