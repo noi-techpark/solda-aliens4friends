@@ -21,7 +21,8 @@ class Harvest(Command):
 		add_missing: bool,
 		with_binaries: List[str],
 		use_oldmatcher: bool,
-		dryrun: bool
+		dryrun: bool,
+		filter_snapshot: Optional[str] = None
 	) -> None:
 		super().__init__(session_id, Processing.SINGLE, dryrun)
 		self.use_oldmatcher = use_oldmatcher
@@ -31,6 +32,7 @@ class Harvest(Command):
 		self.pool.mkdir(result_path)
 		result_file = 'report.harvest.json'
 		self.output = os.path.join(result_path, result_file)
+		self.filter_snapshot = filter_snapshot
 
 	def get_filelist(self) -> List[str]:
 		files = []
@@ -54,9 +56,10 @@ class Harvest(Command):
 		with_binaries: List[str],
 		use_oldmatcher: bool = False,
 		session_id: str = "",
-		dryrun: bool = False
+		dryrun: bool = False,
+		filter_snapshot: Optional[str] = None
 	) -> bool:
-		cmd = Harvest(session_id, add_missing, with_binaries, use_oldmatcher, dryrun)
+		cmd = Harvest(session_id, add_missing, with_binaries, use_oldmatcher, dryrun, filter_snapshot)
 		return cmd.exec(cmd.get_filelist())
 
 	def run(self, files: List[str]) -> Optional[HarvestModel]:
@@ -70,6 +73,8 @@ class Harvest(Command):
 			session=self.session
 		)
 		harvest.readfile()
+		if self.filter_snapshot:
+			harvest.filter_snapshot(self.filter_snapshot)
 		harvest.write_results()
 		logger.info(f'Results written to {self.pool.clnpath(self.output)}.')
 		return harvest.result

@@ -4,6 +4,7 @@
 import json
 import logging
 import sys
+import re
 from typing import Any, Dict, List, Optional, Union
 
 from aliens4friends.commons.package import AlienPackage
@@ -277,6 +278,23 @@ class Harvester:
 				stats.aggregate = True
 			else:
 				stats.aggregate = False
+
+	def filter_snapshot(self, snapshot_release: str) -> None:
+		filtered_source_packages = []
+		for source_package in self.result.source_packages:
+			filtered_release_tags = []
+			for release in source_package.tags['release']:
+				if (
+					re.match(r'^.+-g[0-9a-f]+$', release) 
+					and release != snapshot_release
+				):
+					continue
+				filtered_release_tags.append(release)
+			if not filtered_release_tags:
+				continue
+			source_package.tags['release'] = filtered_release_tags
+			filtered_source_packages.append(source_package)
+		self.result.source_packages = filtered_source_packages
 
 	def write_results(self):
 		self.pool.write_json_with_history(

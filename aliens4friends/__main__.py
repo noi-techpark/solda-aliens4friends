@@ -462,6 +462,12 @@ class Aliens4Friends:
 			help = "Add missing input files to the report while harvesting."
 		)
 		self.parsers[cmd].add_argument(
+			"--filter-snapshot",
+			type = str,
+			required = False,
+			help = "keep only tagged releases plus the given snapshot release"
+		)
+		self.parsers[cmd].add_argument(
 			"-b",
 			"--with-binaries",
 			type = str,
@@ -594,7 +600,8 @@ class Aliens4Friends:
 			self.args.with_binaries,
 			self.args.use_oldmatcher,
 			self.args.session,
-			self.args.dryrun
+			self.args.dryrun,
+			self.args.filter_snapshot
 		)
 
 	def comparematch(self) -> bool:
