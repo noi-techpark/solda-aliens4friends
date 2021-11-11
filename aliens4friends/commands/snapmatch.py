@@ -81,11 +81,11 @@ class SnapMatch(Command):
 				logger.warning(
 					f"[{self.alienmatcher.curpkg}] Result file already exists but it is not readable: {ex}"
 				)
+			package.expand()
 			if package.name in EXCLUSIONS:
 				logger.info(f"[{self.alienmatcher.curpkg}] IGNORED: Known non-debian")
 				amm.errors.append("IGNORED: Known non-debian")
 			else:
-				package.expand()
 				amm.aliensrc.internal_archive_name = package.internal_archive_name
 				self.alienmatcher.match(package, amm) # pass amm and results by reference
 			self.pool.write_json(amm, resultpath)
