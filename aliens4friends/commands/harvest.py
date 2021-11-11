@@ -42,7 +42,7 @@ class Harvest(Command):
 			):
 				continue
 
-			files += self.session.package_list_paths(filetype, only_selected=False)
+			files += self.session.package_list_paths(filetype)
 		return files
 
 	def print_results(self, results: Any) -> None:
