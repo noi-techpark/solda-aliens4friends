@@ -56,9 +56,10 @@ class Harvest(Command):
 		with_binaries: List[str],
 		use_oldmatcher: bool = False,
 		session_id: str = "",
-		dryrun: bool = False
+		dryrun: bool = False,
+		filter_snapshot: Optional[str] = None
 	) -> bool:
-		cmd = Harvest(session_id, add_missing, with_binaries, use_oldmatcher, dryrun)
+		cmd = Harvest(session_id, add_missing, with_binaries, use_oldmatcher, dryrun, filter_snapshot)
 		return cmd.exec(cmd.get_filelist())
 
 	def run(self, files: List[str]) -> Optional[HarvestModel]:
