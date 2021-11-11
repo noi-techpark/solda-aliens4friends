@@ -281,7 +281,7 @@ class Harvester:
 
 	def filter_snapshot(self, snapshot_release: str) -> None:
 		filtered_source_packages = []
-		for source_package self.result.source_packages:
+		for source_package in self.result.source_packages:
 			filtered_release_tags = []
 			for release in source_package.tags['release']:
 				if (
