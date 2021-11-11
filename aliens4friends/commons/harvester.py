@@ -114,6 +114,8 @@ class Harvester:
 
 		if self.session:
 			for p in self.session.session_model.package_list:
+				if not p.selected:
+					continue
 				group_id = f"{p.name}-{p.version}"
 				if group_id not in self.package_groups:
 					self.package_groups[group_id] = {
