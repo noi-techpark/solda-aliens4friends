@@ -11,7 +11,7 @@ RUN chmod +x /usr/local/bin/yoctobuilder
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN	apt-get update && \
-	apt-get install -y python3-yaml rsync rpm && \
+	apt-get install -y python3-yaml rsync rpm lzip && \
 	apt-get install -y 'ca-certificates=20210119~20.04.2' && \
 	apt-get autoremove --purge -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
