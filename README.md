@@ -40,39 +40,39 @@ been already included in Debian, it means that it is a well-known component, so
 it is a presumed friend, and we can safely invite it to our party.
 
 - [Aliens for Friends](#aliens-for-friends)
-	- [Requirements and Installation](#requirements-and-installation)
-	- [Workflow](#workflow)
-		- [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
-		- [Step 2: Configure the tool](#step-2-configure-the-tool)
-		- [Step 3: Add the Alien to the pool](#step-3-add-the-alien-to-the-pool)
-		- [Step 4: Find a matching Debian source package](#step-4-find-a-matching-debian-source-package)
-		- [Step 5: Scan the code to detect license/copyright information](#step-5-scan-the-code-to-detect-licensecopyright-information)
-		- [Step 6: Find differences between Alien Packages and the corresponding Debian matching packages](#step-6-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
-		- [Step 7: Create Debian SPDX file from debian/copyright file](#step-7-create-debian-spdx-file-from-debiancopyright-file)
-		- [Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-8-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
-		- [Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-9-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
-		- [Step 10: Generate final SPDX file, after human review](#step-10-generate-final-spdx-file-after-human-review)
-		- [Step 11: Enrich the result with tinfoilhat](#step-11-enrich-the-result-with-tinfoilhat)
-		- [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
-	- [Installation and execution with docker](#installation-and-execution-with-docker)
-	- [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
-		- [Installation of Scancode](#installation-of-scancode)
-			- [Native](#native)
-			- [Wrapper](#wrapper)
-		- [Installation of the spdx-tools](#installation-of-the-spdx-tools)
-		- [Installation of Tinfoilhat](#installation-of-tinfoilhat)
-		- [Installation of Aliensrc Creator](#installation-of-aliensrc-creator)
-		- [Installation of Fossology (as docker container)](#installation-of-fossology-as-docker-container)
-			- [With docker-compose](#with-docker-compose)
-			- [With Docker](#with-docker)
+  - [Requirements and Installation](#requirements-and-installation)
+  - [Workflow](#workflow)
+    - [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
+    - [Step 2: Configure the tool](#step-2-configure-the-tool)
+    - [Step 3: Add the Alien to the pool](#step-3-add-the-alien-to-the-pool)
+    - [Step 4: Find a matching Debian source package](#step-4-find-a-matching-debian-source-package)
+    - [Step 5: Scan the code to detect license/copyright information](#step-5-scan-the-code-to-detect-licensecopyright-information)
+    - [Step 6: Find differences between Alien Packages and the corresponding Debian matching packages](#step-6-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
+    - [Step 7: Create Debian SPDX file from debian/copyright file](#step-7-create-debian-spdx-file-from-debiancopyright-file)
+    - [Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-8-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
+    - [Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-9-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
+    - [Step 10: Generate final SPDX file, after human review](#step-10-generate-final-spdx-file-after-human-review)
+    - [Step 11: Enrich the result with tinfoilhat](#step-11-enrich-the-result-with-tinfoilhat)
+    - [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
+  - [Installation and execution with docker](#installation-and-execution-with-docker)
+  - [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
+    - [Installation of Scancode](#installation-of-scancode)
+      - [Native](#native)
+      - [Wrapper](#wrapper)
+    - [Installation of the spdx-tools](#installation-of-the-spdx-tools)
+    - [Installation of Tinfoilhat](#installation-of-tinfoilhat)
+    - [Installation of Aliensrc Creator](#installation-of-aliensrc-creator)
+    - [Installation of Fossology (as docker container)](#installation-of-fossology-as-docker-container)
+      - [With docker-compose](#with-docker-compose)
+      - [With Docker](#with-docker)
 - [Gitlab CI of a complete pipeline with Yocto and Aliens4Friends](#gitlab-ci-of-a-complete-pipeline-with-yocto-and-aliens4friends)
-	- [Install docker and docker-compose on a Linux machine](#install-docker-and-docker-compose-on-a-linux-machine)
-	- [Install a Gitlub Runner on a Linux machine](#install-a-gitlub-runner-on-a-linux-machine)
-	- [Configure the Gitlab Runner](#configure-the-gitlab-runner)
-	- [Configure a Gitlab container registry](#configure-a-gitlab-container-registry)
-	- [Known limitations](#known-limitations)
-		- [Only use a single branch to trigger the pipeline](#only-use-a-single-branch-to-trigger-the-pipeline)
-		- [Time consuming operations](#time-consuming-operations)
+  - [Install docker and docker-compose on a Linux machine](#install-docker-and-docker-compose-on-a-linux-machine)
+  - [Install a Gitlub Runner on a Linux machine](#install-a-gitlub-runner-on-a-linux-machine)
+  - [Configure the Gitlab Runner](#configure-the-gitlab-runner)
+  - [Configure a Gitlab container registry](#configure-a-gitlab-container-registry)
+  - [Known limitations](#known-limitations)
+    - [Only use a single branch to trigger the pipeline](#only-use-a-single-branch-to-trigger-the-pipeline)
+    - [Time consuming operations](#time-consuming-operations)
 
 ## Requirements and Installation
 
@@ -999,12 +999,10 @@ apt install python3-pip python3-dev libbz2-1.0 xz-utils zlib1g libxml2-dev libxs
 then:
 
 ```bash
-pip3 install --user setuptools wheel click==6.7 bitarray==0.8.1 \
-  pygments==2.4.2 commoncode==20.10.20 \
+pip3 install setuptools wheel click==6.7 bitarray==0.8.1 \
+  pygments==2.4.2 commoncode==20.10.20 pluggy==0.13.1 \
   extractcode==20.10 plugincode==20.9 typecode==20.10.20 \
   scancode-toolkit[full]==3.2.3
-
-. ~/.profile
 
 cd /usr/local/lib/python3.8/dist-packages/scancode
 

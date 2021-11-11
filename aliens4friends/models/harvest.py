@@ -148,7 +148,7 @@ class SourcePackage(BaseModel):
 		source_files: Optional[List[SourceFile]] = None,
 		statistics: Optional[Statistics] = None,
 		binary_packages: Optional[List[BinaryPackage]] = None,
-		tags: Optional[List[str]] = None
+		tags: Optional[ Dict[str, Union[List[str], Set[str]]] ] = None
 	):
 		self.id = id
 		self.name = name
