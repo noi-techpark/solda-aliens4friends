@@ -136,8 +136,9 @@ class UploadAliens2Fossy:
 		):
 			fossy_subfolder, _ = os.path.splitext(archive_name)
 			archive_unpack_path = os.path.join(archive_name, fossy_subfolder)
-		elif archive_name.endswith(".tar.xz") or archive_name.endswith(".zip"):
+		elif archive_name.endswith(".tar.xz") or archive_name.endswith(".zip") or archive_name.endswith(".tar.lz"):
 			# FIXME: actually, we don't have .zip support in Archive class
+			# FIXME: fossology doesn't have lzip support, upload apparently works but the archive is not unpacked by fossology: fix upstream?
 			archive_unpack_path = archive_name
 		rootfolder = self.alien_package.internal_archive_rootfolder
 		if rootfolder and rootfolder != "." and rootfolder != "./":
