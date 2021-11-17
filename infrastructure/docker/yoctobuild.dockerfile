@@ -15,6 +15,8 @@ RUN	apt-get update && \
 	apt-get install -y 'ca-certificates=20210119~20.04.2' && \
 	apt-get autoremove --purge -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
+
 ARG GIT_REF=HEAD
 RUN wget -qO /usr/local/bin/aliensrc_creator https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat/-/raw/${GIT_REF}/aliensrc_creator.py && \
     wget -qO /usr/local/bin/tinfoilhat https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat/-/raw/${GIT_REF}/tinfoilhat.py && \
