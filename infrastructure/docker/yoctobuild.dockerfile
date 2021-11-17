@@ -1,4 +1,4 @@
-FROM registry.ostc-eu.org/ostc/containers/ostc-builder:@sha256:31e82698fc596f2986a3b9442fc0190563ef6ed65b0007a5b315b5c33c98f06e
+FROM registry.ostc-eu.org/ostc/containers/ostc-builder@sha256:31e82698fc596f2986a3b9442fc0190563ef6ed65b0007a5b315b5c33c98f06e
 
 # Information: https://git.ostc-eu.org/OSTC/containers/-/tree/main/ostc-builder
 # Run docker inspect to get org.opencontainers.image.documentation:
