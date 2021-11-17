@@ -1,4 +1,4 @@
-FROM registry.ostc-eu.org/ostc/containers/ostc-builder:latest
+FROM registry.ostc-eu.org/ostc/containers/ostc-builder:@sha256:31e82698fc596f2986a3b9442fc0190563ef6ed65b0007a5b315b5c33c98f06e
 
 # Information: https://git.ostc-eu.org/OSTC/containers/-/tree/main/ostc-builder
 # Run docker inspect to get org.opencontainers.image.documentation:
@@ -14,8 +14,6 @@ RUN	apt-get update && \
 	apt-get install -y python3-yaml rsync rpm lzip && \
 	apt-get install -y 'ca-certificates=20210119~20.04.2' && \
 	apt-get autoremove --purge -y && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
 
 ARG GIT_REF=HEAD
 RUN wget -qO /usr/local/bin/aliensrc_creator https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat/-/raw/${GIT_REF}/aliensrc_creator.py && \
