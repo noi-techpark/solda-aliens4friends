@@ -9,6 +9,9 @@ USER root
 COPY --chown=ostc-builder:ostc-builder infrastructure/utils/yoctobuilder.py /usr/local/bin/yoctobuilder
 RUN chmod +x /usr/local/bin/yoctobuilder
 
+COPY --chown=ostc-builder:ostc-builder infrastructure/utils/yoctobuilder-cleanup.sh /usr/local/bin/yoctobuilder-cleanup
+RUN chmod +x /usr/local/bin/yoctobuilder-cleanup
+
 ARG DEBIAN_FRONTEND=noninteractive
 RUN	apt-get update && \
 	apt-get install -y python3-yaml rsync rpm lzip git-lfs && \
