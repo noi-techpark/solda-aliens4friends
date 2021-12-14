@@ -16,7 +16,7 @@ include:
 .pythonreq:
   stage: test
   only: [ branches, tags, merge_requests ]  # Add this, because merge requests are not triggered by default
-  tags: [ soldademo, docker ]
+  tags: [ soldaprod, docker ]
   image: python:3.8
   script:
     - pip install python-dotenv pytype setuptools wheel
