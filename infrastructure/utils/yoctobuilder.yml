@@ -1,6 +1,5 @@
-  version: 1.1
-  flavour_dir: oniro/flavours
-  oe_init_build_env_dir: oe-core    
+  version: 2.0-alpha
+  oe_init_build_env_dir: oe-core
   common_configs:
     - SSTATE_DIR = "/build/common/sstate-cache"
     - DL_DIR = "/build/common/downloads"
@@ -9,40 +8,43 @@
     - SOURCE_MIRROR_URL = "file:///ostc/common/bitbake/downloads"
     - INHERIT += "cve-check"
     - INHERIT += "rm_work"
-  flavours:
-    linux:
-      machines:
-        - qemux86-64
-        - qemux86
-        - seco-intel-b68
-        - stm32mp1-av96
-        - seco-imx8mm-c61
-        - raspberrypi4-64
-      images:
+  build_matrix:
+    - TEMPLATECONF: ../meta-openharmony/conf
+      image: ipcamera
+      env:
+        DISTRO:
+          - openharmony-v1
+          - openharmony-v3
+        MACHINE: hispark-aries
+    - TEMPLATECONF: ../oniro/flavours/linux
+      image:
         - oniro-image-base
         - oniro-image-base-dev
         - oniro-image-base-tests
         - oniro-image-extra
         - oniro-image-extra-dev
         - oniro-image-extra-tests
-      configs:
-        seco-intel-b68:
-          - CONFIG_SERIAL_OF_PLATFORM = "y"
-        seco-imx8mm-c61:
-          - ACCEPT_FSL_EULA = "1"
-    zephyr:
-      machines:
-        - qemu-x86
-        - qemu-cortex-m3
-        - 96b-nitrogen
-        - 96b-avenger96
-        - nrf52840dk-nrf52840
-        - arduino-nano-33-ble
-      images:
-        - zephyr-philosophers
-    freertos:
-      machines:
-        - qemuarmv5
-      images:
-        - freertos-demo
-
+      env:
+        MACHINE:
+          - qemux86-64
+          - qemux86
+          - stm32mp1-av96
+          - raspberrypi4-64
+    - TEMPLATECONF: ../oniro/flavours/linux
+      image:
+        - oniro-image-base
+        - oniro-image-base-tests
+        - oniro-image-extra
+        - oniro-image-extra-tests
+      env:
+          MACHINE: seco-intel-b68
+          CONFIG_SERIAL_OF_PLATFORM: y
+    - TEMPLATECONF: ../oniro/flavours/linux
+      image:
+        - oniro-image-base
+        - oniro-image-base-tests
+        - oniro-image-extra
+        - oniro-image-extra-tests
+      env:
+        MACHINE: seco-imx8mm-c61
+        ACCEPT_FSL_EULA: "1"
