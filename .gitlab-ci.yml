@@ -41,7 +41,7 @@ reuse:
   only: [ branches, tags, merge_requests ]
 
 .dockerize:
-  tags: [ soldademo, docker, minimal ]
+  tags: [ soldaprod, docker, minimal ]
   stage: dockerize
   image: docker:20.10
 
