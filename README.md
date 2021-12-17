@@ -40,39 +40,39 @@ been already included in Debian, it means that it is a well-known component, so
 it is a presumed friend, and we can safely invite it to our party.
 
 - [Aliens for Friends](#aliens-for-friends)
-  - [Requirements and Installation](#requirements-and-installation)
-  - [Workflow](#workflow)
-    - [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
-    - [Step 2: Configure the tool](#step-2-configure-the-tool)
-    - [Step 3: Add the Alien to the pool](#step-3-add-the-alien-to-the-pool)
-    - [Step 4: Find a matching Debian source package](#step-4-find-a-matching-debian-source-package)
-    - [Step 5: Scan the code to detect license/copyright information](#step-5-scan-the-code-to-detect-licensecopyright-information)
-    - [Step 6: Find differences between Alien Packages and the corresponding Debian matching packages](#step-6-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
-    - [Step 7: Create Debian SPDX file from debian/copyright file](#step-7-create-debian-spdx-file-from-debiancopyright-file)
-    - [Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-8-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
-    - [Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-9-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
-    - [Step 10: Generate final SPDX file, after human review](#step-10-generate-final-spdx-file-after-human-review)
-    - [Step 11: Enrich the result with tinfoilhat](#step-11-enrich-the-result-with-tinfoilhat)
-    - [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
-  - [Installation and execution with docker](#installation-and-execution-with-docker)
-  - [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
-    - [Installation of Scancode](#installation-of-scancode)
-      - [Native](#native)
-      - [Wrapper](#wrapper)
-    - [Installation of the spdx-tools](#installation-of-the-spdx-tools)
-    - [Installation of Tinfoilhat](#installation-of-tinfoilhat)
-    - [Installation of Aliensrc Creator](#installation-of-aliensrc-creator)
-    - [Installation of Fossology (as docker container)](#installation-of-fossology-as-docker-container)
-      - [With docker-compose](#with-docker-compose)
-      - [With Docker](#with-docker)
+	- [Requirements and Installation](#requirements-and-installation)
+	- [Workflow](#workflow)
+		- [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
+		- [Step 2: Configure the tool](#step-2-configure-the-tool)
+		- [Step 3: Add the Alien to the pool](#step-3-add-the-alien-to-the-pool)
+		- [Step 4: Find a matching Debian source package](#step-4-find-a-matching-debian-source-package)
+		- [Step 5: Scan the code to detect license/copyright information](#step-5-scan-the-code-to-detect-licensecopyright-information)
+		- [Step 6: Find differences between Alien Packages and the corresponding Debian matching packages](#step-6-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
+		- [Step 7: Create Debian SPDX file from debian/copyright file](#step-7-create-debian-spdx-file-from-debiancopyright-file)
+		- [Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-8-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
+		- [Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-9-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
+		- [Step 10: Generate final SPDX file, after human review](#step-10-generate-final-spdx-file-after-human-review)
+		- [Step 11: Enrich the result with tinfoilhat](#step-11-enrich-the-result-with-tinfoilhat)
+		- [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
+	- [Installation and execution with docker](#installation-and-execution-with-docker)
+	- [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
+		- [Installation of Scancode](#installation-of-scancode)
+			- [Native](#native)
+			- [Wrapper](#wrapper)
+		- [Installation of the spdx-tools](#installation-of-the-spdx-tools)
+		- [Installation of Tinfoilhat](#installation-of-tinfoilhat)
+		- [Installation of Aliensrc Creator](#installation-of-aliensrc-creator)
+		- [Installation of Fossology (as docker container)](#installation-of-fossology-as-docker-container)
+			- [With docker-compose](#with-docker-compose)
+			- [With Docker](#with-docker)
 - [Gitlab CI of a complete pipeline with Yocto and Aliens4Friends](#gitlab-ci-of-a-complete-pipeline-with-yocto-and-aliens4friends)
-  - [Install docker and docker-compose on a Linux machine](#install-docker-and-docker-compose-on-a-linux-machine)
-  - [Install a Gitlub Runner on a Linux machine](#install-a-gitlub-runner-on-a-linux-machine)
-  - [Configure the Gitlab Runner](#configure-the-gitlab-runner)
-  - [Configure a Gitlab container registry](#configure-a-gitlab-container-registry)
-  - [Known limitations](#known-limitations)
-    - [Only use a single branch to trigger the pipeline](#only-use-a-single-branch-to-trigger-the-pipeline)
-    - [Time consuming operations](#time-consuming-operations)
+	- [Install docker and docker-compose on a Linux machine](#install-docker-and-docker-compose-on-a-linux-machine)
+	- [Install a Gitlub Runner on a Linux machine](#install-a-gitlub-runner-on-a-linux-machine)
+	- [Configure the Gitlab Runner](#configure-the-gitlab-runner)
+	- [Configure a Gitlab container registry](#configure-a-gitlab-container-registry)
+	- [Known limitations](#known-limitations)
+		- [Only use a single branch to trigger the pipeline](#only-use-a-single-branch-to-trigger-the-pipeline)
+		- [Time consuming operations](#time-consuming-operations)
 
 ## Requirements and Installation
 
@@ -152,44 +152,79 @@ metadata information of this alien package.
         "manager": "bitbake",       # the build system from where we extracted this source package
         "metadata": {               # any metadata (tipically, metadata extracted from the build system).
                                     # This structure is not defined, nor mandatory
-                       "name": "zlib",
-                       "base_name": "zlib",
-                       "version": "1.2.11",
-                       "revision": "r0",
-                       "package_arch": "armv7vet2hf-neon",
-                       "author": null,
-                       "homepage": "http://zlib.net/",
-                       "summary": "Zlib Compression Library",
-                       "description": "Zlib is a general-purpose, patent-free, lossless data compression library which is used by many different programs.",
-                       "license": "Zlib",
-                       "depends": "virtual/arm-poky-linux-musleabi-gcc virtual/arm-poky-linux-musleabi-compilerlibs virtual/libc ",
-                       "provides": "zlib ",
-                       "cve_product": null
+            "name": "zlib",
+            "base_name": "zlib",
+            "version": "1.2.11",
+            "revision": "r0",
+            "variant": "1eea2d14",
+            "author": null,
+            "homepage": "http://zlib.net/",
+            "summary": "Zlib Compression Library",
+            "description": "Zlib is a general-purpose, patent-free, lossless data compression library which is used by many different programs.",
+            "license": "Zlib"
         },
         "files": [                  # files, that are included in the "files" folder inside the alien package
             {
+                # the file name
                 "name": "zlib-1.2.11.tar.xz",
-                                    # the file name
-                "sha1": "e1cb0d5c92da8e9a8c2635dfa249c341dfd00322",
-                                    # file checksum (only sha1 is supported)
+
+                # This is the commit SHA, if the src_uri has a "git://" scheme
+                "git_sha1": null,
+
+                # file checksum (only sha1 is supported)
+                "sha1_cksum": "e1cb0d5c92da8e9a8c2635dfa249c341dfd00322",
+
+                # the provenance, that is, the place where the upstream package came from
                 "src_uri": "https://downloads.sourceforge.net/libpng/zlib/1.2.11/zlib-1.2.11.tar.xz",
-                                    # the provenance, that is, the place where the upstream package came from
-                "files_in_archive": 253
-                                    # The file count inside the tarball archive
+
+                # The file count inside the tarball archive
+                "files_in_archive": 253,
+
+                # This array contains file paths of this file inside the .aliensrc tar archive
+                # Example for a configuration file, can also be "tagged" for various
+                # project/version/flavors/machine/image hierarchies.
+				# An empty array means, that this file does not have duplicates with different
+				# content, but the same file name.
+                "paths": []
             },
             {
                 "name": "ldflags-tests.patch",
-                "sha1": "f370a10d1a454cdcd07a8d164fe0d65b32b6d2a9",
+                "git_sha1": null,
+                "sha1_cksum": "f370a10d1a454cdcd07a8d164fe0d65b32b6d2a9",
+
+                # the provenance: in this case "unknown", since the file was just added from a filesystem
                 "src_uri": "file://ldflags-tests.patch",
-                                    # the provenance: in this case "unknown",
-                                    # since the file was just added from a filesystem
-                "files_in_archive": false
-                                    # false, if no archive, 0 if the archive is empty
+
+                # false, if no archive, 0 if the archive is empty
+                "files_in_archive": false,
+
+                "paths": []
             }
+        ],
+
+        # Tags to be shown on our Dashboard, used for filtering of packages
+        # The hierarchy is as follows (defined in the yoctobuild matrix):
+        # - project
+        # - version: branch-name, last-tag on that branch, count of commits until the final
+        #   commit with hash g507268c (see "git" for further information on this)
+        # - flavour: linux, zephyr, etc.
+        # - machine
+        # - image
+        "tags": [
+            "oniro/v1.0.0-rc-17-g507268c/oniro-linux/qemux86-64/oniro-image-base",
+            "oniro/v1.0.0-rc-17-g507268c/oniro-linux/qemux86-64/oniro-image-base-dev",
+            "oniro/v1.0.0-rc-17-g507268c/oniro-linux/raspberrypi4-64/oniro-image-base",
+            "oniro/v1.0.0-rc-17-g507268c/oniro-linux/raspberrypi4-64/oniro-image-base-dev",
+            "oniro/v1.0.0-rc-17-g507268c/oniro-linux/raspberrypi4-64/oniro-image-base-tests",
+            "...."
         ]
     }
 }
 ```
+
+To get more information about the **yoctobuild matrix** go to the [OSS
+Compliance Pipeline
+repository](https://git.ostc-eu.org/oss-compliance/pipelines).
 
 </details></p>
 
@@ -1181,7 +1216,7 @@ Where `/build/gitlab-runner` is your hosts build directory, where
 access the docker daemon on the host. We need also to set `privileged = true`
 to make it work.
 
-The log output can be really long, so to see everything we need also to 
+The log output can be really long, so to see everything we need also to
 increase the `output_limit = 102400` inside `[[runners]]`.
 
 ## Configure a Gitlab container registry
