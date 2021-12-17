@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from .base import BaseModel
+from .tinfoilhat import RecipeCveMetaData
 from .common import License, Tool, SourceFile
 from typing import Any, Dict, List, Optional, Set, Union
 
@@ -146,6 +147,7 @@ class SourcePackage(BaseModel):
 		debian_matching: Optional[DebianMatchBasic] = None,
 		session_state: Optional[SessionState] = None,
 		source_files: Optional[List[SourceFile]] = None,
+		cve_metadata: RecipeCveMetaData = None,
 		statistics: Optional[Statistics] = None,
 		binary_packages: Optional[List[BinaryPackage]] = None,
 		tags: Optional[ Dict[str, Union[List[str], Set[str]]] ] = None
