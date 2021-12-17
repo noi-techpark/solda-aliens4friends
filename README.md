@@ -74,6 +74,7 @@ it is a presumed friend, and we can safely invite it to our party.
 	- [Known limitations](#known-limitations)
 		- [Only use a single branch to trigger the pipeline](#only-use-a-single-branch-to-trigger-the-pipeline)
 		- [Time consuming operations](#time-consuming-operations)
+	- [References](#references)
 
 ## Requirements and Installation
 
@@ -113,13 +114,14 @@ shows you how to install those extra tools.
 Let's start with an example. Assume we have a source code package called `zlib`
 in version `1.2.11-r0`, and want to collect license and copyright information.
 
+An implementation and further details can be found in our [OSS Compliance Pipeline]
+repository.
+
 ### Step 1: Create an Alien Package
 
 First thing to do is to create a so-called "Alien Package". If you use bitbake
 as a building system, you can use the scripts contained in the [TinfoilHat]
 project.
-
-[TinfoilHat]: https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat
 
 Let's assume that our alien package is named `zlib-1.2.11-r0.aliensrc`. The
 file-extension `.aliensrc` is mandatory, the name is arbitrary. An alien package
@@ -224,8 +226,7 @@ metadata information of this alien package.
 ```
 
 To get more information about the **yoctobuild matrix** go to the [OSS
-Compliance Pipeline
-repository](https://git.ostc-eu.org/oss-compliance/pipelines).
+Compliance Pipeline repository].
 
 </details></p>
 
@@ -309,10 +310,23 @@ optional arguments:
 ```
 </details></p>
 
-Execute:
+A session has a unique ID, and can be empty at first. We can get a random
+session ID, or provide our own. In this example, our own session ID is called
+`MYSESSION`.
 ```sh
+aliens4friends session -ns MYSESSION
 ```
 
+If you like to use some packages from the pool previously added, you can also
+create a session from existing Aliensrc packages like this:
+```sh
+aliens4friends session -cs MYSESSION 'ac*' '*'
+```
+
+...or create a session with the whole pool:
+```sh
+aliens4friends session -cs MYSESSION '*' '*'
+```
 
 ### Step 4: Add the Alien to the pool
 
@@ -661,7 +675,7 @@ optional arguments:
 ### Step 8: Create Debian SPDX file from debian/copyright file
 
 - INPUT: debian source files downloaded by
-  [alienmatcher](#step-4-find-a-matching-debian-source-package)
+  [alienmatcher](#step-5-find-a-matching-debian-source-package)
 - OUTPUT: `.debian.spdx` and `_debian_copyright` file in the `debian` pool path
   of the debian package
 
@@ -1282,3 +1296,13 @@ These pipelines are not meant to run very often, because at the moment with all
 flavours, images, and machine combinations to complete a full pipeline it will
 take several hours. Hereby, the yoctobuild, Scancode and Fossology upload part
 take the most time.
+
+## References
+
+<!-- Add all references here, so they can be used throughout this document without the URL -->
+[TinfoilHat]: https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat
+[OSS Compliance Pipeline]: https://git.ostc-eu.org/oss-compliance/pipelines
+
+- [TinfoilHat]
+- [OSS Compliance Pipeline]
+
