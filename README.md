@@ -332,7 +332,7 @@ aliens4friends session -cs MYSESSION '*' '*'
 
 Execute:
 ```sh
-aliens4friends add zlib-1.2.11-r0.aliensrc
+aliens4friends add -s MYSESSION zlib-1.2.11-r0.aliensrc zlib-1.2.11-r0.tinfoilhat.json
 ```
 
 This will add the package to our pool (party). All data that comes from the user
@@ -344,16 +344,20 @@ Intermediate results also land in this directory.
 <summary><b>See "aliens4friends add --help" output for details.</b></summary>
 
 ```
-usage: aliens4friends add [-h] [-i] [-v | -q] [FILES [FILES ...]]
+usage: aliens4friends add [-h] [-f] [-i] [-v | -q] [--dryrun] -s SESSION [FILES [FILES ...]]
 
 positional arguments:
-  FILES               The Alien Packages (also wildcards allowed)
+  FILES                 The Alien Packages (also wildcards allowed)
 
 optional arguments:
-  -h, --help          show this help message and exit
-  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
-  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
-  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  -h, --help            show this help message and exit
+  -f, --force           Force AlienSrc package overwrite.
+  -i, --ignore-cache    Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose         Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet           Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  --dryrun              Log operations to be done without doing anything
+  -s SESSION, --session SESSION
+                        Use a session to create a list of packages, otherwise all packages inside the pool are used
 ```
 
 </details></p>
