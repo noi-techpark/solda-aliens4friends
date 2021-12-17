@@ -148,7 +148,8 @@ class SourcePackage(BaseModel):
 		source_files: Optional[List[SourceFile]] = None,
 		statistics: Optional[Statistics] = None,
 		binary_packages: Optional[List[BinaryPackage]] = None,
-		tags: Optional[ Dict[str, Union[List[str], Set[str]]] ] = None
+		tags: Optional[ Dict[str, Union[List[str], Set[str]]] ] = None,
+		layer: Optional[str] = None
 	):
 		self.id = id
 		self.name = name
@@ -161,6 +162,7 @@ class SourcePackage(BaseModel):
 		self.source_files = SourceFile.drilldown(source_files)
 		self.binary_packages = BinaryPackage.drilldown(binary_packages)
 		self.tags = aggregate_tags(tags)
+		self.layer = layer
 
 class HarvestModel(BaseModel):
 

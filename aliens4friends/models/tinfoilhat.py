@@ -286,11 +286,13 @@ class Recipe(BaseModel):
 		metadata: Optional[RecipeMetaData] = None,
 		cve_metadata: Optional[RecipeCveMetaData] = None,
 		source_files: Optional[List[SourceFile]] = None,
+		layer: str: Optional[str] = None,
 		chk_sum: Optional[str] = None
 	) -> None:
 		self.metadata = RecipeMetaData.decode(metadata)
 		self.cve_metadata = RecipeCveMetaData.decode(cve_metadata)
 		self.source_files = SourceFile.drilldown(source_files)
+		self.layer = layer
 		self.chk_sum = chk_sum
 
 

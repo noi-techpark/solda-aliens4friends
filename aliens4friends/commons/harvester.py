@@ -5,6 +5,7 @@ import json
 import logging
 import sys
 import re
+import os
 from typing import Any, Dict, List, Optional, Union
 
 from aliens4friends.commons.package import AlienPackage
@@ -431,3 +432,12 @@ class Harvester:
 			source_package.tags = aggregate_tags(container.tags)
 			source_package.binary_packages = self._parse_tinfoilhat_packages(container.packages)
 			source_package.metadata = container.recipe.metadata
+			source_package.layer = (
+				os.path.basename(container.recipe.layer) 
+				if container.recipe.layer
+				else None
+			)
+			if source_package.layer:
+				source_package.package_id += f"@{source_package.layer}"
+				# FIXME temporary quick&dirty solution to add layer info in the 
+				# dashboard
