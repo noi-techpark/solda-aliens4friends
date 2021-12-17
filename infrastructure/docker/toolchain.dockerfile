@@ -49,6 +49,7 @@ COPY bin/* /code/bin/
 COPY aliens4friends /code/aliens4friends/
 RUN cd /code && \
 	pip3 install python-dotenv && \
+	pip3 install anybadge && \
 	pip3 install . && \
 	python -c "from flanker.addresslib import address" >/dev/null 2>&1
 
