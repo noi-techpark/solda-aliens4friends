@@ -44,16 +44,17 @@ it is a presumed friend, and we can safely invite it to our party.
 	- [Workflow](#workflow)
 		- [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
 		- [Step 2: Configure the tool](#step-2-configure-the-tool)
-		- [Step 3: Add the Alien to the pool](#step-3-add-the-alien-to-the-pool)
-		- [Step 4: Find a matching Debian source package](#step-4-find-a-matching-debian-source-package)
-		- [Step 5: Scan the code to detect license/copyright information](#step-5-scan-the-code-to-detect-licensecopyright-information)
-		- [Step 6: Find differences between Alien Packages and the corresponding Debian matching packages](#step-6-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
-		- [Step 7: Create Debian SPDX file from debian/copyright file](#step-7-create-debian-spdx-file-from-debiancopyright-file)
-		- [Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-8-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
-		- [Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-9-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
-		- [Step 10: Generate final SPDX file, after human review](#step-10-generate-final-spdx-file-after-human-review)
-		- [Step 11: Enrich the result with tinfoilhat](#step-11-enrich-the-result-with-tinfoilhat)
-		- [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
+		- [Step 3: Create a session](#step-3-create-a-session)
+		- [Step 4: Add the Alien to the pool](#step-4-add-the-alien-to-the-pool)
+		- [Step 5: Find a matching Debian source package](#step-5-find-a-matching-debian-source-package)
+		- [Step 6: Scan the code to detect license/copyright information](#step-6-scan-the-code-to-detect-licensecopyright-information)
+		- [Step 7: Find differences between Alien Packages and the corresponding Debian matching packages](#step-7-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
+		- [Step 8: Create Debian SPDX file from debian/copyright file](#step-8-create-debian-spdx-file-from-debiancopyright-file)
+		- [Step 9: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-9-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
+		- [Step 10: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-10-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
+		- [Step 11: Generate final SPDX file, after human review](#step-11-generate-final-spdx-file-after-human-review)
+		- [Step 12: Enrich the result with tinfoilhat](#step-12-enrich-the-result-with-tinfoilhat)
+		- [Step 13: Harvest all results and create a final report](#step-13-harvest-all-results-and-create-a-final-report)
 	- [Installation and execution with docker](#installation-and-execution-with-docker)
 	- [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
 		- [Installation of Scancode](#installation-of-scancode)
@@ -253,6 +254,10 @@ did not exist before. You can now open that file and change it as you like.
 <summary><b>See "aliens4friends config --help" output for details.</b></summary>
 
 ```
+usage: aliens4friends config [-h]
+
+Create a .env file in the folder, where you execute the command.
+
 Environmental variables:
   - A4F_POOL        : Path to the cache pool
   - A4F_CACHE       : True/False, if cache should be used or overwritten (default = True)
@@ -262,16 +267,54 @@ Environmental variables:
   - A4F_PRINTRESULT : Print results also to stdout
   - SPDX_TOOLS_CMD  : command to invoke java spdx tools (default =
                       'java -jar /usr/local/lib/spdx-tools-2.2.5-jar-with-dependencies.jar')
+  - SPDX_DISCLAIMER : legal disclaimer to add into generated SPDX files (optional)
+  - PACKAGE_ID_EXT  : extension to append to package IDs in harvest.json file (optional, arbitrary)
   - FOSSY_USER,
     FOSSY_PASSWORD,
     FOSSY_GROUP_ID,
     FOSSY_SERVER    : parameters to access fossology server
                       (defaults: 'fossy', 'fossy', 3, 'http://localhost/repo').
+
+optional arguments:
+  -h, --help  show this help message and exit
 ```
 
 </details></p>
 
-### Step 3: Add the Alien to the pool
+### Step 3: Create a session
+
+A session is used to have a list of packages that we want to process. This list
+can then be manipulated. Packages can be filtered, selected or status/statistics
+about them can be stored inside the session cache. A session can later be loaded
+to continue a work, previously put down.
+
+<p><details>
+<summary><b>See "aliens4friends session --help" output for details.</b></summary>
+
+```
+usage: aliens4friends session [-h] [-f FILTER | -c | -n] [-s SESSION] [glob_name] [glob_version]
+
+positional arguments:
+  glob_name             Wildcard pattern to filter by package names. Do not forget to quote it!
+  glob_version          Wildcard pattern to filter by package versions. Do not forget to quote it!
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f FILTER, --filter FILTER
+                        Filter the package list inside the given session (use -s SESSION for that)
+  -c, --create          Create and fill a session from a given ID or random string (if absent)
+  -n, --new             Create a new empty session from a given ID or random string (if absent)
+  -s SESSION, --session SESSION
+                        Use a session to create a list of packages, otherwise all packages inside the pool are used
+```
+</details></p>
+
+Execute:
+```sh
+```
+
+
+### Step 4: Add the Alien to the pool
 
 Execute:
 ```sh
@@ -301,7 +344,7 @@ optional arguments:
 
 </details></p>
 
-### Step 4: Find a matching Debian source package
+### Step 5: Find a matching Debian source package
 
 - INPUT: `.aliensrc` files inside the pool
 - OUTPUT: `.alienmatcher.json` file inside the `userland` pool path regarding
@@ -434,7 +477,7 @@ optional arguments:
 
 </details></p>
 
-### Step 5: Scan the code to detect license/copyright information
+### Step 6: Scan the code to detect license/copyright information
 
 - INPUT: `.aliensrc` files inside the pool, and if possible `.alienmatcher.json`
   results.
@@ -491,7 +534,7 @@ optional arguments:
 
 </details></p>
 
-### Step 6: Find differences between Alien Packages and the corresponding Debian matching packages
+### Step 7: Find differences between Alien Packages and the corresponding Debian matching packages
 
 By "differences", we mean the differences in terms of
 licensing/copyright/intellectual property, so we just care if license and
@@ -615,7 +658,7 @@ optional arguments:
 
 </details></p>
 
-### Step 7: Create Debian SPDX file from debian/copyright file
+### Step 8: Create Debian SPDX file from debian/copyright file
 
 - INPUT: debian source files downloaded by
   [alienmatcher](#step-4-find-a-matching-debian-source-package)
@@ -667,7 +710,7 @@ optional arguments:
 
 </details></p>
 
-### Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)
+### Step 9: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)
 
 - INPUT: `.scancode.spdx` and `.deltacode.spdx` files in the `userland` pool
   path of the alien package, and `.debian.spdx` file in the `debian` pool path
@@ -740,7 +783,7 @@ optional arguments:
 
 </details></p>
 
-### Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology
+### Step 10: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology
 
 - INPUT: `.aliensrc` and (if available) `.alien.spdx` files in the `userland`
   pool path of the package
@@ -857,7 +900,7 @@ optional arguments:
 
 </details></p>
 
-### Step 10: Generate final SPDX file, after human review
+### Step 11: Generate final SPDX file, after human review
 
 - INPUT: `.aliensrc` file, and `.alien.spdx` file (if available)
 - OUTPUT:
@@ -905,7 +948,7 @@ optional arguments:
 
 </details></p>
 
-### Step 11: Enrich the result with tinfoilhat
+### Step 12: Enrich the result with tinfoilhat
 
 - INPUT: `.tinfoilhat.json` file, generated through [TinfoilHat]
 
@@ -924,7 +967,7 @@ Execute:
 aliens4friends add zlib-1.2.11-r0.tinfoilhat.json
 ```
 
-### Step 12: Harvest all results and create a final report
+### Step 13: Harvest all results and create a final report
 
 - INPUT: `.deltacode.json`, `.scancode.json`, `.fossy.json` and `.alienmatcher.json` files
 - OUTPUT: `POOL/stats/<some-dated-name>.json` as report for the graphical Dashboard
