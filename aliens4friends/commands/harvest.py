@@ -24,6 +24,7 @@ class Harvest(Command):
 		dryrun: bool,
 		filter_snapshot: Optional[str] = None,
 		output_file: Optional[str] = None,
+		report_name: Optional[str] = None
 	) -> None:
 		super().__init__(session_id, Processing.SINGLE, dryrun)
 		self.use_oldmatcher = use_oldmatcher
@@ -35,7 +36,7 @@ class Harvest(Command):
 			self.output = output_file
 		else:
 			result_path = self.pool.relpath(Settings.PATH_STT)
-			result_file = 'report.harvest.json'
+			result_file = report_name or 'report.harvest.json'
 			self.pool.mkdir(result_path)
 			self.output = os.path.join(result_path, result_file)
 		self.filter_snapshot = filter_snapshot

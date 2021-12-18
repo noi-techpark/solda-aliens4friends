@@ -485,7 +485,12 @@ class Aliens4Friends:
 		)
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
-
+		self.parsers[cmd].add_argument(
+			"--report-name",
+			type = str,
+			required = False,
+			help = "custom name (with .json extension) to use when saving report in pool (default name is report.harvest.json)"
+		)
 	def parser_comparematch(self, cmd:str) -> None:
 		self.parsers[cmd] = self.subparsers.add_parser(
 			cmd,
@@ -609,7 +614,8 @@ class Aliens4Friends:
 			self.args.session,
 			self.args.dryrun,
 			self.args.filter_snapshot,
-			self.args.output
+			self.args.output,
+			self.args.report_name
 		)
 
 	def comparematch(self) -> bool:
