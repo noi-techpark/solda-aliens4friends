@@ -431,3 +431,4 @@ class Harvester:
 			source_package.tags = aggregate_tags(container.tags)
 			source_package.binary_packages = self._parse_tinfoilhat_packages(container.packages)
 			source_package.metadata = container.recipe.metadata
+			source_package.cve_metadata = container.recipe.cve_metadata
