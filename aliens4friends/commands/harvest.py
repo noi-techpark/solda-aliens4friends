@@ -68,7 +68,16 @@ class Harvest(Command):
 		output_file: Optional[str] = "",
 		report_name: Optional[str] = None
 	) -> bool:
-		cmd = Harvest(session_id, add_missing, with_binaries, use_oldmatcher, dryrun, filter_snapshot, output_file)
+		cmd = Harvest(
+			session_id,
+			add_missing,
+			with_binaries,
+			use_oldmatcher,
+			dryrun,
+			filter_snapshot,
+			output_file,
+			report_name
+		)
 		return cmd.exec(cmd.get_filelist())
 
 	def run(self, files: List[str]) -> Optional[HarvestModel]:
