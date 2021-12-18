@@ -65,7 +65,8 @@ class Harvest(Command):
 		session_id: str = "",
 		dryrun: bool = False,
 		filter_snapshot: Optional[str] = None,
-		output_file: Optional[str] = ""
+		output_file: Optional[str] = "",
+		report_name: Optional[str] = None
 	) -> bool:
 		cmd = Harvest(session_id, add_missing, with_binaries, use_oldmatcher, dryrun, filter_snapshot, output_file)
 		return cmd.exec(cmd.get_filelist())
