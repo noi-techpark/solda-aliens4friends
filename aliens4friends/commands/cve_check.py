@@ -39,7 +39,7 @@ class CveCheck:
 			'vendor': vendor,
 			'version': version,
 			'from': startfrom,
-			'harvest': harvest_path if harvest_fname else None
+			'harvest': harvest_path if harvest_fname else None,
 			'tmpdir': pool.abspath(Settings.PATH_TMP)
 		}
 		cve_checker = CveChecker(config)
