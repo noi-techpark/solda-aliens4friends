@@ -223,9 +223,7 @@ class CveChecker:
 
 	def writeResult(self) -> None:
 		del self.candidates[self.slug]
-		with open('results/result.'+ self.appname +'.json', 'w') as outfile:
-			outfile.write(json.dumps(self.candidates, indent=4, sort_keys=True))
-			outfile.close
+		# FIXME write results (self.candidates) in pool
 
 	def updateCveFeeds(self) -> bool:
 		logger.debug(f'{self.slug} getting fresh cve feeds from: {self.NIST_JSON_FEEDS}')
