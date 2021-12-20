@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from .base import BaseModel
-from .tinfoilhat import RecipeCveMetaData
+from .tinfoilhat import RecipeCveMetaData, RecipeMetaData
 from .common import License, Tool, SourceFile
 from typing import Any, Dict, List, Optional, Set, Union
 
@@ -79,10 +79,12 @@ class Statistics(BaseModel):
 	def __init__(
 		self,
 		files: Optional[StatisticsFiles] = None,
-		licenses: Optional[StatisticsLicenses] = None
+		licenses: Optional[StatisticsLicenses] = None,
+		aggregate: Optional[bool] = None
 	) -> None:
 		self.files = StatisticsFiles.decode(files)
 		self.licenses = StatisticsLicenses.decode(licenses)
+		self.aggregate = aggregate
 
 
 class BinaryPackage(BaseModel):
@@ -147,6 +149,7 @@ class SourcePackage(BaseModel):
 		debian_matching: Optional[DebianMatchBasic] = None,
 		session_state: Optional[SessionState] = None,
 		source_files: Optional[List[SourceFile]] = None,
+		metadata: Optional[RecipeMetaData] = None,
 		cve_metadata: Optional[RecipeCveMetaData] = None,
 		statistics: Optional[Statistics] = None,
 		binary_packages: Optional[List[BinaryPackage]] = None,
@@ -161,6 +164,8 @@ class SourcePackage(BaseModel):
 		self.session_state = SessionState.decode(session_state)
 		self.statistics = Statistics.decode(statistics)
 		self.source_files = SourceFile.drilldown(source_files)
+		self.metadata = RecipeMetaData.decode(metadata)
+		self.cve_metadata = RecipeCveMetaData.decode(cve_metadata)
 		self.binary_packages = BinaryPackage.drilldown(binary_packages)
 		self.tags = aggregate_tags(tags)
 
