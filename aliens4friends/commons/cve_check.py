@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 # SPDX-License-Identifier: Apache-2.0
 
-import sys, os, logging, time, urllib.request, zipfile, json, re, tmpfile
+import sys, os, logging, time, urllib.request, zipfile, json, re
 
 from datetime import datetime
 
@@ -9,6 +9,9 @@ from .version import Version
 
 logging.basicConfig(format='%(name)s:slug=%(message)s', level=logging.INFO)
 logger = logging.getLogger("cvecheck")
+
+class CveCheckerError(Exception):
+	pass
 
 class CveChecker:
 
@@ -38,14 +41,14 @@ class CveChecker:
 		self.version = config['version']
 		self.startfrom = config['from']
 		self.harvest_file = config['harvest']
+		self.tmpdir = config['tmpdir']
 
 		if config['harvest'] or self.appname != '.*':
 			self.updateCveFeeds()
 		else:
-			logger.error(f'{self.slug} please provide a product name')
+			raise CveCheckerError(f'{self.slug} please provide a product name')
 
-		tmpdir_obj = tempfile.TemporaryDirectory()
-		self.tmpdir = tmpdir_obj.name
+
 
 	def run(self) -> bool:
 		self.pipeline()
@@ -65,6 +68,7 @@ class CveChecker:
 			self.writeResult()
 
 	def patchHarvest(self) -> None:
+		logger.info(f"reading {self.harvest_file}")
 		harvest = self.loadHarvestList(self.harvest_file)
 		for i in harvest["source_packages"]:
 

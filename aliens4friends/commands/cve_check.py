@@ -27,30 +27,34 @@ class CveCheck:
 		if harvest_fname:
 			if not harvest_fname.endswith('.json'):
 				raise CveCheckError(f"{harvest_fname} is not a json file")
-			harvest_path = self.pool.abspath(
+			harvest_path = pool.abspath(
 				Settings.PATH_STT,
 				harvest_fname
 			)
 			if not os.path.isfile(harvest_path):
 				raise CveCheckError("Can't find file '{harvest_path}'")
-			if os.path.islink(harvest_path):
-				harvest_path = os.readlink(harvest_path)
+			harvest_path = os.path.realpath(harvest_path)
 		config = {
 			'product': product,
 			'vendor': vendor,
 			'version': version,
 			'from': startfrom,
-			'harvest': harvest_path
+			'harvest': harvest_path if harvest_fname else None
+			'tmpdir': pool.abspath(Settings.PATH_TMP)
 		}
 		cve_checker = CveChecker(config)
 		if harvest_fname:
-			cve_harvest = cve_checker.patchHarvest(harvest_path)
-			cve_harvest_path = harvest_path.replace('.json', '.cve.json')
+			cve_harvest = cve_checker.patchHarvest()
+			cve_harvest_fname = harvest_fname.replace('.json', '.cve.json')
+			cve_harvest_path = pool.relpath(
+				Settings.PATH_STT,
+				cve_harvest_fname
+			)
 			pool.write_json_with_history(
 				cve_harvest,
 				get_prefix_formatted(),
 				cve_harvest_path
 			)
 			return True
-		else
+		else:
 			return cve_checker.run()

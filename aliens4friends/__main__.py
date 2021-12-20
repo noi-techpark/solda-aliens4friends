@@ -532,7 +532,7 @@ class Aliens4Friends:
 			cmd,
 			help="Aliens4Friends CVE Checker. Checks software products against NIST NVD."
 		)
-		self.parsers[cmd].parser.add_argument(
+		self.parsers[cmd].add_argument(
 			'--product',
 			help='Product slug',
 			nargs='?',
@@ -557,7 +557,7 @@ class Aliens4Friends:
 			type=str
 		)
 		self.parsers[cmd].add_argument(
-			'--from',
+			'--startfrom',
 			help='Only CVEs after YYYY',
 			nargs='?',
 			const=2002,
@@ -690,7 +690,7 @@ class Aliens4Friends:
 			self.args.product,
 			self.args.vendor,
 			self.args.version,
-			self.args.from,
+			self.args.startfrom,
 			self.args.harvest
 		)
 
