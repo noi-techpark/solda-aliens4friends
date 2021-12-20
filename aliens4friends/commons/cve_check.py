@@ -67,7 +67,7 @@ class CveChecker:
 			self.filterCandidates()
 			self.writeResult()
 
-	def patchHarvest(self) -> None:
+	def patchHarvest(self) -> dict:
 		logger.info(f"reading {self.harvest_file}")
 		harvest = self.loadHarvestList(self.harvest_file)
 		for i in harvest["source_packages"]:

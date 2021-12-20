@@ -685,7 +685,7 @@ class Aliens4Friends:
 			self.args.testarg2
 		)
 
-	def cvecheck(self) -> None:
+	def cvecheck(self) -> bool:
 		return CveCheck.execute(
 			self.args.product,
 			self.args.vendor,
