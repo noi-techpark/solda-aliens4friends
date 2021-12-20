@@ -40,39 +40,42 @@ been already included in Debian, it means that it is a well-known component, so
 it is a presumed friend, and we can safely invite it to our party.
 
 - [Aliens for Friends](#aliens-for-friends)
-  - [Requirements and Installation](#requirements-and-installation)
-  - [Workflow](#workflow)
-    - [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
-    - [Step 2: Configure the tool](#step-2-configure-the-tool)
-    - [Step 3: Add the Alien to the pool](#step-3-add-the-alien-to-the-pool)
-    - [Step 4: Find a matching Debian source package](#step-4-find-a-matching-debian-source-package)
-    - [Step 5: Scan the code to detect license/copyright information](#step-5-scan-the-code-to-detect-licensecopyright-information)
-    - [Step 6: Find differences between Alien Packages and the corresponding Debian matching packages](#step-6-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
-    - [Step 7: Create Debian SPDX file from debian/copyright file](#step-7-create-debian-spdx-file-from-debiancopyright-file)
-    - [Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-8-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
-    - [Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-9-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
-    - [Step 10: Generate final SPDX file, after human review](#step-10-generate-final-spdx-file-after-human-review)
-    - [Step 11: Enrich the result with tinfoilhat](#step-11-enrich-the-result-with-tinfoilhat)
-    - [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
-  - [Installation and execution with docker](#installation-and-execution-with-docker)
-  - [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
-    - [Installation of Scancode](#installation-of-scancode)
-      - [Native](#native)
-      - [Wrapper](#wrapper)
-    - [Installation of the spdx-tools](#installation-of-the-spdx-tools)
-    - [Installation of Tinfoilhat](#installation-of-tinfoilhat)
-    - [Installation of Aliensrc Creator](#installation-of-aliensrc-creator)
-    - [Installation of Fossology (as docker container)](#installation-of-fossology-as-docker-container)
-      - [With docker-compose](#with-docker-compose)
-      - [With Docker](#with-docker)
+	- [Requirements and Installation](#requirements-and-installation)
+	- [Workflow](#workflow)
+		- [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
+		- [Step 2: Configure the tool](#step-2-configure-the-tool)
+		- [Step 3: Create a session](#step-3-create-a-session)
+		- [Step 4: Add the Alien to the pool](#step-4-add-the-alien-to-the-pool)
+		- [Step 5: Find a matching Debian source package](#step-5-find-a-matching-debian-source-package)
+			- [Option 1: aliens4friends match](#option-1-aliens4friends-match)
+		- [Step 6: Scan the code to detect license/copyright information](#step-6-scan-the-code-to-detect-licensecopyright-information)
+		- [Step 7: Find differences between Alien Packages and the corresponding Debian matching packages](#step-7-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
+		- [Step 8: Create Debian SPDX file from debian/copyright file](#step-8-create-debian-spdx-file-from-debiancopyright-file)
+		- [Step 9: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-9-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
+		- [Step 10: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-10-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
+		- [Step 11: Generate final SPDX file, after human review](#step-11-generate-final-spdx-file-after-human-review)
+		- [Step 12: Enrich the result with tinfoilhat](#step-12-enrich-the-result-with-tinfoilhat)
+		- [Step 13: Harvest all results and create a final report](#step-13-harvest-all-results-and-create-a-final-report)
+	- [Installation and execution with docker](#installation-and-execution-with-docker)
+	- [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
+		- [Installation of Scancode](#installation-of-scancode)
+			- [Native](#native)
+			- [Wrapper](#wrapper)
+		- [Installation of the spdx-tools](#installation-of-the-spdx-tools)
+		- [Installation of Tinfoilhat](#installation-of-tinfoilhat)
+		- [Installation of Aliensrc Creator](#installation-of-aliensrc-creator)
+		- [Installation of Fossology (as docker container)](#installation-of-fossology-as-docker-container)
+			- [With docker-compose](#with-docker-compose)
+			- [With Docker](#with-docker)
 - [Gitlab CI of a complete pipeline with Yocto and Aliens4Friends](#gitlab-ci-of-a-complete-pipeline-with-yocto-and-aliens4friends)
-  - [Install docker and docker-compose on a Linux machine](#install-docker-and-docker-compose-on-a-linux-machine)
-  - [Install a Gitlub Runner on a Linux machine](#install-a-gitlub-runner-on-a-linux-machine)
-  - [Configure the Gitlab Runner](#configure-the-gitlab-runner)
-  - [Configure a Gitlab container registry](#configure-a-gitlab-container-registry)
-  - [Known limitations](#known-limitations)
-    - [Only use a single branch to trigger the pipeline](#only-use-a-single-branch-to-trigger-the-pipeline)
-    - [Time consuming operations](#time-consuming-operations)
+	- [Install docker and docker-compose on a Linux machine](#install-docker-and-docker-compose-on-a-linux-machine)
+	- [Install a Gitlub Runner on a Linux machine](#install-a-gitlub-runner-on-a-linux-machine)
+	- [Configure the Gitlab Runner](#configure-the-gitlab-runner)
+	- [Configure a Gitlab container registry](#configure-a-gitlab-container-registry)
+	- [Known limitations](#known-limitations)
+		- [Only use a single branch to trigger the pipeline](#only-use-a-single-branch-to-trigger-the-pipeline)
+		- [Time consuming operations](#time-consuming-operations)
+	- [References](#references)
 
 ## Requirements and Installation
 
@@ -112,13 +115,14 @@ shows you how to install those extra tools.
 Let's start with an example. Assume we have a source code package called `zlib`
 in version `1.2.11-r0`, and want to collect license and copyright information.
 
+An implementation and further details can be found in our [OSS Compliance Pipeline]
+repository.
+
 ### Step 1: Create an Alien Package
 
 First thing to do is to create a so-called "Alien Package". If you use bitbake
 as a building system, you can use the scripts contained in the [TinfoilHat]
 project.
-
-[TinfoilHat]: https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat
 
 Let's assume that our alien package is named `zlib-1.2.11-r0.aliensrc`. The
 file-extension `.aliensrc` is mandatory, the name is arbitrary. An alien package
@@ -152,44 +156,78 @@ metadata information of this alien package.
         "manager": "bitbake",       # the build system from where we extracted this source package
         "metadata": {               # any metadata (tipically, metadata extracted from the build system).
                                     # This structure is not defined, nor mandatory
-                       "name": "zlib",
-                       "base_name": "zlib",
-                       "version": "1.2.11",
-                       "revision": "r0",
-                       "package_arch": "armv7vet2hf-neon",
-                       "author": null,
-                       "homepage": "http://zlib.net/",
-                       "summary": "Zlib Compression Library",
-                       "description": "Zlib is a general-purpose, patent-free, lossless data compression library which is used by many different programs.",
-                       "license": "Zlib",
-                       "depends": "virtual/arm-poky-linux-musleabi-gcc virtual/arm-poky-linux-musleabi-compilerlibs virtual/libc ",
-                       "provides": "zlib ",
-                       "cve_product": null
+            "name": "zlib",
+            "base_name": "zlib",
+            "version": "1.2.11",
+            "revision": "r0",
+            "variant": "1eea2d14",
+            "author": null,
+            "homepage": "http://zlib.net/",
+            "summary": "Zlib Compression Library",
+            "description": "Zlib is a general-purpose, patent-free, lossless data compression library which is used by many different programs.",
+            "license": "Zlib"
         },
         "files": [                  # files, that are included in the "files" folder inside the alien package
             {
+                # the file name
                 "name": "zlib-1.2.11.tar.xz",
-                                    # the file name
-                "sha1": "e1cb0d5c92da8e9a8c2635dfa249c341dfd00322",
-                                    # file checksum (only sha1 is supported)
+
+                # This is the commit SHA, if the src_uri has a "git://" scheme
+                "git_sha1": null,
+
+                # file checksum (only sha1 is supported)
+                "sha1_cksum": "e1cb0d5c92da8e9a8c2635dfa249c341dfd00322",
+
+                # the provenance, that is, the place where the upstream package came from
                 "src_uri": "https://downloads.sourceforge.net/libpng/zlib/1.2.11/zlib-1.2.11.tar.xz",
-                                    # the provenance, that is, the place where the upstream package came from
-                "files_in_archive": 253
-                                    # The file count inside the tarball archive
+
+                # The file count inside the tarball archive
+                "files_in_archive": 253,
+
+                # This array contains file paths of this file inside the .aliensrc tar archive
+                # Example for a configuration file, can also be "tagged" for various
+                # project/version/flavors/machine/image hierarchies.
+				# An empty array means, that this file does not have duplicates with different
+				# content, but the same file name.
+                "paths": []
             },
             {
                 "name": "ldflags-tests.patch",
-                "sha1": "f370a10d1a454cdcd07a8d164fe0d65b32b6d2a9",
+                "git_sha1": null,
+                "sha1_cksum": "f370a10d1a454cdcd07a8d164fe0d65b32b6d2a9",
+
+                # the provenance: in this case "unknown", since the file was just added from a filesystem
                 "src_uri": "file://ldflags-tests.patch",
-                                    # the provenance: in this case "unknown",
-                                    # since the file was just added from a filesystem
-                "files_in_archive": false
-                                    # false, if no archive, 0 if the archive is empty
+
+                # false, if no archive, 0 if the archive is empty
+                "files_in_archive": false,
+
+                "paths": []
             }
+        ],
+
+        # Tags to be shown on our Dashboard, used for filtering of packages
+        # The hierarchy is as follows (defined in the yoctobuild matrix):
+        # - project
+        # - version: branch-name, last-tag on that branch, count of commits until the final
+        #   commit with hash g507268c (see "git" for further information on this)
+        # - flavour: linux, zephyr, etc.
+        # - machine
+        # - image
+        "tags": [
+            "oniro/v1.0.0-rc-17-g507268c/oniro-linux/qemux86-64/oniro-image-base",
+            "oniro/v1.0.0-rc-17-g507268c/oniro-linux/qemux86-64/oniro-image-base-dev",
+            "oniro/v1.0.0-rc-17-g507268c/oniro-linux/raspberrypi4-64/oniro-image-base",
+            "oniro/v1.0.0-rc-17-g507268c/oniro-linux/raspberrypi4-64/oniro-image-base-dev",
+            "oniro/v1.0.0-rc-17-g507268c/oniro-linux/raspberrypi4-64/oniro-image-base-tests",
+            "...."
         ]
     }
 }
 ```
+
+To get more information about the **yoctobuild matrix** go to the [OSS
+Compliance Pipeline repository].
 
 </details></p>
 
@@ -218,6 +256,10 @@ did not exist before. You can now open that file and change it as you like.
 <summary><b>See "aliens4friends config --help" output for details.</b></summary>
 
 ```
+usage: aliens4friends config [-h]
+
+Create a .env file in the folder, where you execute the command.
+
 Environmental variables:
   - A4F_POOL        : Path to the cache pool
   - A4F_CACHE       : True/False, if cache should be used or overwritten (default = True)
@@ -227,20 +269,75 @@ Environmental variables:
   - A4F_PRINTRESULT : Print results also to stdout
   - SPDX_TOOLS_CMD  : command to invoke java spdx tools (default =
                       'java -jar /usr/local/lib/spdx-tools-2.2.5-jar-with-dependencies.jar')
+  - SPDX_DISCLAIMER : legal disclaimer to add into generated SPDX files (optional)
+  - PACKAGE_ID_EXT  : extension to append to package IDs in harvest.json file (optional, arbitrary)
   - FOSSY_USER,
     FOSSY_PASSWORD,
     FOSSY_GROUP_ID,
     FOSSY_SERVER    : parameters to access fossology server
                       (defaults: 'fossy', 'fossy', 3, 'http://localhost/repo').
+
+optional arguments:
+  -h, --help  show this help message and exit
 ```
 
 </details></p>
 
-### Step 3: Add the Alien to the pool
+### Step 3: Create a session
+
+A session is used to have a list of packages that we want to process. This list
+can then be manipulated. Packages can be filtered, selected or status/statistics
+about them can be stored inside the session cache. A session can later be loaded
+to continue a work, previously put down.
+
+<p><details>
+<summary><b>See "aliens4friends session --help" output for details.</b></summary>
+
+```
+usage: aliens4friends session [-h] [-f FILTER | -c | -n] [-s SESSION] [glob_name] [glob_version]
+
+positional arguments:
+  glob_name             Wildcard pattern to filter by package names. Do not forget to quote it!
+  glob_version          Wildcard pattern to filter by package versions. Do not forget to quote it!
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -f FILTER, --filter FILTER
+                        Filter the package list inside the given session (use -s SESSION for that)
+  -c, --create          Create and fill a session from a given ID or random string (if absent)
+  -n, --new             Create a new empty session from a given ID or random string (if absent)
+  -s SESSION, --session SESSION
+                        Use a session to create a list of packages, otherwise all packages inside the pool are used
+```
+</details></p>
+
+A session has a unique ID, and can be empty at first. We can get a random
+session ID, or provide our own. In this example, our own session ID is called
+`MYSESSION`.
+```sh
+aliens4friends session -ns MYSESSION
+```
+
+If you like to use some packages from the pool previously added, you can also
+create a session from existing Aliensrc packages like this:
+```sh
+aliens4friends session -cs MYSESSION 'ac*' '*'
+```
+
+...or create a session with the whole pool:
+```sh
+aliens4friends session -cs MYSESSION '*' '*'
+```
+
+Keep in mind that if you want to use wildcards, you should put the search
+parameters within quotes, otherwise bash will expand them locally and not on the
+pool.
+
+### Step 4: Add the Alien to the pool
 
 Execute:
 ```sh
-aliens4friends add zlib-1.2.11-r0.aliensrc
+aliens4friends add -s MYSESSION zlib-1.2.11-r0.aliensrc zlib-1.2.11-r0.tinfoilhat.json
 ```
 
 This will add the package to our pool (party). All data that comes from the user
@@ -252,60 +349,69 @@ Intermediate results also land in this directory.
 <summary><b>See "aliens4friends add --help" output for details.</b></summary>
 
 ```
-usage: aliens4friends add [-h] [-i] [-v | -q] [FILES [FILES ...]]
+usage: aliens4friends add [-h] [-f] [-i] [-v | -q] [--dryrun] -s SESSION [FILES [FILES ...]]
 
 positional arguments:
-  FILES               The Alien Packages (also wildcards allowed)
+  FILES                 The Alien Packages (also wildcards allowed)
 
 optional arguments:
-  -h, --help          show this help message and exit
-  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
-  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
-  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  -h, --help            show this help message and exit
+  -f, --force           Force AlienSrc package overwrite.
+  -i, --ignore-cache    Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose         Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet           Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  --dryrun              Log operations to be done without doing anything
+  -s SESSION, --session SESSION
+                        Use a session to create a list of packages, otherwise all packages inside the pool are used
 ```
 
 </details></p>
 
-### Step 4: Find a matching Debian source package
+### Step 5: Find a matching Debian source package
 
 - INPUT: `.aliensrc` files inside the pool
-- OUTPUT: `.alienmatcher.json` file inside the `userland` pool path regarding
-  the current processed package.
+- OUTPUT: `.alienmatcher.json` or `.snapmatch.json` files inside the `userland`
+  pool path regarding the current processed package, depending which Debian API
+  we use: the current Debian repository or the history repository with all
+  snapshots of all time.
+
+The matching can be done against two different Debian APIs:
+- Option 1: `aliens4friends match`: fast, but has only the most recent package versions
+  for each distribution, that is, it might not be a perfect match
+- Option 2: `aliens4friends snapmatch`: slow, but has all Debian packages of all time,
+  that is, it is more probable to find a nicely matching package and version
+
+Option 3: Another possibility is to first run the `match` command, and then
+filter out all packages, that have already a good matching candidate (high
+matching score), and run the `snapmatch` command only against the other
+packages.
+
+#### Option 1: aliens4friends match
 
 Execute:
 ```sh
-aliens4friends match
+aliens4friends match -s MYSESSION
 ```
 
-This will search a match for any package that has been added to the pool. If
-you want to restrict the search use `glob_name` and `glob_version` parameters.
-For example:
-
-```sh
-aliens4friends match 'zlib*'
-aliens4friends match 'gcc' '*'
-```
-
-Keep in mind that if you want to use wildcards, you should put the search
-parameters within quotes, otherwise bash will expand them locally and
-not on the pool.
+This will search a match for any package that has been added to the session. If
+you want to restrict the search use the `session` command with the `--filter`
+option first.
 
 <p><details>
 <summary><b>See "aliens4friends match --help" output for details.</b></summary>
 
 ```
-usage: aliens4friends match [-h] [-i] [-v | -q] [-p] [glob_name] [glob_version]
-
-positional arguments:
-  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
-  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+usage: aliens4friends match [-h] [-i] [-v | -q] [--dryrun] [-p] -s SESSION
 
 optional arguments:
-  -h, --help          show this help message and exit
-  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
-  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
-  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
-  -p, --print         Print result also to stdout.
+  -h, --help            show this help message and exit
+  -i, --ignore-cache    Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose         Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet           Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  --dryrun              Log operations to be done without doing anything
+  -p, --print           Print result also to stdout.
+  -s SESSION, --session SESSION
+                        Use a session to create a list of packages, otherwise all packages inside the pool are used
 ```
 
 </details></p>
@@ -399,7 +505,7 @@ optional arguments:
 
 </details></p>
 
-### Step 5: Scan the code to detect license/copyright information
+### Step 6: Scan the code to detect license/copyright information
 
 - INPUT: `.aliensrc` files inside the pool, and if possible `.alienmatcher.json`
   results.
@@ -456,7 +562,7 @@ optional arguments:
 
 </details></p>
 
-### Step 6: Find differences between Alien Packages and the corresponding Debian matching packages
+### Step 7: Find differences between Alien Packages and the corresponding Debian matching packages
 
 By "differences", we mean the differences in terms of
 licensing/copyright/intellectual property, so we just care if license and
@@ -580,10 +686,10 @@ optional arguments:
 
 </details></p>
 
-### Step 7: Create Debian SPDX file from debian/copyright file
+### Step 8: Create Debian SPDX file from debian/copyright file
 
 - INPUT: debian source files downloaded by
-  [alienmatcher](#step-4-find-a-matching-debian-source-package)
+  [alienmatcher](#step-5-find-a-matching-debian-source-package)
 - OUTPUT: `.debian.spdx` and `_debian_copyright` file in the `debian` pool path
   of the debian package
 
@@ -632,7 +738,7 @@ optional arguments:
 
 </details></p>
 
-### Step 8: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)
+### Step 9: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)
 
 - INPUT: `.scancode.spdx` and `.deltacode.spdx` files in the `userland` pool
   path of the alien package, and `.debian.spdx` file in the `debian` pool path
@@ -705,7 +811,7 @@ optional arguments:
 
 </details></p>
 
-### Step 9: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology
+### Step 10: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology
 
 - INPUT: `.aliensrc` and (if available) `.alien.spdx` files in the `userland`
   pool path of the package
@@ -822,7 +928,7 @@ optional arguments:
 
 </details></p>
 
-### Step 10: Generate final SPDX file, after human review
+### Step 11: Generate final SPDX file, after human review
 
 - INPUT: `.aliensrc` file, and `.alien.spdx` file (if available)
 - OUTPUT:
@@ -870,7 +976,7 @@ optional arguments:
 
 </details></p>
 
-### Step 11: Enrich the result with tinfoilhat
+### Step 12: Enrich the result with tinfoilhat
 
 - INPUT: `.tinfoilhat.json` file, generated through [TinfoilHat]
 
@@ -889,7 +995,7 @@ Execute:
 aliens4friends add zlib-1.2.11-r0.tinfoilhat.json
 ```
 
-### Step 12: Harvest all results and create a final report
+### Step 13: Harvest all results and create a final report
 
 - INPUT: `.deltacode.json`, `.scancode.json`, `.fossy.json` and `.alienmatcher.json` files
 - OUTPUT: `POOL/stats/<some-dated-name>.json` as report for the graphical Dashboard
@@ -1181,7 +1287,7 @@ Where `/build/gitlab-runner` is your hosts build directory, where
 access the docker daemon on the host. We need also to set `privileged = true`
 to make it work.
 
-The log output can be really long, so to see everything we need also to 
+The log output can be really long, so to see everything we need also to
 increase the `output_limit = 102400` inside `[[runners]]`.
 
 ## Configure a Gitlab container registry
@@ -1204,3 +1310,13 @@ These pipelines are not meant to run very often, because at the moment with all
 flavours, images, and machine combinations to complete a full pipeline it will
 take several hours. Hereby, the yoctobuild, Scancode and Fossology upload part
 take the most time.
+
+## References
+
+<!-- Add all references here, so they can be used throughout this document without the URL -->
+[TinfoilHat]: https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat
+[OSS Compliance Pipeline]: https://git.ostc-eu.org/oss-compliance/pipelines
+
+- [TinfoilHat]
+- [OSS Compliance Pipeline]
+

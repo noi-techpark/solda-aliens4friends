@@ -32,7 +32,7 @@ class CveCheck:
 				harvest_fname
 			)
 			if not os.path.isfile(harvest_path):
-				raise CveCheckError("Can't find file '{harvest_path}'")
+				raise CveCheckError(f"Can't find file '{harvest_path}'")
 			harvest_path = os.path.realpath(harvest_path)
 		config = {
 			'product': product,
