@@ -43,6 +43,7 @@ from aliens4friends.commands.spdxalien import SpdxAlien
 from aliens4friends.commands.spdxdebian import SpdxDebian
 from aliens4friends.commands.upload import Upload
 from aliens4friends.commands.listpool import ListPool
+from aliens4friends.commands.cve_check import CveCheck
 from aliens4friends.commands.command import Processing
 from aliens4friends.commons.pool import Pool, FILETYPE
 from aliens4friends.commons.settings import Settings
@@ -67,7 +68,8 @@ SUPPORTED_COMMANDS = [
 	"help",
 	"session",
 	"comparematch",
-	"listpool"
+	"listpool",
+	"cvecheck"
 ]
 
 class Aliens4Friends:
@@ -525,6 +527,56 @@ class Aliens4Friends:
 		)
 		self._args_session(self.parsers[cmd])
 
+	def parser_cvecheck(self, cmd:str) -> None:
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Aliens4Friends CVE Checker. Checks software products against NIST NVD."
+		)
+		self.parsers[cmd].parser.add_argument(
+			'--product',
+			help='Product slug',
+			nargs='?',
+			const='.*',
+			default='.*',
+			type=str
+		)
+		self.parsers[cmd].add_argument(
+			'--version',
+			help='Version slug',
+			nargs='?',
+			const='*',
+			default='*',
+			type=str
+		)
+		self.parsers[cmd].add_argument(
+			'--vendor',
+			help='Vendor slug',
+			nargs='?',
+			const='.*',
+			default='.*',
+			type=str
+		)
+		self.parsers[cmd].add_argument(
+			'--from',
+			help='Only CVEs after YYYY',
+			nargs='?',
+			const=2002,
+			default=2002,
+			type=int
+		)
+		self.parsers[cmd].add_argument(
+			'--harvest',
+			nargs='?',
+			const='harvest-manifest-latest.json',
+			type=str,
+			help=(
+				'harvest.json file name in pool.'
+				' If option is set, single arguments will be ignored and'
+				' harvest.json will be scanned instead. A .cve.json will be'
+				' saved in pool stats dir'
+			)
+		)
+
 	def session(self) -> bool:
 		if (self.args.glob_name or self.args.glob_version) and (self.args.new or self.args.filter):
 			logging.getLogger(PROGNAME).error(
@@ -633,6 +685,14 @@ class Aliens4Friends:
 			self.args.testarg2
 		)
 
+	def cvecheck(self) -> None:
+		return CveCheck.execute(
+			self.args.product,
+			self.args.vendor,
+			self.args.version,
+			self.args.from,
+			self.args.harvest
+		)
 
 if __name__ == "__main__":
 	Aliens4Friends()
