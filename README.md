@@ -61,6 +61,11 @@ it is a presumed friend, and we can safely invite it to our party.
     - [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
   - [Special commands](#special-commands)
     - [CVEcheck](#cvecheck)
+      - [Result of CVE checks](#result-of-cve-checks)
+      - [Procedure](#procedure)
+      - [todos & caveats](#todos--caveats)
+      - [disclaimer](#disclaimer)
+      - [info](#info)
     - [Session](#session)
       - [Filter](#filter)
   - [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
@@ -1275,6 +1280,54 @@ optional arguments:
                         single arguments will be ignored and harvest.json will be
                         scanned instead. A .cve.json will be saved in pool stats dir
 ```
+
+#### Result of CVE checks
+
+The result data contains 2 areas:
+- `identified`: Clearly identified and applicable CVE's for the software in
+  question.
+- `review`: Special cases not currently covered or applicability configurations
+  not clearly interpretable (for manual review).
+
+#### Procedure
+
+- if existing feeds are older than one day, the feeds are updated
+- all feeds will be parsed and potential candidates are prefiltered by vendor +
+  product
+- all potentially applicable candidates are searched for affected version ranges
+  and false positives are eliminated as far as possible
+- for this purpose, the applicability criteria available in the cve's are
+  evaluated. The entire filter logic is located in `cve_check.py`
+  (`filterCandidates()`) and is extensively documented
+- applicable cve's are saved 1:1 as result in json format or added to
+  harvest.json, depending on operating mode
+
+#### todos & caveats
+
+Currently, only the search for software is supported. The evaluation is
+therefore incomplete in certain cases:
+- Applicability criteria: AND operator is not supported (assuming that CVE's,
+  which are only applicable in combination with a specific hardware or operating
+  system, are not needed for current frameworks).
+- Applicability criteria: Nested nodes (childs) are not supported.
+- Whitelist support: Existing whitelists for filtering wrong entries are not yet
+  respected.
+- Support CPE2.3 special characters: `- & ?`
+- Reduction of data sets - Only relevant result data
+
+All special cases not covered are written separately to any results for manual checking.
+
+#### disclaimer
+This program is intended as an aid in identifying potentially affected software
+applications and versions. Any results are not and can never be complete, and
+are therefore considered indicative only.
+
+#### info
+Evaluation and applicability of application criteria:
+https://stackoverflow.com/questions/56680580/nvd-json-feeds-tags-meaning-and-their-purpose
+
+CPE 2.3 formatted string binding:
+https://www.govinfo.gov/content/pkg/GOVPUB-C13-c213837a04c3bcc778ebfd420c6a3f2a/pdf/GOVPUB-C13-c213837a04c3bcc778ebfd420c6a3f2a.pdf
 
 ### Session
 
