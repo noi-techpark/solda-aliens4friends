@@ -40,42 +40,48 @@ been already included in Debian, it means that it is a well-known component, so
 it is a presumed friend, and we can safely invite it to our party.
 
 - [Aliens for Friends](#aliens-for-friends)
-	- [Requirements and Installation](#requirements-and-installation)
-	- [Workflow](#workflow)
-		- [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
-		- [Step 2: Configure the tool](#step-2-configure-the-tool)
-		- [Step 3: Create a session](#step-3-create-a-session)
-		- [Step 4: Add the Alien to the pool](#step-4-add-the-alien-to-the-pool)
-		- [Step 5: Find a matching Debian source package](#step-5-find-a-matching-debian-source-package)
-			- [Option 1: aliens4friends match](#option-1-aliens4friends-match)
-		- [Step 6: Scan the code to detect license/copyright information](#step-6-scan-the-code-to-detect-licensecopyright-information)
-		- [Step 7: Find differences between Alien Packages and the corresponding Debian matching packages](#step-7-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
-		- [Step 8: Create Debian SPDX file from debian/copyright file](#step-8-create-debian-spdx-file-from-debiancopyright-file)
-		- [Step 9: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-9-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
-		- [Step 10: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-10-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
-		- [Step 11: Generate final SPDX file, after human review](#step-11-generate-final-spdx-file-after-human-review)
-		- [Step 12: Enrich the result with tinfoilhat](#step-12-enrich-the-result-with-tinfoilhat)
-		- [Step 13: Harvest all results and create a final report](#step-13-harvest-all-results-and-create-a-final-report)
-	- [Installation and execution with docker](#installation-and-execution-with-docker)
-	- [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
-		- [Installation of Scancode](#installation-of-scancode)
-			- [Native](#native)
-			- [Wrapper](#wrapper)
-		- [Installation of the spdx-tools](#installation-of-the-spdx-tools)
-		- [Installation of Tinfoilhat](#installation-of-tinfoilhat)
-		- [Installation of Aliensrc Creator](#installation-of-aliensrc-creator)
-		- [Installation of Fossology (as docker container)](#installation-of-fossology-as-docker-container)
-			- [With docker-compose](#with-docker-compose)
-			- [With Docker](#with-docker)
+  - [Requirements and Installation](#requirements-and-installation)
+  - [Workflow](#workflow)
+    - [Step 1: Create an Alien Package](#step-1-create-an-alien-package)
+    - [Step 2: Configure the tool](#step-2-configure-the-tool)
+    - [Step 3: Create a session](#step-3-create-a-session)
+    - [Step 4: Add the Alien to the pool](#step-4-add-the-alien-to-the-pool)
+      - [.aliensrc file](#aliensrc-file)
+      - [.tinfoilhat file](#tinfoilhat-file)
+    - [Step 5: Find a matching Debian source package](#step-5-find-a-matching-debian-source-package)
+      - [Option 1: aliens4friends match](#option-1-aliens4friends-match)
+      - [Option 2: aliens4friends snapmatch](#option-2-aliens4friends-snapmatch)
+      - [Option 3: aliens4friends match and snapmatch combined](#option-3-aliens4friends-match-and-snapmatch-combined)
+    - [Step 6: Scan the code to detect license/copyright information](#step-6-scan-the-code-to-detect-licensecopyright-information)
+    - [Step 7: Find differences between Alien Packages and the corresponding Debian matching packages](#step-7-find-differences-between-alien-packages-and-the-corresponding-debian-matching-packages)
+    - [Step 8: Create Debian SPDX file from debian/copyright file](#step-8-create-debian-spdx-file-from-debiancopyright-file)
+    - [Step 9: Create Alien SPDX file out of Debian SPDX file (reusing license metadata)](#step-9-create-alien-spdx-file-out-of-debian-spdx-file-reusing-license-metadata)
+    - [Step 10: Upload to Fossology, schedule Fossology scanners, import Alien/Debian SPDX to Fossology](#step-10-upload-to-fossology-schedule-fossology-scanners-import-aliendebian-spdx-to-fossology)
+    - [Step 11: Generate final SPDX file, after human review](#step-11-generate-final-spdx-file-after-human-review)
+    - [Step 12: Harvest all results and create a final report](#step-12-harvest-all-results-and-create-a-final-report)
+  - [Special commands](#special-commands)
+    - [CVEcheck](#cvecheck)
+    - [Session](#session)
+      - [Filter](#filter)
+  - [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
+    - [Installation of Scancode](#installation-of-scancode)
+      - [Native](#native)
+      - [Wrapper](#wrapper)
+    - [Installation of the spdx-tools](#installation-of-the-spdx-tools)
+    - [Installation of Tinfoilhat](#installation-of-tinfoilhat)
+    - [Installation of Aliensrc Creator](#installation-of-aliensrc-creator)
+    - [Installation of Fossology (as docker container)](#installation-of-fossology-as-docker-container)
+      - [With docker-compose](#with-docker-compose)
+      - [With Docker](#with-docker)
 - [Gitlab CI of a complete pipeline with Yocto and Aliens4Friends](#gitlab-ci-of-a-complete-pipeline-with-yocto-and-aliens4friends)
-	- [Install docker and docker-compose on a Linux machine](#install-docker-and-docker-compose-on-a-linux-machine)
-	- [Install a Gitlub Runner on a Linux machine](#install-a-gitlub-runner-on-a-linux-machine)
-	- [Configure the Gitlab Runner](#configure-the-gitlab-runner)
-	- [Configure a Gitlab container registry](#configure-a-gitlab-container-registry)
-	- [Known limitations](#known-limitations)
-		- [Only use a single branch to trigger the pipeline](#only-use-a-single-branch-to-trigger-the-pipeline)
-		- [Time consuming operations](#time-consuming-operations)
-	- [References](#references)
+  - [Install docker and docker-compose on a Linux machine](#install-docker-and-docker-compose-on-a-linux-machine)
+  - [Install a Gitlub Runner on a Linux machine](#install-a-gitlub-runner-on-a-linux-machine)
+  - [Configure the Gitlab Runner](#configure-the-gitlab-runner)
+  - [Configure a Gitlab container registry](#configure-a-gitlab-container-registry)
+  - [Known limitations](#known-limitations)
+    - [Only use a single branch to trigger the pipeline](#only-use-a-single-branch-to-trigger-the-pipeline)
+    - [Time consuming operations](#time-consuming-operations)
+  - [References](#references)
 
 ## Requirements and Installation
 
@@ -335,15 +341,40 @@ pool.
 
 ### Step 4: Add the Alien to the pool
 
+#### .aliensrc file
+- INPUT: `.aliensrc` file, generated through [TinfoilHat]
 Execute:
 ```sh
-aliens4friends add -s MYSESSION zlib-1.2.11-r0.aliensrc zlib-1.2.11-r0.tinfoilhat.json
+aliens4friends add -s MYSESSION zlib-1.2.11-r0.aliensrc
 ```
+
+#### .tinfoilhat file
+Enrich the result with tinfoilhat
+- INPUT: `.tinfoilhat.json` file, generated through [TinfoilHat]
+
+This is a Yocto/BitBake-specific step. Add `.tinfoilhat.json` results to the
+pool to get more details to be included in the final statistics.
+
+`.tinfoilhat.json` files contain data that are specific to the particular
+bitbake project that is being scanned, such as `DISTRO`, `IMAGE_NAME` and
+`MACHINE` tags, as well as metadata about binary packages generated from the
+analyzed  sources. For more details, refer to the [TinfoilHat] project
+documentation.
+
+Execute:
+
+```sh
+aliens4friends add -s MYSESSION zlib-1.2.11-r0.tinfoilhat.json
+```
+
 
 This will add the package to our pool (party). All data that comes from the user
 will be stored in the folder `userland` with sub-folders named
 `<package-name>/<package-version>`. So in our case `userland/zlib/1.2.11-r0`.
 Intermediate results also land in this directory.
+
+*Please note, only if both files, `aliensrc` and `tinfoilhat` exist, the package
+gets added to the session package list.*
 
 <p><details>
 <summary><b>See "aliens4friends add --help" output for details.</b></summary>
@@ -375,16 +406,15 @@ optional arguments:
   we use: the current Debian repository or the history repository with all
   snapshots of all time.
 
-The matching can be done against two different Debian APIs:
+The matching can be done in three different ways against two different APIs:
 - Option 1: `aliens4friends match`: fast, but has only the most recent package versions
   for each distribution, that is, it might not be a perfect match
 - Option 2: `aliens4friends snapmatch`: slow, but has all Debian packages of all time,
   that is, it is more probable to find a nicely matching package and version
-
-Option 3: Another possibility is to first run the `match` command, and then
-filter out all packages, that have already a good matching candidate (high
-matching score), and run the `snapmatch` command only against the other
-packages.
+- Option 3: Another possibility is to first run the `match` command, and then
+  filter out all packages, that have already a good matching candidate (high
+  matching score), and run the `snapmatch` command only against the other
+  packages.
 
 #### Option 1: aliens4friends match
 
@@ -424,8 +454,8 @@ optional arguments:
 ```python
 {
   "tool": {                         # name and version of alienmatcher tool
-    "name": "aliens4friends.alienmatcher",
-    "version": "0.3"
+    "name": "aliens4friends.commons.alienmatcher",
+    "version": "0.7.0"
   },
   "aliensrc": {
     "name": "zlib",                 # name of the aliensrc package
@@ -439,65 +469,73 @@ optional arguments:
     "files": [                      # this section corresponds to the `files` section of aliensrc.json
       {
         "name": "zlib-1.2.11.tar.xz",
-        "sha1": "e1cb0d5c92da8e9a8c2635dfa249c341dfd00322",
+        "sha1_cksum": "e1cb0d5c92da8e9a8c2635dfa249c341dfd00322",
+		"git_sha1": null,
         "src_uri": "https://downloads.sourceforge.net/libpng/zlib/1.2.11/zlib-1.2.11.tar.xz",
-        "files_in_archive": 253
+        "files_in_archive": 253,
+		"paths": []
       },
       {
         "name": "ldflags-tests.patch",
-        "sha1": "f370a10d1a454cdcd07a8d164fe0d65b32b6d2a9",
+        "sha1_cksum": "f370a10d1a454cdcd07a8d164fe0d65b32b6d2a9",
+		"git_sha1": null,
         "src_uri": "file://ldflags-tests.patch",
-        "files_in_archive": false
+        "files_in_archive": false,
+		"paths": []
       },
       {
         "name": "run-ptest",
-        "sha1": "8236e92debcc7a83144d0c4a3b51e0aa258acc7f",
+        "sha1_cksum": "8236e92debcc7a83144d0c4a3b51e0aa258acc7f",
+		"git_sha1": null,
         "src_uri": "file://run-ptest",
-        "files_in_archive": false
+        "files_in_archive": false,
+		"paths": []
       }
     ]
   },
-  "debian": {
-    "match": {
-      "name": "zlib",               # name of the matching debian package
-      "version": "1.2.11.dfsg-1",   # version of the matching debian package
-      "debsrc_debian": "debian/zlib/1.2.11.dfsg-1/zlib_1.2.11.dfsg-1.debian.tar.xz",
-                                    # debian source tarball, downloaded from debian source repos
-                                    # - in case of Debian Format 1.0, this is a .diff.gz file
-                                    # - in case of Debian Format 1.0/3.0 native, this value is null
-      "debsrc_orig": "debian/zlib/1.2.11.dfsg-1/zlib_1.2.11.dfsg.orig.tar.gz",
-                                    # original source tarball, downloaded from debian source repos
-                                    # - in case of Debian Format 1.0/3.0 native, this is the only
-                                    #   archive and it does not have `.orig.` in the filename
-      "dsc_format": "3.0 (quilt)",  # Debian package format
-      "version_candidates": [
-        {                           # examined matching candidates in Debian repos
-          "version": "1.2.11.dfsg-2",
-          "distance": 10,           # distance from aliensrc is calculated based on version
-          "is_aliensrc": false
-        },
-        {
-          "version": "1.2.11.dfsg-1",
-          "distance": 10,
-          "is_aliensrc": false
-        },
-        {
-          "version": "1.2.11-r0",
-          "distance": 0,
-          "is_aliensrc": true
-        },
-        {
-          "version": "1.2.8.dfsg-5",
-          "distance": 300,
-          "is_aliensrc": false
-        },
-        {
-          "version": "1.2.8.dfsg-2",
-          "distance": 300,
-          "is_aliensrc": false
-        }
-      ]
-    }
+  "match": {
+	"name": "zlib",               # name of the matching debian package
+	"version": "1.2.11.dfsg-1",   # version of the matching debian package
+    "score": 100.0,				  # The overall score of matching between the name and
+								  # version of packages
+    "package_score": 100,		  # The score of the package name matching alone
+    "version_score": 100,         # The score of the package version matching alone
+	"debsrc_debian": "debian/zlib/1.2.11.dfsg-1/zlib_1.2.11.dfsg-1.debian.tar.xz",
+								# debian source tarball, downloaded from debian source repos
+								# - in case of Debian Format 1.0, this is a .diff.gz file
+								# - in case of Debian Format 1.0/3.0 native, this value is null
+	"debsrc_orig": "debian/zlib/1.2.11.dfsg-1/zlib_1.2.11.dfsg.orig.tar.gz",
+								# original source tarball, downloaded from debian source repos
+								# - in case of Debian Format 1.0/3.0 native, this is the only
+								#   archive and it does not have `.orig.` in the filename
+	"dsc_format": "3.0 (quilt)",  # Debian package format
+	"version_candidates": [
+		{                           # examined matching candidates in Debian repos
+			"version": "1.2.11.dfsg-2",
+			"distance": 10,           # distance from aliensrc is calculated based on version
+			"is_aliensrc": false
+		},
+		{
+			"version": "1.2.11.dfsg-1",
+			"distance": 10,
+			"is_aliensrc": false
+		},
+		{
+			"version": "1.2.11-r0",
+			"distance": 0,
+			"is_aliensrc": true
+		},
+		{
+			"version": "1.2.8.dfsg-5",
+			"distance": 300,
+			"is_aliensrc": false
+		},
+		{
+			"version": "1.2.8.dfsg-2",
+			"distance": 300,
+			"is_aliensrc": false
+		}
+	]
   },
   "errors": []                      # possible error messages of the alienmatcher tool
 }
@@ -505,10 +543,170 @@ optional arguments:
 
 </details></p>
 
+#### Option 2: aliens4friends snapmatch
+
+Execute:
+```sh
+aliens4friends snapmatch -s MYSESSION
+```
+
+This will search a match for any package that has been added to the session. If
+you want to restrict the search use the `session` command with the `--filter`
+option first.
+
+<p><details>
+<summary><b>See "aliens4friends snapmatch --help" output for details.</b></summary>
+
+```
+usage: aliens4friends snapmatch [-h] [-i] [-v | -q] [--dryrun] [-p] -s SESSION
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i, --ignore-cache    Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose         Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet           Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  --dryrun              Log operations to be done without doing anything
+  -p, --print           Print result also to stdout.
+  -s SESSION, --session SESSION
+                        Use a session to create a list of packages, otherwise all packages inside the pool are used
+```
+
+</details></p>
+
+<p><details>
+<summary><b>click to see .snapmatch.json output data structure example</b></summary>
+
+Most of the fields are identical to the `.alienmatcher.json` format. We describe
+the others in the comments below:
+
+<!--  hacky trick: using python syntax highlightning to be able to put comments, not allowed in json -->
+
+```python
+{
+  "tool": {
+    "name": "aliens4friends.commands.snapmatch",
+    "version": "0.7.0"
+  },
+  "aliensrc": {
+    "name": "zlib",
+    "version": "1.2.11-r0",
+    "filename": "zlib-1.2.11-r0-1eea2d14.aliensrc",
+    "internal_archive_name": "zlib-1.2.11.tar.xz",
+    "alternative_names": [],
+    "files": [
+      {
+        "name": "zlib-1.2.11.tar.xz",
+        "sha1_cksum": "e1cb0d5c92da8e9a8c2635dfa249c341dfd00322",
+        "git_sha1": null,
+        "src_uri": "https://downloads.sourceforge.net/libpng/zlib/1.2.11/zlib-1.2.11.tar.xz",
+        "files_in_archive": 253,
+        "paths": []
+      },
+      {
+        "name": "ldflags-tests.patch",
+        "sha1_cksum": "f370a10d1a454cdcd07a8d164fe0d65b32b6d2a9",
+        "git_sha1": null,
+        "src_uri": "file://ldflags-tests.patch",
+        "files_in_archive": false,
+        "paths": []
+      },
+      {
+        "name": "run-ptest",
+        "sha1_cksum": "8236e92debcc7a83144d0c4a3b51e0aa258acc7f",
+        "git_sha1": null,
+        "src_uri": "file://run-ptest",
+        "files_in_archive": false,
+        "paths": []
+      }
+    ]
+  },
+  "match": {
+    "name": "zlib",
+    "version": "1:1.2.11.dfsg-1",
+    "score": 99.5,
+    "distance": 0,
+    "package_score": 100,
+    "version_score": 99,
+    "package_score_ident": "Ident or alias match",	  # Reason of the package name score above
+    "version_score_ident": "Version distance <= 10",  # Reason of the package version score above
+    "debsrc_debian": "debian/zlib/1:1.2.11.dfsg-1/zlib_1.2.11.dfsg-1.debian.tar.xz",
+    "debsrc_orig": "debian/zlib/1:1.2.11.dfsg-1/zlib_1.2.11.dfsg.orig.tar.gz",
+    "dsc_format": "3.0 (quilt)",
+	# Same structure as the "aliensrc/files" section above, but for the remote
+	# Debian repositories of the matching package
+    "srcfiles": [
+      {
+        "name": "zlib_1.2.11.dfsg-1.dsc",
+        "sha1_cksum": "f2bea8c346668d301c0c7745f75cf560f2755649",
+        "git_sha1": null,
+        "src_uri": "https://snapshot.debian.org/file/f2bea8c346668d301c0c7745f75cf560f2755649",
+        "files_in_archive": false,
+        "paths": [
+          "/pool/main/z/zlib"
+        ]
+      },
+      {
+        "name": "zlib_1.2.11.dfsg.orig.tar.gz",
+        "sha1_cksum": "1b7f6963ccfb7262a6c9d88894d3a30ff2bf2e23",
+        "git_sha1": null,
+        "src_uri": "https://snapshot.debian.org/file/1b7f6963ccfb7262a6c9d88894d3a30ff2bf2e23",
+        "files_in_archive": false,
+        "paths": [
+          "/pool/main/z/zlib"
+        ]
+      },
+      {
+        "name": "zlib_1.2.11.dfsg-1.debian.tar.xz",
+        "sha1_cksum": "c3b2bac9b1927fde66b72d4f98e4063ce0b51f34",
+        "git_sha1": null,
+        "src_uri": "https://snapshot.debian.org/file/c3b2bac9b1927fde66b72d4f98e4063ce0b51f34",
+        "files_in_archive": false,
+        "paths": [
+          "/pool/main/z/zlib"
+        ]
+      }
+    ]
+  },
+  "errors": []
+}
+```
+</details></p>
+
+#### Option 3: aliens4friends match and snapmatch combined
+
+We run first the `match` command, because it is fast and finds often already a
+good enough matching package on Debian.
+
+Execute:
+```sh
+aliens4friends match -s MYSESSION
+```
+
+Our `session.json` has now a list of packages with their matching score, that is
+a indicator how close one of our AlienPackages are to a Debian package. The
+score is a number between 0 and 100. Lets say we agree that we need only to
+search for a better match for packages with a score below 80. So we can filter
+out all packages, that have already a good matching candidate (high matching
+score).
+
+Execute:
+```sh
+aliens4friends session --filter score-gt=80 -s MYSESSION
+```
+
+Hint: See [Session Filters](#session-filters) if you want to know more.
+
+Finally, we run the `snapmatch` command against the remaining packages.
+Execute:
+```sh
+aliens4friends snapmatch -s MYSESSION
+```
+
+
 ### Step 6: Scan the code to detect license/copyright information
 
 - INPUT: `.aliensrc` files inside the pool, and if possible `.alienmatcher.json`
-  results.
+  or `.snapmatch.json` results.
 - OUTPUT: `.scancode.json` and `.scancode.spdx` files inside the `userland` pool
   path of the currently processed package (and also inside the corresponding
   `debian` pool path of the matching debian package, if any). For
@@ -522,42 +720,35 @@ chapter
 
 Execute
 
-This might take several minutes, hours or even days, depending on your
-machine's horsepower and on the number and size of packages to scan; please keep
-in mind that ScanCode will use all the available cores of your machine during
-scan:
+This might take several minutes, hours or even days, depending on your machine's
+horsepower and on the number and size of packages to scan; please keep in mind
+that ScanCode will use all the available cores of your machine during scan:
 
 ```sh
-aliens4friends scan
-```
-
-It is also possibile to specify the name and version of a single package, or
-use wildcards to scan groups of packages (as in the previous steps).
-
-```sh
-aliens4friends scan 'zlib*'
-aliens4friends scan 'gcc' '*'
+aliens4friends scan -s MYSESSION
 ```
 
 The scan will be executed on the alien source package's main archive, and if a
-match was found on Debian during `match`, also on that source package.
+match was found on Debian during `match` or `snapmatch`, also on that source
+package. The default matcher used is `snapmatch`, but with the
+`--use-oldmatcher` parameter it is possible to switch to `match`.
 
 <p><details>
 <summary><b>See "aliens4friends scan --help" output for details.</b></summary>
 
 ```
-usage: aliens4friends scan [-h] [-i] [-v | -q] [-p] [glob_name] [glob_version]
-
-positional arguments:
-  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
-  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+usage: aliens4friends scan [-h] [-i] [-v | -q] [--dryrun] [-p] [--use-oldmatcher] -s SESSION
 
 optional arguments:
-  -h, --help          show this help message and exit
-  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
-  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
-  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
-  -p, --print         Print result also to stdout.
+  -h, --help            show this help message and exit
+  -i, --ignore-cache    Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose         Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet           Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  --dryrun              Log operations to be done without doing anything
+  -p, --print           Print result also to stdout.
+  --use-oldmatcher      Use the old alienmatcher.json input files, not snapmatch.json.
+  -s SESSION, --session SESSION
+                        Use a session to create a list of packages, otherwise all packages inside the pool are used
 ```
 
 </details></p>
@@ -570,31 +761,35 @@ copyright statements (if any) have changed, not if just code has changed.
 
 
 - INPUT: `.scancode.json` files inside `userland` and `debian` pool paths
-  related to each alien package and its corresponding debian package
+  related to each alien package and its corresponding debian package, and also
+  `.alienmatcher.json` or `.snapmatch.json` results.
 - OUTPUT: `.deltacode.json` file inside `userland`
 
 Execute:
 
 ```sh
-aliens4friends delta
+aliens4friends delta -s MYSESSION
 ```
+
+The default matcher used is `snapmatch`, but with the `--use-oldmatcher`
+parameter it is possible to switch to `match`.
 
 <p><details>
 <summary><b>See "aliens4friends delta --help" output for details.</b></summary>
 
 ```
-usage: aliens4friends delta [-h] [-i] [-v | -q] [-p] [glob_name] [glob_version]
-
-positional arguments:
-  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
-  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+usage: aliens4friends delta [-h] [-i] [-v | -q] [--dryrun] [-p] [--use-oldmatcher] -s SESSION
 
 optional arguments:
-  -h, --help          show this help message and exit
-  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
-  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
-  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
-  -p, --print         Print result also to stdout.
+  -h, --help            show this help message and exit
+  -i, --ignore-cache    Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose         Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet           Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  --dryrun              Log operations to be done without doing anything
+  -p, --print           Print result also to stdout.
+  --use-oldmatcher      Use the old alienmatcher.json input files, not snapmatch.json.
+  -s SESSION, --session SESSION
+                        Use a session to create a list of packages, otherwise all packages inside the pool are used
 ```
 
 </details></p>
@@ -607,8 +802,8 @@ optional arguments:
 ```python
 {
   "tool": {
-    "name": "aliens4friends.deltacodeng",
-    "version": "0.3"
+    "name": "aliens4friends.commons.deltacodeng",
+    "version": "0.7.0"
   },
   "header": {
     "compared_json_files": {
@@ -688,8 +883,8 @@ optional arguments:
 
 ### Step 8: Create Debian SPDX file from debian/copyright file
 
-- INPUT: debian source files downloaded by
-  [alienmatcher](#step-5-find-a-matching-debian-source-package)
+- INPUT: debian source files downloaded by [match or
+  snapmatch](#step-5-find-a-matching-debian-source-package)
 - OUTPUT: `.debian.spdx` and `_debian_copyright` file in the `debian` pool path
   of the debian package
 
@@ -713,27 +908,28 @@ into the `debian` pool path of the debian package, to allow manual inspection.
 Execute:
 
 ```sh
-aliens4friends spdxdebian
+aliens4friends spdxdebian -s MYSESSION
 ```
 
-You can also pass package name and version as parameters, and use wildcards, as
-in the steps above.
+The default matcher used is `snapmatch`, but with the `--use-oldmatcher`
+parameter it is possible to switch to `match`.
 
 <p><details>
 <summary><b>See "aliens4friends spdxdebian --help" output for details.</b></summary>
 
 ```
-usage: aliens4friends spdxdebian [-h] [-i] [-v | -q] [-p] [glob_name] [glob_version]
-
-positional arguments:
-  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
-  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+usage: aliens4friends spdxdebian [-h] [-i] [-v | -q] [--dryrun] [-p] [--use-oldmatcher] -s SESSION
 
 optional arguments:
-  -h, --help          show this help message and exit
-  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
-  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
-  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  -h, --help            show this help message and exit
+  -i, --ignore-cache    Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose         Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet           Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  --dryrun              Log operations to be done without doing anything
+  -p, --print           Print result also to stdout.
+  --use-oldmatcher      Use the old alienmatcher.json input files, not snapmatch.json.
+  -s SESSION, --session SESSION
+                        Use a session to create a list of packages, otherwise all packages inside the pool are used
 ```
 
 </details></p>
@@ -742,7 +938,8 @@ optional arguments:
 
 - INPUT: `.scancode.spdx` and `.deltacode.spdx` files in the `userland` pool
   path of the alien package, and `.debian.spdx` file in the `debian` pool path
-  of the matching debian package
+  of the matching debian package, and also `.alienmatcher.json` or
+  `.snapmatch.json` results.
 - OUTPUT: `.alien.spdx` file in the `userland` pool path of the alien package.
 
 If the alien package has no main source archive, or if there is no matching
@@ -784,29 +981,30 @@ to apply `debian/copyright` metadata or not, for each alien package file.
 Execute:
 
 ```sh
-aliens4friends spdxalien
+aliens4friends spdxalien -s MYSESSION
 ```
 
-You can also pass package name and version as parameters, and use wildcards, as
-in the steps above.
+The default matcher used is `snapmatch`, but with the `--use-oldmatcher`
+parameter it is possible to switch to `match`.
 
 <p><details>
 <summary><b>See "aliens4friends spdxalien --help" output for details.</b></summary>
 
 
 ```
-usage: aliens4friends spdxalien [-h] [-i] [-v | -q] [-p] [glob_name] [glob_version]
-
-positional arguments:
-  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
-  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+usage: aliens4friends spdxalien [-h] [-i] [-v | -q] [--dryrun] [--apply-debian-full] [-p] [--use-oldmatcher] -s SESSION
 
 optional arguments:
-  -h, --help          show this help message and exit
-  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
-  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
-  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
-  -p, --print         Print result also to stdout.
+  -h, --help            show this help message and exit
+  -i, --ignore-cache    Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose         Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet           Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  --dryrun              Log operations to be done without doing anything
+  --apply-debian-full   apply all debian/copyright decisions as LicenseConcluded in full, without any filter
+  -p, --print           Print result also to stdout.
+  --use-oldmatcher      Use the old alienmatcher.json input files, not snapmatch.json.
+  -s SESSION, --session SESSION
+                        Use a session to create a list of packages, otherwise all packages inside the pool are used
 ```
 
 </details></p>
@@ -869,6 +1067,12 @@ saved, in json format, within a `.fossy.json` file.
 [^javatools]: Python spdx tools, widely used in this project, have incomplete
 spdx/rdf support
 
+Execute:
+
+```sh
+aliens4friends upload --folder my-folder-on-fossology -s MYSESSION
+```
+
 <p><details>
 <summary><b>click to see .fossy.json output data structure example</b></summary>
 
@@ -913,17 +1117,19 @@ spdx/rdf support
 <summary><b>See "aliens4friends upload --help" output for details.</b></summary>
 
 ```
-usage: aliens4friends upload [-h] [-i] [-v | -q] [glob_name] [glob_version]
-
-positional arguments:
-  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
-  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+usage: aliens4friends upload [-h] [-i] [-v | -q] [--dryrun] [--description DESCRIPTION] --folder FOLDER -s SESSION
 
 optional arguments:
-  -h, --help          show this help message and exit
-  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
-  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
-  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  -h, --help            show this help message and exit
+  -i, --ignore-cache    Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose         Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet           Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  --dryrun              Log operations to be done without doing anything
+  --description DESCRIPTION
+                        Fossology upload description
+  --folder FOLDER       Fossology folder where to upload Alien Packages
+  -s SESSION, --session SESSION
+                        Use a session to create a list of packages, otherwise all packages inside the pool are used
 ```
 
 </details></p>
@@ -954,77 +1160,122 @@ file paths are not represented in a way conformant to SPDX specs.
 
 [^fossology2]: Even if `.alien.spdx` was imported into Fossology at Step 9,
 Fossology does not collect package-level metadata from imported SPDX files, so
-such metadata need to be added again at this Step 10.
+such metadata need to be added again at this Step 11.
+
+Execute:
+
+```sh
+aliens4friends fossy -s MYSESSION
+```
 
 <p><details>
 <summary><b>See "aliens4friends fossy --help" output for details.</b></summary>
 
 ```
-usage: aliens4friends fossy [-h] [-i] [-v | -q] [glob_name] [glob_version]
-
-positional arguments:
-  glob_name           Wildcard pattern to filter by package names. Do not forget to quote it!
-  glob_version        Wildcard pattern to filter by package versions. Do not forget to quote it!
+usage: aliens4friends fossy [-h] [--sbom] [-i] [-v | -q] [--dryrun] -s SESSION
 
 optional arguments:
-  -h, --help          show this help message and exit
-  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This
-                      overrides the A4F_CACHE env var.
-  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
-  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  -h, --help            show this help message and exit
+  --sbom                Create a SPDX Bill Of Material (sbom) file
+  -i, --ignore-cache    Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose         Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet           Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  --dryrun              Log operations to be done without doing anything
+  -s SESSION, --session SESSION
+                        Use a session to create a list of packages, otherwise all packages inside the pool are used
 ```
 
 </details></p>
 
-### Step 12: Enrich the result with tinfoilhat
+### Step 12: Harvest all results and create a final report
 
-- INPUT: `.tinfoilhat.json` file, generated through [TinfoilHat]
-
-This is a Yocto/BitBake-specific step. Add `.tinfoilhat.json` results to the
-pool to get more details to be included in the final statistics.
-
-`.tinfoilhat.json` files contain data that are specific to the particular
-bitbake project that is being scanned, such as `DISTRO`, `IMAGE_NAME` and
-`MACHINE` tags, as well as metadata about binary packages generated from the
-analyzed  sources. For more details, refer to the [TinfoilHat] project
-documentation.
+- INPUT: `.deltacode.json`, `.scancode.json`, `.fossy.json`, `.snapmatch.json`
+  and `.alienmatcher.json` files
+- OUTPUT: `POOL/stats/<some-dated-name>.harvest.json` as report for the graphical Dashboard
 
 Execute:
 
 ```sh
-aliens4friends add zlib-1.2.11-r0.tinfoilhat.json
+aliens4friends harvest -s MYSESSION
 ```
 
-### Step 13: Harvest all results and create a final report
-
-- INPUT: `.deltacode.json`, `.scancode.json`, `.fossy.json` and `.alienmatcher.json` files
-- OUTPUT: `POOL/stats/<some-dated-name>.json` as report for the graphical Dashboard
-
-Execute:
-
-```sh
-aliens4friends harvest
-```
+The default matcher used is `snapmatch`, but with the `--use-oldmatcher`
+parameter it is possible to switch to `match`.
 
 <p><details>
 <summary><b>See "aliens4friends harvest --help" output for details.</b></summary>
 
 ```
-usage: aliens4friends harvest [-h] [-i] [-v | -q] [-p] [--add-details] [--add-missing]
+usage: aliens4friends harvest [-h] [-i] [-v | -q] [--dryrun] [-p] [--add-missing] [--filter-snapshot FILTER_SNAPSHOT] [-b WITH_BINARIES [WITH_BINARIES ...]] [-o OUTPUT] [--use-oldmatcher] -s SESSION
 
 optional arguments:
-  -h, --help          show this help message and exit
-  -i, --ignore-cache  Ignore the cache pool and overwrite existing results and tmp files. This
-                      overrides the A4F_CACHE env var.
-  -v, --verbose       Show debug output. This overrides the A4F_LOGLEVEL env var.
-  -q, --quiet         Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
-  -p, --print         Print result also to stdout.
-  --add-details       Add more information to the report while harvesting.
-  --add-missing       Add missing input files to the report while harvesting.
+  -h, --help            show this help message and exit
+  -i, --ignore-cache    Ignore the cache pool and overwrite existing results and tmp files. This overrides the A4F_CACHE env var.
+  -v, --verbose         Show debug output. This overrides the A4F_LOGLEVEL env var.
+  -q, --quiet           Show only warnings and errors. This overrides the A4F_LOGLEVEL env var.
+  --dryrun              Log operations to be done without doing anything
+  -p, --print           Print result also to stdout.
+  --add-missing         Add missing input files to the report while harvesting.
+  --filter-snapshot FILTER_SNAPSHOT
+                        keep only tagged releases plus the given snapshot release
+  -b WITH_BINARIES [WITH_BINARIES ...], --with-binaries WITH_BINARIES [WITH_BINARIES ...]
+                        Add only given binary_packages to the report while harvesting, separate multiple entries with space.
+  -o OUTPUT, --output OUTPUT
+                        Write results into this path
+  --use-oldmatcher      Use the old alienmatcher.json input files, not snapmatch.json.
+  -s SESSION, --session SESSION
+                        Use a session to create a list of packages, otherwise all packages inside the pool are used
 ```
 
 </details></p>
 
+## Special commands
+
+### CVEcheck
+
+- INPUT: `POOL/stats/<some-dated-name>.harvest.json`
+- OUTPUT: `POOL/stats/<some-dated-name>.harvest.cve.json` as report for the graphical Dashboard
+
+Check potential security vulnerabilities for debian-like software packages. The
+command searches the current national vulnerability database
+([NIST](https://nvd.nist.gov/vuln/data-feeds)) and try to find potential
+security vulnerabilities for the searched software product. Local copies of NIST
+database feeds will be updated once every 24h.
+
+The retrieved CVE's can be searched by `vendor`, `product` and `version`.
+Alternatively, an existing `harvest.json` can be parsed and automatically
+supplemented with appropriate results.
+
+Execute:
+
+```sh
+aliens4friends cvecheck -s MYSESSION
+```
+
+
+
+### Session
+
+#### Filter
+
+You can filter out packages from the current session's package list with
+
+```sh
+aliens4friends session --filter [FILTER_NAME]
+```
+
+Filters are:
+- `score-gt=[a-number]`: to filter out all package with a score greater than `a-number`
+- `include-exclude=[json-file]`: to hardcode includes or excludes of packages per name
+    ```json
+	{
+      "include": [],
+      "exclude": []
+    }
+	```
+- `only-uploaded`: to select only packages that were uploaded to Fossology, that
+  is, which were not already present on fossology. This filter is only useful
+  after a `fossy` or `upload` invocation
 
 ## Installation and execution with docker
 
