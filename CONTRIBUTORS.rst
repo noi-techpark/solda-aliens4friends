@@ -22,12 +22,12 @@
  exit;
 **Contributors (sorted by number of commits):**
 
-* Alberto Pianon <alberto@pianon.eu>
+* Alberto Pianon <pianon@array.eu>
 * Peter Moser <p.moser@noi.bz.it>
 * Alex Complojer <alex@agon-e.com>
 * Martin Rabanser <martin.rabanser@rmb.bz.it>
-* Rahul Mohan Geetha <rahulmohang@gmail.com>
 * Luca Miotto <l.miotto@noi.bz.it>
+* Rahul Mohan Geetha <rahulmohang@gmail.com>
 * Patrick Bertolla <p.bertolla@noi.bz.it>
 * Carlo Piana <carlo@piana.eu>
 
