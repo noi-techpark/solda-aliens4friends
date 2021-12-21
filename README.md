@@ -1249,10 +1249,32 @@ supplemented with appropriate results.
 Execute:
 
 ```sh
-aliens4friends cvecheck -s MYSESSION
+aliens4friends cvecheck --harvest my-harvest-file-inside-the-pool.harvest.json
 ```
 
+or
 
+```sh
+aliens4friends cvecheck --vendor intel --product sgx_dcap --version 1.10.100.4
+```
+
+<p><details>
+<summary><b>See "aliens4friends cvecheck --help" output for details.</b></summary>
+
+```
+usage: aliens4friends cvecheck [-h] [--product [PRODUCT]] [--version [VERSION]] [--vendor [VENDOR]] [--startfrom [STARTFROM]] [--harvest [HARVEST]]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --product [PRODUCT]   Product slug
+  --version [VERSION]   Version slug
+  --vendor [VENDOR]     Vendor slug
+  --startfrom [STARTFROM]
+                        Only CVEs after YYYY
+  --harvest [HARVEST]   harvest.json file name in pool. If option is set,
+                        single arguments will be ignored and harvest.json will be
+                        scanned instead. A .cve.json will be saved in pool stats dir
+```
 
 ### Session
 
