@@ -9,10 +9,6 @@ stages:
   - test
   - dockerize
 
-include:
- - project: 'OSTC/infrastructure/pipelines'
-   file: 'reuse.yaml'
-
 .pythonreq:
   stage: test
   only: [ branches, tags, merge_requests ]  # Add this, because merge requests are not triggered by default
@@ -37,8 +33,12 @@ unittests:
 
 reuse:
   stage: test
-  extends: .reuse
   only: [ branches, tags, merge_requests ]
+  image:
+    name: fsfe/reuse:latest
+    entrypoint: [""]
+  script:
+    - reuse lint
 
 .dockerize:
   tags: [ soldaprod, docker, minimal ]
@@ -53,8 +53,9 @@ reuse:
     - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
       when: manual
 
+  # FIXME: Remove hardcoded urls and registry names
   variables:
-    CI_REGISTRY_BASE: $CI_REGISTRY/oss-compliance/toolchain/aliens4friends
+    CI_REGISTRY_BASE: $CI_REGISTRY/solda/aliens4friends
   before_script:
     - apk update && apk add --no-cache git
   script:
@@ -63,7 +64,7 @@ reuse:
     - docker pull $CI_REGISTRY_IMAGE:latest || true
     - |
       if [ -n "$TINFOILHAT" ]; then
-        export GIT_COMMIT="$(git ls-remote https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat.git  HEAD | cut -f 1)"
+        export GIT_COMMIT="$(git ls-remote https://gitlab.com/noi-techpark-premium/solda/toolchain/tinfoilhat.git  HEAD | cut -f 1)"
         docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest --build-arg GIT_REF="$GIT_COMMIT" . -f $DOCKERFILE
       else
         docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest . -f $DOCKERFILE
