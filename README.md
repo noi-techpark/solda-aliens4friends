@@ -1280,6 +1280,7 @@ optional arguments:
                         single arguments will be ignored and harvest.json will be
                         scanned instead. A .cve.json will be saved in pool stats dir
 ```
+</details></p>
 
 #### Result of CVE checks
 
