@@ -1574,7 +1574,7 @@ If you need the docker command as a non-root user (`$USER`), execute these comma
 sudo usermod -aG docker $USER
 docker container run hello-world
 ```
-... the last command is a test a non-root user.
+... the last command is to test a non-root-user execution.
 
 ## Install a Gitlub Runner on a Linux machine
 
@@ -1602,12 +1602,14 @@ add/change the following lines under `[[runners]]...name = "soldademo-docker"`:
     disable_entrypoint_overwrite = false
     oom_kill_disable = false
     disable_cache = false
-    volumes = ["/cache", "/build/gitlab-runner:/build:rw", "/var/run/docker.sock:/var/run/docker.sock"]
+    volumes = ["/cache", "/build:/build:rw", "/a4fpool:/a4fpool:rw", "/var/run/docker.sock:/var/run/docker.sock"]
 ```
 
-Where `/build/gitlab-runner` is your hosts build directory, where
-`yocto/bitbake` stores its outputs, caches, downloads etc. In addition,
-`aliens4friends` has its pool there.
+Where `/build` is your hosts build directory, where `yocto/bitbake` stores its
+outputs, caches, downloads etc. In addition, `aliens4friends` has its pool
+inside `/a4fpool`. If you need also other pools, to exploit other runner's
+caches, mount that too. For example, add `"/ostc:/ostc"` to the `volumes` array.
+Read access is sufficient here.
 
 `"/var/run/docker.sock:/var/run/docker.sock"` on the other hand is used to
 access the docker daemon on the host. We need also to set `privileged = true`
