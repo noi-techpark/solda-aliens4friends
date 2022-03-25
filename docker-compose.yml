@@ -5,7 +5,7 @@ version: '3.4'
 services:
   fossology:
     build:
-      dockerfile: infrastructure/docker/fossology.dockerfile
+      dockerfile: infrastructure/docker/fossology/fossology.dockerfile
       context: .
       args:
         FOSSOLOGY_REPO_PATH: /
