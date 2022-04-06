@@ -35,7 +35,7 @@ class Fossy(Command):
 	def run(self, path) -> Union[str, bool]:
 		name, version, variant, _, _ = self.pool.packageinfo_from_path(path)
 
-		cur_pckg = f"{name}-{version}"
+		cur_pckg = f"{name}-{version}-{variant}"
 		cur_path = os.path.join(
 			Settings.PATH_USR,
 			name,
@@ -99,4 +99,3 @@ class Fossy(Command):
 			raise CommandError(f"[{cur_pckg}] ERROR: {ex}")
 
 		return alien_fossy_json_path
-
