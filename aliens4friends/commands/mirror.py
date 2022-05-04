@@ -31,3 +31,4 @@ class Mirror(Command):
 		mirror2pg = Mirror2pg(path)
 		mirror2pg.do_stuff()
 		return
+
