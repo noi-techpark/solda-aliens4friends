@@ -1,8 +1,12 @@
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
+
 from aliens4friends.commands.command import Command, CommandError, Processing
 from aliens4friends.commons.pool import FILETYPE
 from aliens4friends.models.tinfoilhat import TinfoilHatModel
 
 from aliens4friends.commons.mirror import Mirror2pg
+# FIXME this class need to be implemented
 
 logger = logging.getLogger(__name__)
 
