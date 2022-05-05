@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from .base import BaseModel
-from .tinfoilhat import RecipeCveMetaData, RecipeMetaData
+from .tinfoilhat import RecipeCveMetaData, RecipeMetaData, BBLayer
 from .common import License, Tool, SourceFile
 from typing import Any, Dict, List, Optional, Set, Union
 
@@ -153,7 +153,8 @@ class SourcePackage(BaseModel):
 		cve_metadata: Optional[RecipeCveMetaData] = None,
 		statistics: Optional[Statistics] = None,
 		binary_packages: Optional[List[BinaryPackage]] = None,
-		tags: Optional[ Dict[str, Union[List[str], Set[str]]] ] = None
+		tags: Optional[ Dict[str, Union[List[str], Set[str]]] ] = None,
+		layer: Optional[BBLayer] = None
 	):
 		self.id = id
 		self.name = name
@@ -168,6 +169,7 @@ class SourcePackage(BaseModel):
 		self.cve_metadata = RecipeCveMetaData.decode(cve_metadata)
 		self.binary_packages = BinaryPackage.drilldown(binary_packages)
 		self.tags = aggregate_tags(tags)
+		self.layer = layer
 
 class HarvestModel(BaseModel):
 
