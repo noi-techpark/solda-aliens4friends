@@ -16,9 +16,10 @@ logger = logging.getLogger(__name__)
 
 class BBLayer(BaseModel):
 	def __init__(
+		self,
 		layer_path: str,
-	    remote: str = None,
-	    revision: str = None
+	    remote: Optional[str] = None,
+	    revision: Optional[str] = None
 	):
 		self.layer_path = layer_path
 		self.remote = remote
