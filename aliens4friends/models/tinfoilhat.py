@@ -14,6 +14,17 @@ from aliens4friends.commons.utils import sha1sum_str
 
 logger = logging.getLogger(__name__)
 
+class BBLayer(BaseModel):
+	def __init__(
+		self,
+		layer_path: str,
+	    remote: Optional[str] = None,
+	    revision: Optional[str] = None
+	):
+		self.layer_path = layer_path
+		self.remote = remote
+		self.revision = revision
+
 class SourceFile(BaseModel):
 	def __init__(
 		self,
@@ -22,7 +33,8 @@ class SourceFile(BaseModel):
 		src_uri: Optional[str] = None,
 		sha1_cksum: Optional[str] = None,
 		git_sha1: Optional[str] = None,
-		tags: Optional[List[str]] = None
+		tags: Optional[List[str]] = None,
+		override_layer: Optional[BBLayer] = None
 	) -> None:
 		self.rootpath = rootpath
 		self.relpath = relpath
@@ -32,6 +44,7 @@ class SourceFile(BaseModel):
 		self.tags = tags
 		# TODO: a specific class for tags should be added,
 		# like in tinfoilhat
+		self.override_layer = override_layer
 
 class FileWithSize(BaseModel):
 	def __init__(
@@ -286,11 +299,13 @@ class Recipe(BaseModel):
 		metadata: Optional[RecipeMetaData] = None,
 		cve_metadata: Optional[RecipeCveMetaData] = None,
 		source_files: Optional[List[SourceFile]] = None,
+		layer: Optional[BBLayer] = None,
 		chk_sum: Optional[str] = None
 	) -> None:
 		self.metadata = RecipeMetaData.decode(metadata)
 		self.cve_metadata = RecipeCveMetaData.decode(cve_metadata)
 		self.source_files = SourceFile.drilldown(source_files)
+		self.layer = layer
 		self.chk_sum = chk_sum
 
 
@@ -339,12 +354,15 @@ class Container(BaseModel):
 						"root.recipe.metadata.summary", # (U)
 						"root.recipe.metadata.depends_provides", # (I)
 						"root.recipe.cve_metadata", # (M)
+						"root.recipe.layer", # (U)
+						"root.recipe.metadata.license", # (U)
 					],
 					exclude_regex_paths=[
 						r"root.recipe.source_files\[\d+\].tags", # (M)
 						r"root.recipe.source_files\[\d+\].src_uri", # (U)
 						r"root.recipe.source_files\[\d+\].rootpath", # (I)
 						r"root.recipe.source_files\[\d+\].relpath", # (U) # FIXME workaround, handlye filename changes instead
+						r"root.recipe.source_files\[\d+\].override_layer", # (U)
 					]
 				)
 				if diff:
@@ -366,17 +384,17 @@ class Container(BaseModel):
 					old[id].recipe.cve_metadata,
 					new[id].recipe.cve_metadata
 				)
-				old_files = { 
-					f'{s.relpath}-{s.git_sha1 or s.sha1_cksum}': s 
-					for s in old[id].recipe.source_files 
+				old_files = {
+					f'{s.relpath}-{s.git_sha1 or s.sha1_cksum}': s
+					for s in old[id].recipe.source_files
 				}
-				new_files = { 
-					f'{s.relpath}-{s.git_sha1 or s.sha1_cksum}': s 
-					for s in res[id].recipe.source_files 
+				new_files = {
+					f'{s.relpath}-{s.git_sha1 or s.sha1_cksum}': s
+					for s in res[id].recipe.source_files
 					# res[id] here is on purpose, we need to modify
-					# its contents by reference; 
+					# its contents by reference;
 					# it has been deepcopied from new[id]
-				} 
+				}
 				for file_id in new_files:
 					if old_files.get(file_id): # FIMXE workaround (see above)
 						new_files[file_id].tags = list(set(
