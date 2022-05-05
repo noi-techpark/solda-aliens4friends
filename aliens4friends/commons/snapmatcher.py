@@ -19,7 +19,7 @@ from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.utils import md5bin
 from aliens4friends.commons.version import Version
 from aliens4friends.models.alienmatcher import (AlienSnapMatcherModel,
-                                                DebianSnapMatch, SourceFile)
+																								DebianSnapMatch, SourceFile)
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +64,15 @@ class AlienSnapMatcher:
 
 		try:
 			response = pool.get(api_response_cached)
+			return json.loads(response)
 		except FileNotFoundError:
 			logger.debug(f"API call result not found in cache. Making an API call...")
+		attempts = 1
+		while attempts <= 10:
 			try:
 				time.sleep(AlienSnapMatcher.REQUEST_THROTTLE)
-				response = requests.get(uri)
+				logger.debug(f"trying to get {uri} (attempt {attempts}/10)")
+				response = requests.get(uri, timeout=10)
 				if response.status_code != 200:
 					raise AlienSnapMatcherError(
 						f"Cannot get API response, got error {response.status_code}"
@@ -77,10 +81,19 @@ class AlienSnapMatcher:
 				with open(Settings.POOLPATH + "/" + api_response_cached, "w") as f:
 					f.write(response.text)
 				response = response.text
+				logger.debug("got response!")
+				return json.loads(response)
+			except (requests.ConnectTimeout, requests.ReadTimeout):
+				logger.debug("Timeout!")
+				attempts += 1
+				continue
 			except NewConnectionError:
 				logger.error(f"Target temporarily not reachable {uri}")
+				attempts += 1
+				continue
+		logger.error(f"could not get response from {uri}")
+		return json.loads("{}")
 
-		return json.loads(response)
 
 	# name & version-match for debian packages.
 	def match(self, apkg: AlienPackage, amm: AlienSnapMatcherModel) -> None:
@@ -165,7 +178,7 @@ class AlienSnapMatcher:
 		# So we need a slightly more complex logic that one may expect to
 		# reliably collect all relevant source files and related metadata from
 		# Snapshot Debian API even in "package variant" cases.
-		
+
 		snap_match.srcfiles = []
 		uri = (
 			AlienSnapMatcher.API_URL_ALLSRC
@@ -173,9 +186,9 @@ class AlienSnapMatcher:
 			+ snap_match.version +"/allfiles"
 		)
 		logger.info(f"[{self.curpkg}] Acquire package sources from " + uri)
-		all_files = { 
-			d["hash"]: self.get_file_info(d["hash"]) 
-			for d in self.get_data(uri)["result"]["source"] 
+		all_files = {
+			d["hash"]: self.get_file_info(d["hash"])
+			for d in self.get_data(uri)["result"]["source"]
 		}
 		# DEBIAN_ARCHIVES are in order of priority; if we find a .dsc file in a
 		# higher priority debian archive, we skip the remainder (this is needed
@@ -263,7 +276,7 @@ class AlienSnapMatcher:
 			if not found:
 				raise AlienSnapMatcherError(
 					"file/checksum mismatch in debian package"
-					f" {snap_match.name} {snap_match.version}:"					
+					f" {snap_match.name} {snap_match.version}:"
 				)
 		for srcfile in snap_match.srcfiles:
 			if srcfile.name.endswith('.dsc') or srcfile.name.endswith(".asc"):
@@ -301,8 +314,8 @@ class AlienSnapMatcher:
 		)
 
 	def download_to_debian_pool(
-		self, 
-		snap_match: DebianSnapMatch, 
+		self,
+		snap_match: DebianSnapMatch,
 		srcfile: SourceFile
 	) -> None:
 		try:
@@ -320,10 +333,23 @@ class AlienSnapMatcher:
 				f"[{self.curpkg}] Trying to download deb source {srcfile.name}"
 				f" from {srcfile.src_uri}."
 			)
-			r = requests.get(srcfile.src_uri)
-			if r.status_code != 200:
+			r = None
+			attempts = 1
+			while attempts <= 10:
+				try:
+					logger.debug(f"attempt {attempts}/10")
+					r = requests.get(srcfile.src_uri, timeout=20)
+					if r.status_code != 200:
+						raise AlienSnapMatcherError(
+							f"Error {r.status_code} in downloading {srcfile.name}"
+						)
+					break
+				except (requests.ConnectTimeout, requests.ReadTimeout):
+					logger.debug("Timeout!")
+					attempts += 1
+			if not r:
 				raise AlienSnapMatcherError(
-					f"Error {r.status_code} in downloading {srcfile.name}"
+					f"Couldn't download {srcfile.name}"
 				)
 			local_path = self.pool.write(
 				r.content,
