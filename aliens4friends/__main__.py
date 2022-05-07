@@ -251,6 +251,14 @@ class Aliens4Friends:
 			help= "apply all debian/copyright decisions as LicenseConcluded in full, without any filter"
 		)
 
+	def _args_skip_scancode_licenses(self, parser: argparse.ArgumentParser) -> None:
+		parser.add_argument(
+			"--skip-scancode-licenses",
+			action = "store_true",
+			default= False,
+			help= "do not include scancode license findings"
+		)
+
 	def config(self) -> None:
 		for k, v in Settings.DOTENV.items():
 			print(f"{k}={v}")
@@ -408,6 +416,7 @@ class Aliens4Friends:
 		)
 		self._args_defaults(self.parsers[cmd])
 		self._args_apply_debian_full(self.parsers[cmd])
+		self._args_skip_scancode_licenses(self.parsers[cmd])
 		self._args_print_to_stdout(self.parsers[cmd])
 		self._args_use_oldmatcher(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
@@ -639,6 +648,7 @@ class Aliens4Friends:
 		return SpdxAlien.execute(
 			self.args.use_oldmatcher,
 			self.args.apply_debian_full,
+			self.args.skip_scancode_licenses,
 			self.args.session,
 			self.args.dryrun
 		)
