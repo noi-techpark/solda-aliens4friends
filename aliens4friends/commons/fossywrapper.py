@@ -303,7 +303,7 @@ class FossyWrapper:
 
 	def get_summary(self, upload: Upload) -> Any:
 		res = self.fossology.session.get(f"{self.fossology.api}/uploads/{upload.id}/summary")
-		return res.json()
+		return self._process_summary(res.json())
 
 	def get_spdxtv(self, upload: Upload):
 		logger.info(f"[{upload.uploadname}] Generating spdx report")
