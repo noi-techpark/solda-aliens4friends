@@ -71,7 +71,7 @@ class Stats(BaseModel):
 		self.new_files_with_license_or_copyright = new_files_with_license_or_copyright
 		self.old_files_count = old_files_count
 		self.new_files_count = new_files_count
-	
+
 	def calc_proximity(self):
 		similar = (
 			self.same_files
@@ -84,7 +84,7 @@ class Stats(BaseModel):
 			self.changed_files_with_changed_copyright_or_license
 			+ self.new_files_with_license_or_copyright
 		)
-		return similar / (similar + different)
+		return (similar / (similar + different)) if similar > 0 else 0
 		# excluding deleted files and new files with no license/copyright from
 		# the count, on purpose, because here the need is to have  a criterion
 		# to decide whether to apply debian/copyright metadata to the
