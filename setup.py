@@ -31,7 +31,7 @@ setuptools.setup(
         'numpy==1.19.5',
         'python-debian==0.1.39',
         'spdx-tools==0.6.1',
-        'fossology==0.2.0',
+        'fossology==1.5.0',
         'python-dotenv==0.15.0',
         'packaging==20.9',
         'flanker==0.9.11',
