@@ -88,10 +88,11 @@ FILTERS = {
 
 class SessionCmd(Command):
 
-	def __init__(self, session_id: str, create: bool, filter_str: str, new: bool, glob_name: str, glob_version: str):
+	def __init__(self, session_id: str, create: bool, filter_str: str, report: str, new: bool, glob_name: str, glob_version: str):
 		super().__init__(session_id, processing=Processing.SINGLE)
 		self.create = create
 		self.filter_str = filter_str
+		self.report = report
 		self.new = new
 		self.glob_name = "*" if create and not glob_name else glob_name
 		self.glob_version = "*" if create and not glob_version else glob_version
@@ -101,11 +102,12 @@ class SessionCmd(Command):
 		session_id: str = "",
 		create: bool = False,
 		filter_str: str = "",
+		report: str = "",
 		new: bool = False,
 		glob_name: str = "",
 		glob_version: str = ""
 	) -> bool:
-		cmd = SessionCmd(session_id, create, filter_str, new, glob_name, glob_version)
+		cmd = SessionCmd(session_id, create, filter_str, report, new, glob_name, glob_version)
 		return cmd.exec()
 
 	def run(self, _) -> bool:
@@ -158,5 +160,8 @@ class SessionCmd(Command):
 				return  False # we have all error messages inside load(), nothing to do...
 			except FilterError as e:
 				raise CommandError(f"Filter '{filter['name']}' failed with message: {e}") #pytype: disable=unsupported-operands
+
+		if self.report:
+			self.session.generate_report(self.report)
 
 		return True

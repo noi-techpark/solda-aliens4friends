@@ -335,6 +335,12 @@ class Aliens4Friends:
 			default = False,
 			help = "Create a new empty session from a given ID or random string (if absent)"
 		)
+		group.add_argument(
+			"--report",
+			type = str,
+			required = False,
+			help = "Generate a csv report on the session's packages (collecting also Fossology metadata), and save it to REPORT"
+		)
 		self._args_session(self.parsers[cmd], required=False)
 		self._args_glob(self.parsers[cmd])
 
@@ -597,6 +603,7 @@ class Aliens4Friends:
 			self.args.session,
 			self.args.create,
 			self.args.filter,
+			self.args.report,
 			self.args.new,
 			self.args.glob_name,
    			self.args.glob_version,
