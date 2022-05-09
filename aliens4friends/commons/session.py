@@ -1,16 +1,21 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
+import csv
 import logging
 import random
 from typing import Any, Dict, List, Optional
 
 from aliens4friends.commons.pool import FILETYPE, OVERWRITE, SRCTYPE, Pool
 from aliens4friends.commons.settings import Settings
+from aliens4friends.commons.fossywrapper import FossyWrapper
 from aliens4friends.models.session import SessionModel, SessionPackageModel
 from aliens4friends.models.common import Tool
 
 logger = logging.getLogger(__name__)
+
+def csv_truefalse(value: bool) -> str:
+	return "x" if value else ""
 
 class SessionError(Exception):
 	pass
@@ -235,14 +240,63 @@ class Session:
 
 		self.write_package_list(candidates, overwrite=False)
 
+	def generate_report(self, report_filename: str) -> None:
+		report = []
+		logger.debug("connecting to Fossology")
+		fw = FossyWrapper()
+		for p in self.session_model.package_list:
+			uploadname = f"{p.name}@{p.version}-{p.variant}"
+			foldername = ""
+			not_scheduled_agents = "all"
+			uploaded = False
+			scheduled_reportImport = False
+			audit = ""
+			logger.debug(
+				f"checking if {uploadname} has already been uploaded"
+			)
+			upload = fw.check_already_uploaded(uploadname)
+			if upload:
+				foldername = upload.foldername
+				uploaded = True
+				logger.debug(f"checking scheduled agents for {uploadname}")
+				not_scheduled_agents = fw.get_not_scheduled_agents(upload)
+				logger.debug(f"checking reportImport for {uploadname}")
+				scheduled_reportImport = fw.check_already_imported_report(upload)
+				logger.debug(f"getting summary for {uploadname}")
+				summary = fw.get_summary(upload)
+				audit_total = summary["filesCleared"]
+				not_cleared = summary["filesToBeCleared"]
+				cleared = audit_total - not_cleared
+				audit = f"{audit_total} / {cleared} / {not_cleared}"
+			report.append({
+				"package": uploadname,
+				"selected in this session": csv_truefalse(p.selected),
+				"selected reason": p.selected_reason,
+				"uploaded in this session": csv_truefalse(p.uploaded),
+				"uploaded reason": p.uploaded_reason,
+				"uploaded": csv_truefalse(uploaded),
+				"folder": foldername,
+				"not scheduled agents": " ".join(not_scheduled_agents),
+				"scheduled reportImport": scheduled_reportImport,
+				"audit (total / cleared / not cleared)": audit
+			})
+		logger.info(f"writing report to {report_filename}")
+		with open(report_filename, "w") as csvfile:
+			w = csv.DictWriter(
+				csvfile,
+				fieldnames=report[0].keys(),
+				delimiter=',',
+				quotechar='"',
+				quoting=csv.QUOTE_NONNUMERIC
+			)
+			w.writeheader()
+			for row in report:
+				w.writerow(row)
+
+
 	@staticmethod
 	def _random_string(length: int = 16):
 		ranstr = ''
 		for _ in range(length):
 			ranstr += chr(random.randint(ord('a'), ord('z')))
 		return ranstr
-
-
-
-
-
