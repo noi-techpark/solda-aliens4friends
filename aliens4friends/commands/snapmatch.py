@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 # SPDX-License-Identifier: Apache-2.0
 
-import csv
 import logging
 import os
 from typing import Any, Optional
@@ -91,4 +90,3 @@ class SnapMatch(Command):
 			self.pool.write_json(amm, resultpath)
 
 		return amm
-
