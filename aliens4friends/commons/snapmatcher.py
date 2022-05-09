@@ -68,10 +68,10 @@ class AlienSnapMatcher:
 		except FileNotFoundError:
 			logger.debug(f"API call result not found in cache. Making an API call...")
 		attempts = 1
-		while attempts <= 10:
+		while attempts <= 20:
 			try:
 				time.sleep(AlienSnapMatcher.REQUEST_THROTTLE)
-				logger.debug(f"trying to get {uri} (attempt {attempts}/10)")
+				logger.debug(f"trying to get {uri} (attempt {attempts}/20)")
 				response = requests.get(uri, timeout=10)
 				if response.status_code != 200:
 					raise AlienSnapMatcherError(
@@ -244,10 +244,27 @@ class AlienSnapMatcher:
 			# to match them with sha1 checksums in Snapshot Debian API
 			for sha1, info in all_files.items():
 				uri = AlienSnapMatcher.API_URL_FILES + sha1
-				r = requests.get(uri)
-				if r.status_code != 200:
+				r = None
+				attempts = 1
+				while attempts <= 20:
+					try:
+						logger.debug(
+							f"trying to download {info[0].name}"
+							f" from {uri} (attempt {attempts}/20)"
+						)
+						r = requests.get(uri, timeout=20)
+						if r.status_code != 200:
+							raise AlienSnapMatcherError(
+								f"Error {r.status_code} in downloading"
+								f" {info[0].name} from {uri}"
+							)
+						break
+					except (requests.ConnectTimeout, requests.ReadTimeout):
+						logger.debug("Timeout!")
+						attempts += 1
+				if not r:
 					raise AlienSnapMatcherError(
-						f"Error {r.status_code} in downloading {info[0].name}"
+						f"can't download {info[0].name} from {uri}"
 					)
 				md5 = md5bin(r.content)
 				if md5 in dsc_md5_file:
@@ -335,9 +352,9 @@ class AlienSnapMatcher:
 			)
 			r = None
 			attempts = 1
-			while attempts <= 10:
+			while attempts <= 20:
 				try:
-					logger.debug(f"attempt {attempts}/10")
+					logger.debug(f"attempt {attempts}/20")
 					r = requests.get(srcfile.src_uri, timeout=20)
 					if r.status_code != 200:
 						raise AlienSnapMatcherError(
