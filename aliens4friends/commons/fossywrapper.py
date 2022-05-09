@@ -91,7 +91,7 @@ class FossyWrapper:
 				)
 			sleep(10)
 			try:
-				jobs = self.fossology.list_jobs(upload=upload, page_size=2000)
+				jobs, _ = self.fossology.list_jobs(upload=upload,all_pages=True)
 			except Exception:
 				pass
 			if jobs:
@@ -116,11 +116,8 @@ class FossyWrapper:
 
 	def check_already_uploaded(self, uploadname: str) -> Optional[Upload]:
 		logger.info(f"[{uploadname}] Checking if it has already been uploaded")
-		# FIXME upstream: page_size missing in fossology-python 0.2.0, wait that
-		# fossology-python 1.x is made backwards compatibile with API 1.0.16 -
-		# Fossology 3.9.0 (latest release), and upgrade it
-		# https://github.com/fossology/fossology-python/pull/51
-		for upload in self.fossology.list_uploads():
+		all_uploads, _ = self.fossology.list_uploads(all_pages=True)
+		for upload in all_uploads:
 			if uploadname == upload.uploadname:
 				return upload
 
@@ -259,13 +256,25 @@ class FossyWrapper:
 	def check_already_imported_report(self, upload: Upload):
 		return self.get_licenses(upload, ["reportImport",], test=True)
 
+	@staticmethod
+	def _process_licenses(new_json: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+		"""convert json to old 1.0.16 API format, for backwards compatibility"""
+		old_json = []
+		for el in new_json:
+			old_json.append({
+				"filePath": el["filePath"],
+				"agentFindings": el["findings"]["scanner"],
+				"conclusions": el["findings"]["conclusion"]
+			})
+		return old_json
+
 	def get_licenses(self, upload: Upload, agents: list, test: bool = False) -> Union[bool, Any]:
 		params = { "agent":  agents}
 		res = self.fossology.session.get(f"{self.fossology.api}/uploads/{upload.id}/licenses", params=params)
 		if res.status_code == 200:
 			if test:
 				return True
-			return res.json()
+			return self._process_licenses(res.json())
 		elif res.status_code == 403:
 			raise FossyWrapperException(
 				f"Can't get licenses for upload {upload.uploadname} (id={upload.id}): not authorized"
@@ -285,9 +294,16 @@ class FossyWrapper:
 				f"Unknown error: Fossology API returned status code {res.status_code}"
 			)
 
+	@staticmethod
+	def _process_summary(new_json: Dict[str, Any])-> Dict[str, Any]:
+		"""convert json to old 1.0.16 API format, for backwards compatibility"""
+		new_json.pop("assignee", None)
+		return new_json # not necessary, it is already passed by reference, but
+		                # it shouldn't harm
+
 	def get_summary(self, upload: Upload) -> Any:
 		res = self.fossology.session.get(f"{self.fossology.api}/uploads/{upload.id}/summary")
-		return res.json()
+		return self._process_summary(res.json())
 
 	def get_spdxtv(self, upload: Upload):
 		logger.info(f"[{upload.uploadname}] Generating spdx report")
