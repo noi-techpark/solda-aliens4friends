@@ -48,6 +48,7 @@ from aliens4friends.commands.command import Processing
 from aliens4friends.commons.pool import Pool, FILETYPE
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.utils import get_attr_names
+from aliens4friends.commands.mirror import Mirror
 
 PROGNAME = "aliens4friends"
 
@@ -69,7 +70,8 @@ SUPPORTED_COMMANDS = [
 	"session",
 	"comparematch",
 	"listpool",
-	"cvecheck"
+	"cvecheck",
+	"mirror"
 ]
 
 class Aliens4Friends:
@@ -592,6 +594,20 @@ class Aliens4Friends:
 			)
 		)
 
+	def parser_mirror(self, cmd: str) -> None:
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Mirror tinfoilhat JSON files to the PostgreSQL database"
+		)
+		self._args_defaults(self.parsers[cmd])
+		self.parsers[cmd].add_argument(
+			"--mode",
+			choices=["FULL", "DELTA"],
+			default="FULL",
+			help="truncate table and mirror all files (FULL) or just mirror files that are not yet present (DELTA)"
+		)
+		self._args_session(self.parsers[cmd])
+
 	def session(self) -> bool:
 		if (self.args.glob_name or self.args.glob_version) and (self.args.new or self.args.filter):
 			logging.getLogger(PROGNAME).error(
@@ -709,6 +725,15 @@ class Aliens4Friends:
 			self.args.version,
 			self.args.startfrom,
 			self.args.harvest
+		)
+
+	def mirror(self) -> bool:
+		return Mirror.execute(
+			self.args.session,
+			self.args.dryrun,
+			self.args.quiet,
+			self.args.verbose,
+			self.args.mode
 		)
 
 if __name__ == "__main__":
