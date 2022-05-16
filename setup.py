@@ -37,7 +37,7 @@ setuptools.setup(
         'flanker==0.9.11',
         'deepdiff==5.2.3',
         'beautifulsoup4==4.9.3',
-		'psycopg==2.9.1'
+		'psycopg2==2.9.1'
     ],
     scripts=['bin/a4f', 'bin/aliens4friends'],
     license_files=['LICENSE',],
