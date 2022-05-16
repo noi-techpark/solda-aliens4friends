@@ -11,8 +11,8 @@ with open("README.md", "r", encoding="utf-8") as fh:
 setuptools.setup(
     name="aliens4friends",
     version=Settings.VERSION,
-    author="Alberto Pianon, Peter Moser, Martin Rabanser, Alex Complojer",
-    author_email="pianon@array.eu, p.moser@noi.bz.it, martin.rabanser@rmb.bz.it, alex@agon-e.com",
+    author="Alberto Pianon, Peter Moser, Martin Rabanser, Alex Complojer, Chris Mair",
+    author_email="pianon@array.eu, p.moser@noi.bz.it, martin.rabanser@rmb.bz.it, alex@agon-e.com, chris@1006.org",
     description="Aliens4Friends",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -37,6 +37,7 @@ setuptools.setup(
         'flanker==0.9.11',
         'deepdiff==5.2.3',
         'beautifulsoup4==4.9.3',
+		'psycopg==2.9.1'
     ],
     scripts=['bin/a4f', 'bin/aliens4friends'],
     license_files=['LICENSE',],
