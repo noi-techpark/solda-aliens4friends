@@ -20,13 +20,15 @@
 import sys
 import time
 from builtins import object
-from typing import Union
+from typing import Union, Pattern
 import logging
 
 import psycopg2
 
 from aliens4friends.commands.command import Command, Processing
 from aliens4friends.commons.pool import FILETYPE
+from aliens4friends.commons.settings import Settings
+
 
 # from aliens4friends.models.tinfoilhat import TinfoilHatModel
 
@@ -91,7 +93,7 @@ class Mirror(Command):
 
 		In FULL mode, records for the given session will be deleted first, so all files
 		will be inserted. In DELTA mode, (session, filename) pairs that are already present will
-		be left as they are thanks to the on conflict do nothing.
+		be left as they are thanks to the "on conflict do nothing" clause in the insert query.
 		"""
 
 		cmd = Mirror(session_id, dryrun, quiet, verbose, mode)
@@ -101,8 +103,12 @@ class Mirror(Command):
 			return cmd.exec_with_paths(FILETYPE.TINFOILHAT)
 
 		try:
-			# TODO put this in config somehow
-			con = psycopg2.connect("host=127.0.0.1 dbname=solda user=chris")
+			HOST=Settings.DOTENV["MIRROR_DB_HOST"]
+			PORT=Settings.DOTENV["MIRROR_DB_PORT"]
+			DBNAME=Settings.DOTENV["MIRROR_DB_DBNAME"]
+			USER=Settings.DOTENV["MIRROR_DB_USER"]
+			PASSWORD=Settings.DOTENV["MIRROR_DB_PASSWORD"]
+			con = psycopg2.connect("host=%s port=%s dbname=%s user=%s password=%s" % (HOST, PORT, DBNAME, USER, PASSWORD))
 		except psycopg2.OperationalError as ex:
 			logger.error("fatal error: cannot connect to Postgres database\n%s" % ex)
 			sys.exit(1)

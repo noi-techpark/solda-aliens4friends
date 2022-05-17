@@ -78,6 +78,32 @@ class Settings:
 	except KeyError:
 		PACKAGE_ID_EXT = "a4f"
 
+	try:
+		MIRROR_DB_HOST = DOTENV["MIRROR_DB_HOST"]
+	except KeyError:
+		MIRROR_DB_HOST = DOTENV["MIRROR_DB_HOST"] = '127.0.0.1'
+
+	try:
+		MIRROR_DB_PORT = DOTENV["MIRROR_DB_PORT"]
+	except KeyError:
+		MIRROR_DB_PORT = DOTENV["MIRROR_DB_PORT"] = '5432'
+
+	try:
+		MIRROR_DB_DBNAME = DOTENV["MIRROR_DB_DBNAME"]
+	except KeyError:
+		MIRROR_DB_DBNAME = DOTENV["MIRROR_DB_DBNAME"] = 'a4fdb'
+
+	try:
+		MIRROR_DB_USER = DOTENV["MIRROR_DB_USER"]
+	except KeyError:
+		MIRROR_DB_USER = DOTENV["MIRROR_DB_USER"] = 'a4f'
+
+	try:
+		MIRROR_DB_PASSWORD = DOTENV["MIRROR_DB_PASSWORD"]
+	except KeyError:
+		MIRROR_DB_PASSWORD = DOTENV["MIRROR_DB_PASSWORD"] = 'secret'
+
+
 	# TODO write the session_id into the .env file, or use a current-link
 	#      to the actual created or chosen session_id.json
 	try:
