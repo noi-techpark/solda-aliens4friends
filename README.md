@@ -68,6 +68,7 @@ it is a presumed friend, and we can safely invite it to our party.
       - [info](#info)
     - [Session](#session)
       - [Filter](#filter)
+    - [Mirror](#mirror)
   - [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
     - [Installation of Scancode](#installation-of-scancode)
       - [Native](#native)
@@ -1352,6 +1353,53 @@ Filters are:
 - `only-uploaded`: to select only packages that were uploaded to Fossology, that
   is, which were not already present on fossology. This filter is only useful
   after a `fossy` or `upload` invocation
+
+
+### Mirror
+
+The mirror command can be used to mirror all `.tinfoilhat.json` files to a Postgres database.
+
+To do so, make sure that the environment variables (see `.env`)
+
+```
+MIRROR_DB_HOST=127.0.0.1
+MIRROR_DB_PORT=5432
+MIRROR_DB_DBNAME=a4fdb
+MIRROR_DB_USER=a4f
+MIRROR_DB_PASSWORD=secret
+```
+
+point to a Postgres database that holds the schema definition from `infrastructure/database/tinfoilhat_mirror.sql`.
+
+The mirror command has two operation modes: in FULL mode all records from the database
+that correspond to the given session are deleted and inserted again; in DELTA mode only files
+that do not yet exist in the database are inserted. In the latter case, the key is the
+session identifier and full path name to the `.tinfoilhat.json` file.
+
+Here is a sample invocation to import all `.tinfoilhat.json` files from a session identified
+by "initial_import" in FULL mode:
+
+```sh
+aliens4friends mirror --mode FULL --session "initial_import"
+```
+
+After inserting the files for this example run (416 files, 2.1 GB) the output was:
+
+```
+aliens4friends:slug=# ALIENS4FRIENDS v0.7.0 with cache pool ~/a4fpool
+aliens4friends.commands.command:slug=MIRROR: Start with session 'initial_import'.
+aliens4friends.commands.mirror:slug=Mirror(Command) class created
+aliens4friends.commands.mirror:slug=connected to Postgres database
+aliens4friends.commands.mirror:slug=FULL mode: delete/vacuum done in 38.524 sec
+aliens4friends.commands.mirror:slug=100 files processed
+aliens4friends.commands.mirror:slug=200 files processed
+aliens4friends.commands.mirror:slug=300 files processed
+aliens4friends.commands.mirror:slug=400 files processed
+aliens4friends.commands.mirror:slug=416 files processed in 69.644 sec
+aliens4friends.commands.mirror:slug=disconnected from Postgres database
+```
+
+The command is verbose by default, use --quiet to suppress the output.
 
 ## Installation and execution with docker
 

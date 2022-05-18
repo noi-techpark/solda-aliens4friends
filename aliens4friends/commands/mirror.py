@@ -1,22 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 
-# example invocation of the mirror command (--verbose is default):
-#
-# % python3 -m aliens4friends mirror --mode FULL --session "initial_import"
-# aliens4friends:slug=# ALIENS4FRIENDS v0.7.0 with cache pool /xxx/a4fpool
-# aliens4friends.commands.command:slug=MIRROR: Start with session 'initial_import'.
-# aliens4friends.commands.mirror:slug=Mirror(Command) class created
-# aliens4friends.commands.mirror:slug=connected to Postgres database
-# aliens4friends.commands.mirror:slug=FULL mode: delete/vacuum done in 1.951 sec
-# aliens4friends.commands.mirror:slug=100 files processed
-# aliens4friends.commands.mirror:slug=200 files processed
-# aliens4friends.commands.mirror:slug=300 files processed
-# aliens4friends.commands.mirror:slug=400 files processed
-# aliens4friends.commands.mirror:slug=416 files processed in 70.524 sec
-# aliens4friends.commands.mirror:slug=disconnected from Postgres database
-# %
-
 import sys
 import time
 from builtins import object
