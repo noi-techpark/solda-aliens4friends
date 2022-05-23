@@ -69,6 +69,7 @@ it is a presumed friend, and we can safely invite it to our party.
     - [Session](#session)
       - [Filter](#filter)
     - [Mirror](#mirror)
+  - [Installation and execution with docker](#installation-and-execution-with-docker)
   - [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
     - [Installation of Scancode](#installation-of-scancode)
       - [Native](#native)
@@ -98,7 +99,7 @@ prefer to install everything on your host machine, continue reading...
 To install `aliens4friends`, just do, on a `debian|ubuntu` machine:
 
 ```bash
-sudo apt install python3-pip
+sudo apt install python3-pip libpq-dev
 
 echo "[easy_install]
 zip_ok = False" > ~/.distutils.cfg # required for flanker dependency
@@ -1344,12 +1345,12 @@ aliens4friends session --filter [FILTER_NAME]
 Filters are:
 - `score-gt=[a-number]`: to filter out all package with a score greater than `a-number`
 - `include-exclude=[json-file]`: to hardcode includes or excludes of packages per name
-    ```json
-	{
-      "include": [],
-      "exclude": []
-    }
-	```
+```json
+  {
+    "include": [],
+    "exclude": []
+  }
+```
 - `only-uploaded`: to select only packages that were uploaded to Fossology, that
   is, which were not already present on fossology. This filter is only useful
   after a `fossy` or `upload` invocation
