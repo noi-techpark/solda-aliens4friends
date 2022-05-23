@@ -42,7 +42,7 @@ class Command:
 		# Load a session if possible, or terminate otherwise
 		# Error messages are already inside load(), let the
 		# caller handle SessionError exceptions
-		if session_id:
+		if session_id != None:
 			self.session = Session(self.pool, session_id)
 			self.session.load(create=True)
 
@@ -144,7 +144,7 @@ class Command:
 			session_info = f" in session '{self.session.session_id}'" if self.session else ""
 			logger.info(
 				f"{self.__class__.__name__.upper()}:"
-				f" Nothing found for packages{session_info}."
+				f" Nothing found{session_info}."
 				f" {self._hint()}"
 			)
 

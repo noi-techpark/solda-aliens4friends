@@ -4,6 +4,7 @@
 import csv
 import logging
 import random
+import re
 from typing import Any, Dict, List, Optional
 
 from aliens4friends.commons.pool import FILETYPE, OVERWRITE, SRCTYPE, Pool
@@ -26,6 +27,8 @@ class Session:
 
 		self.pool = pool
 		self.session_model = None
+
+		session_id = Session._clean_session_id(session_id)
 
 		# Use an existing session ID, or use a predefined one and create relevant
 		# files and folders from it. This overwrites existing files...
@@ -300,3 +303,17 @@ class Session:
 		for _ in range(length):
 			ranstr += chr(random.randint(ord('a'), ord('z')))
 		return ranstr
+
+	@staticmethod
+	def _clean_session_id(session_id: str) -> str:
+		if not session_id:
+			raise SessionError("No session_id given!")
+		session_id = session_id.strip().lower()
+		pat = re.compile(r"[a-z0-9\-_\.]+")
+		if re.fullmatch(pat, session_id):
+			return session_id
+
+		raise SessionError(
+			f"Session ID '{session_id}' is invalid, only the following "
+			f"characters are allowed: 'a-z', '0-9', '-', '_', and '.'"
+		)

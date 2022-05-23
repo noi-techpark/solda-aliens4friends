@@ -288,25 +288,31 @@ class Aliens4Friends:
 			formatter_class=argparse.RawTextHelpFormatter,
 			help="Print .env configs or defaults",
 			description=dedent("""\
-				Create a .env file in the folder, where you execute the command.
+                Create a .env file in the folder, where you execute the command.
 
-				Environmental variables:
-				  - A4F_POOL        : Path to the cache pool
-				  - A4F_CACHE       : True/False, if cache should be used or overwritten (default = True)
-				  - A4F_DEBUG       : Debug level as seen inside the "logging" package (default = INFO)
-				  - A4F_SCANCODE    : wrapper/native, whether we use a natively installed scancode or
-				                      run it from our docker wrapper (default = native)
-				  - A4F_PRINTRESULT : Print results also to stdout
-				  - SPDX_TOOLS_CMD  : command to invoke java spdx tools (default =
-				                      'java -jar /usr/local/lib/spdx-tools-2.2.5-jar-with-dependencies.jar')
-				  - SPDX_DISCLAIMER : legal disclaimer to add into generated SPDX files (optional)
-				  - PACKAGE_ID_EXT  : extension to append to package IDs in harvest.json file
-				  					  (optional, arbitrary)
-				  - FOSSY_USER,
-				    FOSSY_PASSWORD,
-				    FOSSY_GROUP_ID,
-				    FOSSY_SERVER    : parameters to access fossology server
-					                  (defaults: 'fossy', 'fossy', 3, 'http://localhost/repo').
+                Environmental variables:
+                  - A4F_POOL           : Path to the cache pool
+                  - A4F_CACHE          : True/False, if cache should be used or overwritten (default = True)
+                  - A4F_DEBUG          : Debug level as seen inside the "logging" package (default = INFO)
+                  - A4F_SCANCODE       : wrapper/native, whether we use a natively installed scancode or
+                                          run it from our docker wrapper (default = native)
+                  - A4F_PRINTRESULT    : Print results also to stdout
+                  - SPDX_TOOLS_CMD     : command to invoke java spdx tools (default =
+                                         'java -jar /usr/local/lib/spdx-tools-2.2.5-jar-with-dependencies.jar')
+                  - SPDX_DISCLAIMER    : legal disclaimer to add into generated SPDX files (optional)
+                  - PACKAGE_ID_EXT     : extension to append to package IDs in harvest.json file
+                                         (optional, arbitrary)
+                  - FOSSY_USER,
+                    FOSSY_PASSWORD,
+                    FOSSY_GROUP_ID,
+                    FOSSY_SERVER       : parameters to access fossology server
+                                         (defaults: 'fossy', 'fossy', 3, 'http://localhost/repo')
+                  - MIRROR_DB_HOST,
+                    MIRROR_DB_PORT,
+                    MIRROR_DB_DBNAME,
+                    MIRROR_DB_USER,
+                    MIRROR_DB_PASSWORD : parameters to access the PostgreSQL database
+                                         (defaults: '127.0.0.1', '5432', 'a4fdb', 'a4f', 'secret')
 				""")
 		)
 
@@ -731,8 +737,6 @@ class Aliens4Friends:
 		return Mirror.execute(
 			self.args.session,
 			self.args.dryrun,
-			self.args.quiet,
-			self.args.verbose,
 			self.args.mode
 		)
 

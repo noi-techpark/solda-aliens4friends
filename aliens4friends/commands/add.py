@@ -10,7 +10,7 @@ from aliens4friends.commons.pool import FILETYPE, SRCTYPE, OVERWRITE, PoolErrorF
 from aliens4friends.models.tinfoilhat import TinfoilHatModel
 from aliens4friends.models.session import SessionPackageModel
 
-from aliens4friends.commons.utils import get_prefix_formatted, log_minimal_error
+from aliens4friends.commons.utils import get_prefix_formatted
 
 logger = logging.getLogger(__name__)
 
