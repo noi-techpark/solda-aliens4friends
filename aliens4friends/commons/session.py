@@ -134,7 +134,7 @@ class Session:
 				A mapping defined in <models.session.SessionPackageModel>
 			name (str):
 				Name of the package
-		    version (str):
+			version (str):
 				Version of the package variant (str): Variant of the package
 
 		Returns:
@@ -199,7 +199,7 @@ class Session:
 
 		Args:
 			tinfoilhat_list (List[SessionPackageModel]): Some tinfoilhat models
-		    aliensrc_list (List[SessionPackageModel]): Some aliensrc models
+			aliensrc_list (List[SessionPackageModel]): Some aliensrc models
 		"""
 
 		# Since lists are not hashable, we need a custom duplicate removal here

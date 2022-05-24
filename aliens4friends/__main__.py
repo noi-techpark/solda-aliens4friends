@@ -175,7 +175,7 @@ class Aliens4Friends:
 		)
 
 
-	def _args_defaults(self, parser: argparse.ArgumentParser, describe_files: str = "") -> None:
+	def _args_defaults(self, parser: argparse.ArgumentParser) -> None:
 		parser.add_argument(
 			"-i",
 			"--ignore-cache",
@@ -476,8 +476,7 @@ class Aliens4Friends:
 			     "outputs to create a report for the dashboard"
 		)
 		self._args_defaults(
-			self.parsers[cmd],
-			f"Various files are supported: {Harvester.SUPPORTED_FILES}"
+			self.parsers[cmd]
 		)
 		self._args_print_to_stdout(self.parsers[cmd])
 		self.parsers[cmd].add_argument(
