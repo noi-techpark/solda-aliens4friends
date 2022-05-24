@@ -34,7 +34,7 @@ from aliens4friends.commands.add import Add
 from aliens4friends.commands.comparematch import CompareMatchResults
 from aliens4friends.commands.delta import Delta
 from aliens4friends.commands.fossy import Fossy
-from aliens4friends.commands.harvest import Harvest, Harvester
+from aliens4friends.commands.harvest import Harvest
 from aliens4friends.commands.match import Match
 from aliens4friends.commands.scan import Scan
 from aliens4friends.commands.session import SessionCmd

@@ -7,7 +7,7 @@ from enum import IntEnum, Enum
 from json import dump as jsondump, load as jsonload
 from pathlib import Path
 from shutil import rmtree
-from typing import Generator, Any, Set, Union, Tuple
+from typing import Generator, Any, Union, Tuple
 from datetime import datetime
 
 from spdx.document import Document as SPDXDocument
@@ -44,6 +44,7 @@ class FILETYPE(str, Enum):
 	SCANCODE_SPDX = "scancode.spdx"
 	FOSSY = "fossy.json"
 	SESSION = "session.json"
+	SESSION_LOCK = "session.json.lock"
 	ALIENSPDX = "alien.spdx"
 	# TODO Extend when needed, use it everywhere
 
@@ -87,8 +88,11 @@ class Pool:
 			str: filename
 		"""
 
-		# Special type SESSION, name must be the session_id
-		if type == FILETYPE.SESSION:
+		# Special type SESSION or SESSION_LOCK, name must be the session_id
+		if type in [
+			FILETYPE.SESSION,
+			FILETYPE.SESSION_LOCK
+		]:
 			return f"{name}.{type}"
 
 		# Special type ALIENSPDX, name is the internal archive name, contains also the group ID
@@ -140,7 +144,10 @@ class Pool:
 		"""
 
 		# File that is located inside <PATH_SES>
-		if type == FILETYPE.SESSION:
+		if type in [
+			FILETYPE.SESSION,
+			FILETYPE.SESSION_LOCK
+		]:
 			relpath = self.relpath(Settings.PATH_SES)
 
 		# Files that are located only inside <PATH_USR>/<name>/<version>
@@ -282,7 +289,7 @@ class Pool:
 				os.rename(link, new_path)
 				logger.warn(
 					f"File {self.clnpath(link)} already exists..."
-				    f"migrating to a history based structure: New file is {self.clnpath(new_path)}."
+					f"migrating to a history based structure: New file is {self.clnpath(new_path)}."
 				)
 			os.symlink(os.path.relpath(target, dest), link)
 
@@ -482,7 +489,7 @@ class Pool:
 			return True
 		return False
 
-	def unpack(self, archive: Archive, dest_in_pool: str = "",  archive_in_archive: str = "", debug_prefix: str = "") -> str:
+	def unpack(self, archive: Archive, dest_in_pool: str = "", archive_in_archive: str = "", debug_prefix: str = "") -> str:
 		if not dest_in_pool:
 			dest_in_pool = os.path.join(os.path.dirname(archive.path), "__unpacked")
 

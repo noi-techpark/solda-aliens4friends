@@ -7,7 +7,7 @@ import random
 import re
 from typing import Any, Dict, List, Optional
 
-from aliens4friends.commons.pool import FILETYPE, OVERWRITE, SRCTYPE, Pool
+from aliens4friends.commons.pool import FILETYPE, OVERWRITE, SRCTYPE, Pool, PoolErrorFileExists
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.fossywrapper import FossyWrapper
 from aliens4friends.models.session import SessionModel, SessionPackageModel
@@ -27,8 +27,9 @@ class Session:
 
 		self.pool = pool
 		self.session_model = None
+		self.session_lock = None
 
-		session_id = Session._clean_session_id(session_id)
+		session_id = Session._clean_identifier(session_id, "session_id")
 
 		# Use an existing session ID, or use a predefined one and create relevant
 		# files and folders from it. This overwrites existing files...
@@ -47,7 +48,13 @@ class Session:
 			self.file_path = file_path
 			self.session_id = session_id
 
+
 	def write_session(self) -> None:
+		if not self.is_accessible():
+			error = f"Session '{self.session_id}' is not accessible. Locked by another pipeline."
+			logger.error(error)
+			raise SessionError(error)
+
 		self.pool._add(
 			self.session_model,
 			Settings.PATH_SES,
@@ -56,6 +63,65 @@ class Session:
 			OVERWRITE.ALWAYS
 		)
 		logger.debug(f"Session data written to '{self.file_path}'.")
+
+
+	def lock(self, session_lock: str, force_overwrite: bool = False):
+
+		if not session_lock:
+			error = f"Session '{self.session_id}' cannot be locked without a session_lock."
+			logger.error(error)
+			raise SessionError(error)
+
+		self.session_lock = Session._clean_identifier(session_lock, "session_lock")
+
+		cur_lock = self.get_lock()
+
+		if cur_lock == self.session_lock:
+			return
+
+		if cur_lock:
+			error = f"Session '{self.session_id}' already locked with lock '{cur_lock}', unlock it first."
+			logger.error(error)
+			raise SessionError(error)
+
+		self.pool._add(
+			bytes(self.session_lock, 'utf-8'),
+			Settings.PATH_SES,
+			self.pool.filename(FILETYPE.SESSION_LOCK, self.session_id),
+			SRCTYPE.TEXT,
+			OVERWRITE.ALWAYS if force_overwrite else OVERWRITE.RAISE
+		)
+		logger.debug(f"Locking session '{self.session_id}' with lock '{self.session_lock}'.")
+
+	def unlock(self, force: bool = False):
+		cur_lock = self.get_lock()
+		if not cur_lock:
+			return
+		if cur_lock == self.session_lock or force:
+			self.pool.rm(
+				self.pool.relpath_typed(
+					FILETYPE.SESSION_LOCK, self.session_id
+				)
+			)
+		else:
+			error = f"Unable to unlock session '{self.session_id}'. Lock keys do not match."
+			logger.error(error)
+			raise SessionError(error)
+
+	def get_lock(self):
+		lock_path = self.pool.relpath_typed(
+			FILETYPE.SESSION_LOCK, self.session_id
+		)
+
+		try:
+			return self.pool.get(lock_path).strip()
+		except FileNotFoundError:
+			return None
+
+	def is_accessible(self):
+		"""Is this session currently accessible, that is not locked or with a my own lock"""
+		cur_lock = self.get_lock()
+		return not cur_lock or cur_lock == self.session_lock
 
 	def create(self, write_to_disk: bool = True) -> SessionModel:
 		self.session_model = SessionModel(
@@ -305,15 +371,15 @@ class Session:
 		return ranstr
 
 	@staticmethod
-	def _clean_session_id(session_id: str) -> str:
-		if not session_id:
-			raise SessionError("No session_id given!")
-		session_id = session_id.strip().lower()
+	def _clean_identifier(identifier: str, error_hint: str = "unknown identifier") -> str:
+		if not identifier:
+			raise SessionError(f"No {error_hint} given!")
+		identifier = identifier.strip().lower()
 		pat = re.compile(r"[a-z0-9\-_\.]+")
-		if re.fullmatch(pat, session_id):
-			return session_id
+		if re.fullmatch(pat, identifier):
+			return identifier
 
 		raise SessionError(
-			f"Session ID '{session_id}' is invalid, only the following "
+			f"{error_hint} '{identifier}' is invalid, only the following "
 			f"characters are allowed: 'a-z', '0-9', '-', '_', and '.'"
 		)
