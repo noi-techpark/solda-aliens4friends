@@ -349,6 +349,18 @@ class Aliens4Friends:
 			required = False,
 			help = "Generate a csv report on the session's packages (collecting also Fossology metadata), and save it to REPORT"
 		)
+		group.add_argument(
+			"--lock",
+			action = "store_true",
+			default = False,
+			help = "Lock the selected session with a runtime specific LOCK key, ex. the pipeline ID stored inside an A4F_LOCK_KEY env-var"
+		)
+		group.add_argument(
+			"--unlock",
+			action = "store_true",
+			default = False,
+			help = "Unlock the selected session, if the A4F_LOCK_KEY env-var matches the current lock"
+		)
 		self._args_session(self.parsers[cmd], required=False)
 		self._args_glob(self.parsers[cmd])
 
@@ -626,6 +638,8 @@ class Aliens4Friends:
 			self.args.filter,
 			self.args.report,
 			self.args.new,
+			self.args.lock,
+			self.args.unlock,
 			self.args.glob_name,
    			self.args.glob_version,
 		)

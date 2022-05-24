@@ -3,6 +3,7 @@
 
 import csv
 import logging
+import os
 import random
 import re
 from typing import Any, Dict, List, Optional
@@ -27,7 +28,6 @@ class Session:
 
 		self.pool = pool
 		self.session_model = None
-		self.session_lock = None
 
 		session_id = Session._clean_identifier(session_id, "session_id")
 
@@ -65,48 +65,52 @@ class Session:
 		logger.debug(f"Session data written to '{self.file_path}'.")
 
 
-	def lock(self, session_lock: str, force_overwrite: bool = False):
+	def lock(self, force_overwrite: bool = False):
 
-		if not session_lock:
-			error = f"Session '{self.session_id}' cannot be locked without a session_lock."
-			logger.error(error)
-			raise SessionError(error)
+		lock_key = self.get_lock_key()
 
-		self.session_lock = Session._clean_identifier(session_lock, "session_lock")
+		if not lock_key:
+			raise SessionError(
+				f"Session '{self.session_id}' cannot be locked without a lock key. Set the env-var A4F_LOCK_KEY."
+			)
 
-		cur_lock = self.get_lock()
+		lock = self.get_lock()
 
-		if cur_lock == self.session_lock:
+		if lock == lock_key:
 			return
 
-		if cur_lock:
-			error = f"Session '{self.session_id}' already locked with lock '{cur_lock}', unlock it first."
-			logger.error(error)
-			raise SessionError(error)
+		if lock:
+			raise SessionError(
+				f"Session '{self.session_id}' already locked with lock '{lock}', unlock it first."
+			)
 
 		self.pool._add(
-			bytes(self.session_lock, 'utf-8'),
+			bytes(lock_key, 'utf-8'),
 			Settings.PATH_SES,
 			self.pool.filename(FILETYPE.SESSION_LOCK, self.session_id),
 			SRCTYPE.TEXT,
 			OVERWRITE.ALWAYS if force_overwrite else OVERWRITE.RAISE
 		)
-		logger.debug(f"Locking session '{self.session_id}' with lock '{self.session_lock}'.")
+		logger.info(f"Locking session '{self.session_id}' with lock '{lock_key}'.")
 
 	def unlock(self, force: bool = False):
 		cur_lock = self.get_lock()
 		if not cur_lock:
+			logger.info(f"Session '{self.session_id}' not locked. Unlocking not necessary.")
 			return
-		if cur_lock == self.session_lock or force:
+
+		if cur_lock == self.get_lock_key() or force:
 			self.pool.rm(
 				self.pool.relpath_typed(
 					FILETYPE.SESSION_LOCK, self.session_id
 				)
 			)
-		else:
-			error = f"Unable to unlock session '{self.session_id}'. Lock keys do not match."
-			logger.error(error)
-			raise SessionError(error)
+			logger.info(f"Session '{self.session_id}' unlocked.")
+			return
+
+		error = f"Unable to unlock session '{self.session_id}'. Lock keys do not match."
+		logger.error(error)
+		raise SessionError(error)
 
 	def get_lock(self):
 		lock_path = self.pool.relpath_typed(
@@ -118,10 +122,14 @@ class Session:
 		except FileNotFoundError:
 			return None
 
+	def get_lock_key(self) -> str:
+		lock_key = os.getenv("A4F_LOCK_KEY")
+		return Session._clean_identifier(lock_key, "lock_key") if lock_key else ""
+
 	def is_accessible(self):
 		"""Is this session currently accessible, that is not locked or with a my own lock"""
 		cur_lock = self.get_lock()
-		return not cur_lock or cur_lock == self.session_lock
+		return not cur_lock or cur_lock == self.get_lock_key()
 
 	def create(self, write_to_disk: bool = True) -> SessionModel:
 		self.session_model = SessionModel(
