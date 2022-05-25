@@ -180,9 +180,9 @@ class SessionCmd(Command):
 			self.session.generate_report(self.report)
 
 		if self.lock:
-			self.session.lock(self.lock)
+			self.session.lock()
 
 		if self.unlock:
-			self.session.unlock(self.unlock)
+			self.session.unlock()
 
 		return True

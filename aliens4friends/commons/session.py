@@ -8,7 +8,7 @@ import random
 import re
 from typing import Any, Dict, List, Optional
 
-from aliens4friends.commons.pool import FILETYPE, OVERWRITE, SRCTYPE, Pool, PoolErrorFileExists
+from aliens4friends.commons.pool import FILETYPE, OVERWRITE, SRCTYPE, Pool
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.fossywrapper import FossyWrapper
 from aliens4friends.models.session import SessionModel, SessionPackageModel
@@ -65,7 +65,7 @@ class Session:
 		logger.debug(f"Session data written to '{self.file_path}'.")
 
 
-	def lock(self, force_overwrite: bool = False):
+	def lock(self, force_overwrite: Optional[bool] = False):
 
 		lock_key = self.get_lock_key()
 
@@ -93,7 +93,7 @@ class Session:
 		)
 		logger.info(f"Locking session '{self.session_id}' with lock '{lock_key}'.")
 
-	def unlock(self, force: bool = False):
+	def unlock(self, force: Optional[bool] = False):
 		cur_lock = self.get_lock()
 		if not cur_lock:
 			logger.info(f"Session '{self.session_id}' not locked. Unlocking not necessary.")
@@ -359,7 +359,7 @@ class Session:
 			})
 		logger.info(f"writing report to {report_filename}")
 		with open(report_filename, "w") as csvfile:
-			w = csv.DictWriter(
+			w = csv.DictWriter( #pytype: disable=wrong-arg-types
 				csvfile,
 				fieldnames=report[0].keys(),
 				delimiter=',',
