@@ -83,7 +83,7 @@ class AlienSnapMatcher:
 				response = response.text
 				logger.debug("got response!")
 				return json.loads(response)
-			except (requests.ConnectTimeout, requests.ReadTimeout):
+			except (requests.ConnectTimeout, requests.ReadTimeout): #pytype: disable=module-attr
 				logger.debug("Timeout!")
 				attempts += 1
 				continue
@@ -259,7 +259,7 @@ class AlienSnapMatcher:
 								f" {info[0].name} from {uri}"
 							)
 						break
-					except (requests.ConnectTimeout, requests.ReadTimeout):
+					except (requests.ConnectTimeout, requests.ReadTimeout): #pytype: disable=module-attr
 						logger.debug("Timeout!")
 						attempts += 1
 				if not r:
@@ -361,7 +361,7 @@ class AlienSnapMatcher:
 							f"Error {r.status_code} in downloading {srcfile.name}"
 						)
 					break
-				except (requests.ConnectTimeout, requests.ReadTimeout):
+				except (requests.ConnectTimeout, requests.ReadTimeout):	#pytype: disable=module-attr
 					logger.debug("Timeout!")
 					attempts += 1
 			if not r:

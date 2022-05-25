@@ -68,6 +68,7 @@ it is a presumed friend, and we can safely invite it to our party.
       - [info](#info)
     - [Session](#session)
       - [Filter](#filter)
+      - [Locking](#locking)
     - [Mirror](#mirror)
   - [Installation and execution with docker](#installation-and-execution-with-docker)
   - [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
@@ -1355,6 +1356,27 @@ Filters are:
   is, which were not already present on fossology. This filter is only useful
   after a `fossy` or `upload` invocation
 
+#### Locking
+
+You can lock your session with a key. We use the environmental variable
+`A4F_LOCK_KEY` for this. This key will not be stored inside `.env`, nor in the
+pool itself, because those places might be shared among different pipeline runs,
+and could be overwritten accidentally. So we store it in an env-var, which is
+then pipeline specific. Choose some value as lock key, that is unique to the
+current pipeline run.
+
+Locking:
+```sh
+A4F_LOCK_KEY=pipeline-123-abc-unique aliens4friends session --lock
+```
+
+Unlocking:
+```sh
+A4F_LOCK_KEY=pipeline-123-abc-unique aliens4friends session --unlock
+```
+
+Both commands allow also a `--force` parameter, to overwrite or remove an
+existing lock regardless if the actual lock key is different then the given one.
 
 ### Mirror
 

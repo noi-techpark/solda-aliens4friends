@@ -1,14 +1,13 @@
 # SPDX-FileCopyrightText: NOI Techpark <info@noi.bz.it>
 # SPDX-License-Identifier: Apache-2.0
 
-import sys, os, logging, time, urllib.request, zipfile, json, re
+import os, logging, time, urllib.request, zipfile, json, re
 
 from datetime import datetime
 
 from .version import Version
 
-logging.basicConfig(format='%(name)s:slug=%(message)s', level=logging.INFO)
-logger = logging.getLogger("cvecheck")
+logger = logging.getLogger(__name__)
 
 class CveCheckerError(Exception):
 	pass

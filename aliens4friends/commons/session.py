@@ -3,6 +3,7 @@
 
 import csv
 import logging
+import os
 import random
 import re
 from typing import Any, Dict, List, Optional
@@ -28,7 +29,7 @@ class Session:
 		self.pool = pool
 		self.session_model = None
 
-		session_id = Session._clean_session_id(session_id)
+		session_id = Session._clean_identifier(session_id, "session_id")
 
 		# Use an existing session ID, or use a predefined one and create relevant
 		# files and folders from it. This overwrites existing files...
@@ -47,7 +48,13 @@ class Session:
 			self.file_path = file_path
 			self.session_id = session_id
 
+
 	def write_session(self) -> None:
+		if not self.is_accessible():
+			error = f"Session '{self.session_id}' is not accessible. Locked by another pipeline."
+			logger.error(error)
+			raise SessionError(error)
+
 		self.pool._add(
 			self.session_model,
 			Settings.PATH_SES,
@@ -56,6 +63,76 @@ class Session:
 			OVERWRITE.ALWAYS
 		)
 		logger.debug(f"Session data written to '{self.file_path}'.")
+
+
+	def lock(self, force: Optional[bool] = False):
+
+		lock_key = self.get_lock_key()
+
+		if not lock_key:
+			raise SessionError(
+				f"Session '{self.session_id}' cannot be locked without a lock key. Set the env-var A4F_LOCK_KEY."
+			)
+
+		lock = self.get_lock()
+
+		if lock == lock_key:
+			logger.info(f"Session '{self.session_id}' already locked with this lock key '{lock}'. Skipping.")
+			return
+
+		if lock and not force:
+			raise SessionError(
+				f"Session '{self.session_id}' already locked with lock key '{lock}', unlock it first or force-lock it."
+			)
+
+		self.pool._add(
+			bytes(lock_key, 'utf-8'),
+			Settings.PATH_SES,
+			self.pool.filename(FILETYPE.SESSION_LOCK, self.session_id),
+			SRCTYPE.TEXT,
+			OVERWRITE.ALWAYS if force else OVERWRITE.RAISE
+		)
+		forcetxt = f" Forced!" if force else ""
+		logger.info(f"Locking session '{self.session_id}' with lock key '{lock_key}'.{forcetxt}")
+
+	def unlock(self, force: Optional[bool] = False):
+		cur_lock = self.get_lock()
+		if not cur_lock:
+			logger.info(f"Session '{self.session_id}' not locked. Unlocking not necessary.")
+			return
+
+		if cur_lock == self.get_lock_key() or force:
+			self.pool.rm(
+				self.pool.relpath_typed(
+					FILETYPE.SESSION_LOCK, self.session_id
+				)
+			)
+			forcetxt = f" Forced!" if force else ""
+			logger.info(f"Session '{self.session_id}' unlocked.{forcetxt}")
+			return
+
+		error = f"Unable to unlock session '{self.session_id}'. Lock keys do not match."
+		logger.error(error)
+		raise SessionError(error)
+
+	def get_lock(self):
+		lock_path = self.pool.relpath_typed(
+			FILETYPE.SESSION_LOCK, self.session_id
+		)
+
+		try:
+			return self.pool.get(lock_path).strip()
+		except FileNotFoundError:
+			return None
+
+	def get_lock_key(self) -> str:
+		lock_key = os.getenv("A4F_LOCK_KEY")
+		return Session._clean_identifier(lock_key, "lock_key") if lock_key else ""
+
+	def is_accessible(self):
+		"""Is this session currently accessible, that is not locked or with our own lock"""
+		cur_lock = self.get_lock()
+		return not cur_lock or cur_lock == self.get_lock_key()
 
 	def create(self, write_to_disk: bool = True) -> SessionModel:
 		self.session_model = SessionModel(
@@ -134,7 +211,7 @@ class Session:
 				A mapping defined in <models.session.SessionPackageModel>
 			name (str):
 				Name of the package
-		    version (str):
+			version (str):
 				Version of the package variant (str): Variant of the package
 
 		Returns:
@@ -199,7 +276,7 @@ class Session:
 
 		Args:
 			tinfoilhat_list (List[SessionPackageModel]): Some tinfoilhat models
-		    aliensrc_list (List[SessionPackageModel]): Some aliensrc models
+			aliensrc_list (List[SessionPackageModel]): Some aliensrc models
 		"""
 
 		# Since lists are not hashable, we need a custom duplicate removal here
@@ -285,7 +362,7 @@ class Session:
 			})
 		logger.info(f"writing report to {report_filename}")
 		with open(report_filename, "w") as csvfile:
-			w = csv.DictWriter(
+			w = csv.DictWriter( #pytype: disable=wrong-arg-types
 				csvfile,
 				fieldnames=report[0].keys(),
 				delimiter=',',
@@ -305,15 +382,15 @@ class Session:
 		return ranstr
 
 	@staticmethod
-	def _clean_session_id(session_id: str) -> str:
-		if not session_id:
-			raise SessionError("No session_id given!")
-		session_id = session_id.strip().lower()
+	def _clean_identifier(identifier: str, error_hint: str = "unknown identifier") -> str:
+		if not identifier:
+			raise SessionError(f"No {error_hint} given!")
+		identifier = identifier.strip().lower()
 		pat = re.compile(r"[a-z0-9\-_\.]+")
-		if re.fullmatch(pat, session_id):
-			return session_id
+		if re.fullmatch(pat, identifier):
+			return identifier
 
 		raise SessionError(
-			f"Session ID '{session_id}' is invalid, only the following "
+			f"{error_hint} '{identifier}' is invalid, only the following "
 			f"characters are allowed: 'a-z', '0-9', '-', '_', and '.'"
 		)

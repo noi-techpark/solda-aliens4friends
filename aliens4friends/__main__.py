@@ -34,7 +34,7 @@ from aliens4friends.commands.add import Add
 from aliens4friends.commands.comparematch import CompareMatchResults
 from aliens4friends.commands.delta import Delta
 from aliens4friends.commands.fossy import Fossy
-from aliens4friends.commands.harvest import Harvest, Harvester
+from aliens4friends.commands.harvest import Harvest
 from aliens4friends.commands.match import Match
 from aliens4friends.commands.scan import Scan
 from aliens4friends.commands.session import SessionCmd
@@ -175,7 +175,7 @@ class Aliens4Friends:
 		)
 
 
-	def _args_defaults(self, parser: argparse.ArgumentParser, describe_files: str = "") -> None:
+	def _args_defaults(self, parser: argparse.ArgumentParser) -> None:
 		parser.add_argument(
 			"-i",
 			"--ignore-cache",
@@ -321,6 +321,12 @@ class Aliens4Friends:
 			cmd,
 			help="Initialize a session"
 		)
+		self.parsers[cmd].add_argument(
+			"--force",
+			action = "store_true",
+			default = False,
+			help = "Force a lock or unlock operation"
+		)
 		group = self.parsers[cmd].add_mutually_exclusive_group()
 		group.add_argument(
 			"-f",
@@ -348,6 +354,18 @@ class Aliens4Friends:
 			type = str,
 			required = False,
 			help = "Generate a csv report on the session's packages (collecting also Fossology metadata), and save it to REPORT"
+		)
+		group.add_argument(
+			"--lock",
+			action = "store_true",
+			default = False,
+			help = "Lock the selected session with a runtime specific LOCK key, ex. the pipeline ID stored inside an A4F_LOCK_KEY env-var"
+		)
+		group.add_argument(
+			"--unlock",
+			action = "store_true",
+			default = False,
+			help = "Unlock the selected session, if the A4F_LOCK_KEY env-var matches the current lock"
 		)
 		self._args_session(self.parsers[cmd], required=False)
 		self._args_glob(self.parsers[cmd])
@@ -476,8 +494,7 @@ class Aliens4Friends:
 			     "outputs to create a report for the dashboard"
 		)
 		self._args_defaults(
-			self.parsers[cmd],
-			f"Various files are supported: {Harvester.SUPPORTED_FILES}"
+			self.parsers[cmd]
 		)
 		self._args_print_to_stdout(self.parsers[cmd])
 		self.parsers[cmd].add_argument(
@@ -627,6 +644,9 @@ class Aliens4Friends:
 			self.args.filter,
 			self.args.report,
 			self.args.new,
+			self.args.lock,
+			self.args.unlock,
+			self.args.force,
 			self.args.glob_name,
    			self.args.glob_version,
 		)
