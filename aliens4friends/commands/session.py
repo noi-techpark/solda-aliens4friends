@@ -95,8 +95,9 @@ class SessionCmd(Command):
 		filter_str: str,
 		report: str,
 		new: bool,
-		lock: str,
-		unlock: str,
+		lock: bool,
+		unlock: bool,
+		force: bool,
 		glob_name: str,
 		glob_version: str
 	):
@@ -107,6 +108,7 @@ class SessionCmd(Command):
 		self.new = new
 		self.lock = lock
 		self.unlock = unlock
+		self.force = force
 		self.glob_name = "*" if create and not glob_name else glob_name
 		self.glob_version = "*" if create and not glob_version else glob_version
 
@@ -117,15 +119,20 @@ class SessionCmd(Command):
 		filter_str: str = "",
 		report: str = "",
 		new: bool = False,
-		lock: str = "",
-		unlock: str = "",
+		lock: bool = False,
+		unlock: bool = False,
+		force: bool = False,
 		glob_name: str = "",
 		glob_version: str = ""
 	) -> bool:
-		cmd = SessionCmd(session_id, create, filter_str, report, new, lock, unlock, glob_name, glob_version)
+		cmd = SessionCmd(session_id, create, filter_str, report, new, lock, unlock, force, glob_name, glob_version)
 		return cmd.exec()
 
 	def run(self, _) -> bool:
+
+		if self.force and not (self.lock or self.unlock):
+			logger.info(f"Ignoring --force, which is only allowed with --lock or --unlock")
+
 		if self.new:
 			if not self.session:
 				self.session = Session(self.pool)
@@ -180,9 +187,9 @@ class SessionCmd(Command):
 			self.session.generate_report(self.report)
 
 		if self.lock:
-			self.session.lock()
+			self.session.lock(self.force)
 
 		if self.unlock:
-			self.session.unlock()
+			self.session.unlock(self.force)
 
 		return True

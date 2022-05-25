@@ -321,6 +321,12 @@ class Aliens4Friends:
 			cmd,
 			help="Initialize a session"
 		)
+		self.parsers[cmd].add_argument(
+			"--force",
+			action = "store_true",
+			default = False,
+			help = "Force a lock or unlock operation"
+		)
 		group = self.parsers[cmd].add_mutually_exclusive_group()
 		group.add_argument(
 			"-f",
@@ -640,6 +646,7 @@ class Aliens4Friends:
 			self.args.new,
 			self.args.lock,
 			self.args.unlock,
+			self.args.force,
 			self.args.glob_name,
    			self.args.glob_version,
 		)

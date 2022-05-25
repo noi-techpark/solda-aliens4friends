@@ -65,7 +65,7 @@ class Session:
 		logger.debug(f"Session data written to '{self.file_path}'.")
 
 
-	def lock(self, force_overwrite: Optional[bool] = False):
+	def lock(self, force: Optional[bool] = False):
 
 		lock_key = self.get_lock_key()
 
@@ -77,11 +77,12 @@ class Session:
 		lock = self.get_lock()
 
 		if lock == lock_key:
+			logger.info(f"Session '{self.session_id}' already locked with this lock key '{lock}'. Skipping.")
 			return
 
-		if lock:
+		if lock and not force:
 			raise SessionError(
-				f"Session '{self.session_id}' already locked with lock '{lock}', unlock it first."
+				f"Session '{self.session_id}' already locked with lock key '{lock}', unlock it first or force-lock it."
 			)
 
 		self.pool._add(
@@ -89,9 +90,10 @@ class Session:
 			Settings.PATH_SES,
 			self.pool.filename(FILETYPE.SESSION_LOCK, self.session_id),
 			SRCTYPE.TEXT,
-			OVERWRITE.ALWAYS if force_overwrite else OVERWRITE.RAISE
+			OVERWRITE.ALWAYS if force else OVERWRITE.RAISE
 		)
-		logger.info(f"Locking session '{self.session_id}' with lock '{lock_key}'.")
+		forcetxt = f" Forced!" if force else ""
+		logger.info(f"Locking session '{self.session_id}' with lock key '{lock_key}'.{forcetxt}")
 
 	def unlock(self, force: Optional[bool] = False):
 		cur_lock = self.get_lock()
@@ -105,7 +107,8 @@ class Session:
 					FILETYPE.SESSION_LOCK, self.session_id
 				)
 			)
-			logger.info(f"Session '{self.session_id}' unlocked.")
+			forcetxt = f" Forced!" if force else ""
+			logger.info(f"Session '{self.session_id}' unlocked.{forcetxt}")
 			return
 
 		error = f"Unable to unlock session '{self.session_id}'. Lock keys do not match."
@@ -127,7 +130,7 @@ class Session:
 		return Session._clean_identifier(lock_key, "lock_key") if lock_key else ""
 
 	def is_accessible(self):
-		"""Is this session currently accessible, that is not locked or with a my own lock"""
+		"""Is this session currently accessible, that is not locked or with our own lock"""
 		cur_lock = self.get_lock()
 		return not cur_lock or cur_lock == self.get_lock_key()
 
