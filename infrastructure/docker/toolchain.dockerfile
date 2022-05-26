@@ -48,6 +48,7 @@ COPY setup.py README.md /code/
 COPY bin/* /code/bin/
 COPY aliens4friends /code/aliens4friends/
 RUN cd /code && \
+	pip3 install --upgrade pip && \
 	pip3 install python-dotenv && \
 	pip3 install anybadge && \
 	pip3 install . && \
