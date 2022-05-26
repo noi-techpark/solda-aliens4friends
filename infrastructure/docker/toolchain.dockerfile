@@ -12,7 +12,7 @@
 #     docker run -it toolchain spdxtool
 #     docker run -it toolchain scancode --help
 #
-FROM python:3.6
+FROM python:3.7
 
 # TODOS
 # - Use slim or alpine versions if possible
