@@ -133,8 +133,11 @@ class FossyWrapper:
 		all_uploads, _ = self.fossology.list_uploads(all_pages=True)
 		candidates = {}
 		for upload in all_uploads:
-			if (upload.uploadname.startswith(startstr)
-					and upload.folderid == folder.id):
+			if (
+				upload.uploadname.startswith(startstr)
+				and not upload.uploadname.endswith(".tar.xz")
+				and upload.folderid == folder.id
+			):
 				candidates[upload.uploaddate] = upload
 		return (
 			candidates[sorted(candidates, reverse=True)[0]]
