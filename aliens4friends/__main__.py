@@ -471,6 +471,14 @@ class Aliens4Friends:
 			required = True,
 			help = "Fossology folder where to upload Alien Packages"
 		)
+		self.parsers[cmd].add_argument(
+			"--fallback-folder",
+			type = str,
+			required = False,
+			help = ("Fallback folder where to upload Alien Packages if a"
+			" previous variant of the same package has already been uploaded"
+			" in the chosen FOLDER")
+		)
 		self._args_session(self.parsers[cmd])
 
 	def parser_fossy(self, cmd: str) -> None:
@@ -705,6 +713,7 @@ class Aliens4Friends:
 	def upload(self) -> bool:
 		return Upload.execute(
 			self.args.folder,
+			self.args.fallback_folder,
 			self.args.session,
 			self.args.description,
 			self.args.dryrun

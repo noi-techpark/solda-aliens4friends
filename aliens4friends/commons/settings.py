@@ -4,7 +4,7 @@
 from dotenv import dotenv_values, find_dotenv # pip install -U python-dotenv
 
 class Settings:
-	VERSION = "0.8.0"
+	VERSION = "0.8.1"
 	PATH_TMP = "apiresponse"
 	PATH_DEB = "debian"
 	PATH_USR = "userland"

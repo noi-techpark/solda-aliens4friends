@@ -33,6 +33,7 @@ class UploadAliens2Fossy:
 		alien_spdx_filename: str,
 		fossy: FossyWrapper,
 		fossy_folder: str,
+		fossy_fallback_folder: str,
 		description: str
 	) -> None:
 
@@ -44,6 +45,7 @@ class UploadAliens2Fossy:
 		self.pool = pool
 		self.alien_spdx_filename = pool.abspath(alien_spdx_filename)
 		self.fossy_folder = fossy_folder
+		self.fossy_fallback_folder = fossy_fallback_folder
 		self.description = description
 
 		if not alien_package.package_files:
@@ -66,6 +68,22 @@ class UploadAliens2Fossy:
 			self.uploaded_reason = "Package already present in Fossology"
 			logger.info(f"[{self.uploadname}] {self.uploaded_reason}")
 			return upload.id
+		folder = self.fossy.get_or_create_folder(self.fossy_folder)
+		if self.fossy_fallback_folder:
+			m = self.alien_package.metadata
+			prev_upload = self.fossy.get_latest_upload_starting_with(
+				f"{m['base_name']}@{m['version']}-{m['revision']}",
+				folder
+			)
+			if prev_upload:
+				logger.info(
+					f"{prev_upload.uploadname}, a previous variant of"
+					f" {self.uploadname} is already present in"
+					f" {self.fossy_folder}, using"
+					f" {self.fossy_fallback_folder} instead")
+				folder = self.fossy.get_or_create_folder(
+					self.fossy_fallback_folder
+				)
 		logger.info(f"[{self.uploadname}] Preparing package for upload")
 		tmpdir_obj = tempfile.TemporaryDirectory()
 		tmpdir = tmpdir_obj.name
@@ -76,7 +94,7 @@ class UploadAliens2Fossy:
 		tar2upload = os.path.join(tmpdir, f"{self.uploadname}.tar.xz")
 		bash(f"tar cJf {tar2upload} .", cwd=files_dir)
 		logger.info(f"[{self.uploadname}] Uploading package")
-		folder = self.fossy.get_or_create_folder(self.fossy_folder)
+
 		self.upload = self.fossy.upload(
 			tar2upload,
 			folder,
@@ -149,7 +167,7 @@ class UploadAliens2Fossy:
 		self.fossy_internal_archive_path = self.fossy_internal_archive_path.replace('/', '\\/')
 
 		if os.path.getsize(self.alien_spdx_filename) > 13000000:
-			
+
 			# FIXME: temporary workaround
 			logger.warning(
 				'Temporary workaround: SPDX file is too big, skipping reportImport for'

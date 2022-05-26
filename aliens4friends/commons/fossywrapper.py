@@ -121,6 +121,27 @@ class FossyWrapper:
 			if uploadname == upload.uploadname:
 				return upload
 
+	def get_latest_upload_starting_with(
+		self,
+		startstr: str,
+		folder: Folder
+	) -> Optional[Upload]:
+		logger.info(
+			f"Checking if another upload with name starting with"
+			f" {startstr} has already been uploaded in folder {folder.name}"
+		)
+		all_uploads, _ = self.fossology.list_uploads(all_pages=True)
+		candidates = {}
+		for upload in all_uploads:
+			if (upload.uploadname.startswith(startstr)
+					and upload.folderid == folder.id):
+				candidates[upload.uploaddate] = upload
+		return (
+			candidates[sorted(candidates, reverse=True)[0]]
+			if candidates
+			else None
+		)
+
 	def upload(self, filename: str, folder: Folder, description: str = '') -> Upload:
 		logger.info(f"[{filename}] Uploading the file to Fossology")
 		try:
@@ -128,7 +149,8 @@ class FossyWrapper:
 				folder,
 				file=filename,
 				ignore_scm=True,
-				description=description
+				description=description,
+				wait_time=120
 			)
 		except RetryError:
 			raise FossyWrapperException(
