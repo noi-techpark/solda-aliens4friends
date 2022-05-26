@@ -31,15 +31,21 @@ class Upload(Command):
 	@staticmethod
 	def execute(
 		folder: str,
+		fallback_folder: str = "",
 		session_id: str = "",
 		description: str = "uploaded by aliens4friends",
 		dryrun: bool = False
 	) -> bool:
 		cmd = Upload(session_id, dryrun)
 		return cmd.exec_with_paths(
-			FILETYPE.ALIENSRC, False, folder, description)
+			FILETYPE.ALIENSRC, False, folder, fallback_folder, description)
 
-	def run(self, path: str, folder:str, description: str) -> Union[int, bool]:
+	def run(
+			self, path: str,
+			folder: str,
+			fallback_folder: str,
+			description: str
+	) -> Union[int, bool]:
 		name, version, variant, _, _ = self.pool.packageinfo_from_path(path)
 
 		cur_pckg = f"{name}-{version}"
@@ -104,6 +110,7 @@ class Upload(Command):
 			alien_spdx_filename,
 			self.fossywrapper,
 			folder,
+			fallback_folder,
 			description
 		)
 		upload_id = a2f.get_or_do_upload() # if exists, a2f.uploaded is False
