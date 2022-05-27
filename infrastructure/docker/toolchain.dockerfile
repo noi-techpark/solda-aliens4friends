@@ -33,12 +33,13 @@ RUN wget -P /usr/local/lib \
 	chmod +x /usr/local/bin/spdxtool
 
 ### SCANCODE INSTALLATION
-# Do not use ENV SCANCODE_RELEASE=3.2.3, to leverage the docker build cache
-ENV PATH=/scancode-toolkit:$PATH
-RUN wget https://github.com/nexB/scancode-toolkit/releases/download/v3.2.3/scancode-toolkit-3.2.3.tar.bz2 && \
-	mkdir /scancode-toolkit && \
-    tar xjvf scancode-toolkit-*.tar.bz2 -C scancode-toolkit --strip-components=1 && \
-	rm -f scancode-toolkit-*.tar.bz2 && \
+COPY infrastructure/docker/scancode.patch /tmp
+RUN pip3 install setuptools wheel click==6.7 bitarray==0.8.1 \
+      pygments==2.4.2 commoncode==20.10.20 pluggy==0.13.1 \
+	  extractcode==20.10 plugincode==20.9 typecode==20.10.20 \
+	  dparse2==0.5.0.4  scancode-toolkit[full]==3.2.3 && \
+    patch -p1 < /tmp/scancode.patch && \
+    rm /tmp/scancode.patch && \
 	scancode --reindex-licenses
 
 ### Prepare Python development prerequisites
