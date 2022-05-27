@@ -1,0 +1,11 @@
+--- a/cli.py
++++ b/cli.py
+@@ -27,6 +27,9 @@
+ from __future__ import print_function
+ from __future__ import unicode_literals
+ 
++import warnings
++warnings.filterwarnings("ignore")
++
+ # Import first because this import has monkey-patching side effects
+ from scancode.pool import get_pool

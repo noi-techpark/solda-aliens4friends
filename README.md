@@ -1506,23 +1506,22 @@ then:
 pip3 install setuptools wheel click==6.7 bitarray==0.8.1 \
   pygments==2.4.2 commoncode==20.10.20 pluggy==0.13.1 \
   extractcode==20.10 plugincode==20.9 typecode==20.10.20 \
-  scancode-toolkit[full]==3.2.3
+  dparse2==0.5.0.4 scancode-toolkit[full]==3.2.3
 
 cd /usr/local/lib/python3.8/dist-packages/scancode
 
 patch -p1 << EOT
 --- a/cli.py
 +++ b/cli.py
-@@ -26,6 +26,9 @@
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-+
+@@ -27,6 +27,9 @@
+ from __future__ import print_function
+ from __future__ import unicode_literals
+
 +import warnings
 +warnings.filterwarnings("ignore")
-
-# Import first because this import has monkey-patching side effects
-from scancode.pool import get_pool
++
+ # Import first because this import has monkey-patching side effects
+ from scancode.pool import get_pool
 EOT
 
 cd -
