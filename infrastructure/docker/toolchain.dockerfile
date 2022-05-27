@@ -38,7 +38,9 @@ RUN pip3 install setuptools wheel click==6.7 bitarray==0.8.1 \
       pygments==2.4.2 commoncode==20.10.20 pluggy==0.13.1 \
 	  extractcode==20.10 plugincode==20.9 typecode==20.10.20 \
 	  dparse2==0.5.0.4  scancode-toolkit[full]==3.2.3 && \
+	cd /usr/local/lib/python3.8/site-packages/scancode && \
     patch -p1 < /tmp/scancode.patch && \
+	cd - && \
     rm /tmp/scancode.patch && \
 	scancode --reindex-licenses
 
