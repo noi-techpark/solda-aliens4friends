@@ -64,7 +64,7 @@ class UploadAliens2Fossy:
 		if self.alien_package.metadata['base_name'] == "e2fsprogs":
 			logger.info(
 				"special workaround: removing image.gz test files before"
-				"uploading e2fsprogs to Fossology (they make Fossology crazy)"
+				" uploading e2fsprogs to Fossology (they make Fossology crazy)"
 			)
 			tmpdir_obj = tempfile.TemporaryDirectory()
 			tmpdir = tmpdir_obj.name
@@ -77,6 +77,13 @@ class UploadAliens2Fossy:
 			bash("find -type f -name image.gz -delete", cwd=tmpdir)
 			bash(f"rm {archive_path}")
 			bash(f"tar {archive.tar_param}cf {archive_path} *", cwd=tmpdir)
+		elif self.alien_package.metadata['base_name'] == "bzip2":
+			logger.info(
+				"special workaround: deleting test data in"
+				" sourceware.org.git.bzip2-tests.git (hundreds thousand files"
+				" that make Fossology crazy)"
+			)
+			bash("rm sourceware.org.git.bzip2-tests.git*.tar.xz || echo", cwd=files_dir)
 
 	# The field "fossology.obj.Upload.id" is a integer
 	def get_or_do_upload(self) -> int:
