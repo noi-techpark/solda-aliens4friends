@@ -8,6 +8,7 @@ from aliens4friends.commons.pool import Pool
 from aliens4friends.commons.utils import bash
 from aliens4friends.commons.settings import Settings
 from aliens4friends.commons.package import AlienPackage
+from aliens4friends.commons.archive import Archive
 from aliens4friends.commons.fossywrapper import FossyWrapper
 from aliens4friends.commons.spdxutils import fix_spdxtv, spdxtv2rdf, parse_spdx_tv, write_spdx_tv
 from typing import List, Optional, Tuple
@@ -59,6 +60,24 @@ class UploadAliens2Fossy:
 				" any internal archive"
 			)
 
+	def special_workarounds(self, files_dir: str) -> None:
+		if self.alien_package.metadata['base_name'] == "e2fsprogs":
+			logger.info(
+				"special workaround: removing image.gz test files before"
+				"uploading e2fsprogs to Fossology (they make Fossology crazy)"
+			)
+			tmpdir_obj = tempfile.TemporaryDirectory()
+			tmpdir = tmpdir_obj.name
+			archive_path = os.path.join(
+				files_dir,
+				self.alien_package.internal_archive_name
+			)
+			archive = Archive(archive_path)
+			archive.extract_raw(tmpdir)
+			bash("find -type f -name image.gz -delete", cwd=tmpdir)
+			bash(f"rm {archive_path}")
+			bash(f"tar {archive.tar_param}cf {archive_path} *", cwd=tmpdir)
+
 	# The field "fossology.obj.Upload.id" is a integer
 	def get_or_do_upload(self) -> int:
 		upload = self.fossy.get_upload(self.uploadname)
@@ -89,6 +108,7 @@ class UploadAliens2Fossy:
 		tmpdir = tmpdir_obj.name
 		self.alien_package.archive.extract_raw(tmpdir)
 		files_dir = os.path.join(tmpdir, "files")
+		self.special_workarounds(files_dir)
 		# use tar.xz because it's more fossology-friendly (no annoying
 		# subfolders in unpacking)
 		tar2upload = os.path.join(tmpdir, f"{self.uploadname}.tar.xz")
