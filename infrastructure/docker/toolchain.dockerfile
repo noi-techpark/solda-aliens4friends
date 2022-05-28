@@ -46,6 +46,8 @@ RUN pip3 install setuptools wheel click==6.7 bitarray==0.8.1 \
 
 ### Prepare Python development prerequisites
 #
+ARG GIT_REF=HEAD
+RUN echo ${GIT_REF}
 ENV PATH=/code/bin:$PATH
 COPY setup.py README.md /code/
 COPY bin/* /code/bin/

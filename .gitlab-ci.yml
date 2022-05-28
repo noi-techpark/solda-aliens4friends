@@ -67,9 +67,8 @@ reuse:
         export GIT_COMMIT="$(git ls-remote https://git.ostc-eu.org/oss-compliance/toolchain/tinfoilhat.git  HEAD | cut -f 1)"
         docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest --build-arg GIT_REF="$GIT_COMMIT" . -f $DOCKERFILE
       else
-        docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest . -f $DOCKERFILE
+        docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest --build-arg GIT_REF="$CI_COMMIT_SHORT_SHA" . -f $DOCKERFILE
       fi
-    - docker build --cache-from $CI_REGISTRY_IMAGE:latest --tag $CI_REGISTRY_IMAGE:latest . -f $DOCKERFILE
     - docker push $CI_REGISTRY_IMAGE:latest
   needs:
     - pytype
