@@ -98,12 +98,12 @@ class UploadAliens2Fossy:
 		if self.fossy_fallback_folder:
 			m = self.alien_package.metadata
 			prev_upload = self.fossy.get_latest_upload_starting_with(
-				f"{m['base_name']}@{m['version']}-{m['revision']}",
+				f"{m['base_name']}@",
 				folder
 			)
 			if prev_upload:
 				logger.info(
-					f"{prev_upload.uploadname}, a previous variant of"
+					f"{prev_upload.uploadname}, a previous version/variant of"
 					f" {self.uploadname} is already present in"
 					f" {self.fossy_folder}, using"
 					f" {self.fossy_fallback_folder} instead")

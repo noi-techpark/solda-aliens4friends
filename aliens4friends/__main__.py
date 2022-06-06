@@ -476,8 +476,8 @@ class Aliens4Friends:
 			type = str,
 			required = False,
 			help = ("Fallback folder where to upload Alien Packages if a"
-			" previous variant of the same package has already been uploaded"
-			" in the chosen FOLDER")
+			" previous version/variant of the same package has already been"
+			"  uploaded in the chosen FOLDER")
 		)
 		self._args_session(self.parsers[cmd])
 
