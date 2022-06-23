@@ -89,6 +89,10 @@ it is a presumed friend, and we can safely invite it to our party.
   - [Known limitations](#known-limitations)
     - [Only use a single branch to trigger the pipeline](#only-use-a-single-branch-to-trigger-the-pipeline)
     - [Time consuming operations](#time-consuming-operations)
+  - [Contributor's FAQ](#contributors-faq)
+    - [I want to understand how the Debian matching works](#i-want-to-understand-how-the-debian-matching-works)
+    - [I want to add a new sub-command to Aliens4Friends](#i-want-to-add-a-new-sub-command-to-aliens4friends)
+    - [Why do we have two matching strategies?](#why-do-we-have-two-matching-strategies)
   - [References](#references)
 
 ## Requirements and Installation
@@ -1709,6 +1713,19 @@ These pipelines are not meant to run very often, because at the moment with all
 flavours, images, and machine combinations to complete a full pipeline it will
 take several hours. Hereby, the yoctobuild, Scancode and Fossology upload part
 take the most time.
+
+## Contributor's FAQ
+
+This chapter describes some aspects for contributors to this projects. Since we
+are not able to write about every part of this project in detail, we list
+contributor questions here, and respond to them in a lean manner. Happy hacking,
+folks :-)
+
+### I want to understand how the Debian matching works
+
+### I want to add a new sub-command to Aliens4Friends
+
+### Why do we have two matching strategies?
 
 ## References
 
