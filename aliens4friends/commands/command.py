@@ -21,6 +21,12 @@ class CommandError(Exception):
 		self.prefix = prefix
 
 class Processing(IntEnum):
+	"""
+	Process execution of a sub-command with paths as input:
+	- MULTI:  multiple processes
+	- LOOP:   within a single-processing loop
+	- SINGLE: just in a single call
+	"""
 	MULTI = 0
 	LOOP = 1
 	SINGLE = 2

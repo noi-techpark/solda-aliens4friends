@@ -92,6 +92,10 @@ it is a presumed friend, and we can safely invite it to our party.
   - [Contributor's FAQ](#contributors-faq)
     - [I want to understand how the Debian matching works](#i-want-to-understand-how-the-debian-matching-works)
     - [I want to add a new sub-command to Aliens4Friends](#i-want-to-add-a-new-sub-command-to-aliens4friends)
+      - [Command line definition](#command-line-definition)
+      - [Mirror Command Execution Configuration](#mirror-command-execution-configuration)
+      - [Mirror business logic](#mirror-business-logic)
+    - [Verbose and quiet output of commands](#verbose-and-quiet-output-of-commands)
   - [References](#references)
 
 ## Requirements and Installation
@@ -1735,7 +1739,9 @@ Here two APIs exist:
    Implementation: [alienmatcher.py](aliens4friends/commons/alienmatcher.py)
 
 API (1) is slow, but has all packages, and can therefore provide better matching
-results. API (2) is fast, but might lack a good matching score at the end. See Aliens4Friends' [match command](#step-5-find-a-matching-debian-source-package) for further details.
+results. API (2) is fast, but might lack a good matching score at the end. See
+Aliens4Friends' [match command](#step-5-find-a-matching-debian-source-package)
+for further details.
 
 As for the rest both matching algorithms work very similar:
 1) Retrieve a list of Debian packages
@@ -1760,6 +1766,145 @@ a single archive internally, because we want to find the primary archive first
 on our side, before we look at Debian's side for a match.
 
 ### I want to add a new sub-command to Aliens4Friends
+
+Lets start from an example command, called `mirror`, which has one special
+command line argument: `--mode`. It supports also all *default* and *session*
+arguments. The implementation details are not important here, so we skip them.
+
+#### Command line definition
+The command line definition can be found under `__main__.py`, here we have two
+types of methods, one starting with `parser_` and the other having just the name
+of the command as name. In our case, `parser_mirror` describes how to CLI looks
+like:
+
+```python
+	def parser_mirror(self, cmd: str) -> None:
+		self.parsers[cmd] = self.subparsers.add_parser(
+			cmd,
+			help="Mirror tinfoilhat JSON files to the PostgreSQL database"
+		)
+		self.parsers[cmd].add_argument(
+			"--mode",
+			choices=["FULL", "DELTA"],
+			default="FULL",
+			help="truncate table and mirror all files (FULL) or just mirror files that are not yet present (DELTA)"
+		)
+    # Add support for the default and session CLI arguments
+		self._args_defaults(self.parsers[cmd])
+		self._args_session(self.parsers[cmd])
+```
+
+...and the `mirror` method just calls the corresponding `execute` method:
+
+```python
+	def mirror(self) -> bool:
+		return Mirror.execute(
+			self.args.session,
+			self.args.dryrun,
+			self.args.mode
+		)
+```
+
+#### Mirror Command Execution Configuration
+
+We put these configuration under `commands`. In our case the file is
+`mirror.py`, inside we declare a class named `Mirror`, which inherits `Command`.
+An actual stub could look like this:
+
+```python
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: ......
+
+import logging
+
+from aliens4friends.commands.command import Command, Processing
+from aliens4friends.commons.pool import FILETYPE
+from aliens4friends.commons.settings import Settings
+
+# Logger for this file, do not write to stdout/stderr directly for logging purposes
+# The default arguments for verbose or quiet outputs are handled via log levels:
+# debug, warning and error
+logger = logging.getLogger(__name__)
+
+# Exception class for this command only
+class MirrorError(Exception):
+	pass
+
+class Mirror(Command):
+
+  # Initialize this mirror command, define the processing type, session-id
+  # and dry-run options
+	def __init__(
+    self,
+    session_id: str,
+    dryrun: bool,
+    mode: str
+    # eventually add other CLI arguments here
+  ):
+		# Processing mode should be LOOP: Describe the reason...
+		super().__init__(session_id, Processing.LOOP, dryrun)
+
+		# the command line argument --mode, no checks needed,
+    # already done by argparse
+		self.mode = mode
+
+  # Execute the whole command...
+	@staticmethod
+	def execute(
+		session_id: str = "",
+		dryrun: bool = True,
+		mode: str = "FULL"
+    # eventually add other CLI arguments here
+	) -> bool:
+		"""
+		...write your documentation here...
+		"""
+
+		cmd = Mirror(session_id, dryrun, mode)
+
+		if cmd.dryrun:
+			# dryrun: return right away, but first call exec_with_paths() to have the files logged
+      # just listen all paths or write some log output
+			return cmd.exec_with_paths(FILETYPE.TINFOILHAT)
+
+    # Do you need a setup before processing all paths? Put it here...
+
+    # call "run" for each path in a list. If your command, just needs a single call
+    # just use "cmd.exec()"
+		result = cmd.exec_with_paths(FILETYPE.TINFOILHAT)
+
+    # Do you need to finalize or cleanup after processing all pathrs? Put it here...
+
+		return result
+
+  # Called ones for each path, or just a single time if the command
+  # is a one-time shot: See cmd.exec_with_paths or cmd.exec for details.
+	def run(self, path: str) -> Union[str, bool]:
+		try:
+      # Your business logic...
+      # If simple, put it here directly, if complex or has logic that can be reused in another command,
+      # introduce another class inside "commons"...
+		except Exception as ex:
+			error = f"fatal error: description of the error: {ex}"
+			logger.error(error)
+			raise MirrorError(error)
+		return True
+
+	def hint(self) -> str:
+		# if a mirror command does not get any input, a comment is printed
+    # with this hint about what commands the user should have run first
+		return "session/add"
+```
+
+#### Mirror business logic
+
+If simple, put it into `run` directly, if complex or has logic that can be
+reused in another command, introduce another class inside "commons", and call
+that then in `run`. See comments above...
+
+### Verbose and quiet output of commands
+
+
 
 ## References
 
