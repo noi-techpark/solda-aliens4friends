@@ -92,7 +92,6 @@ it is a presumed friend, and we can safely invite it to our party.
   - [Contributor's FAQ](#contributors-faq)
     - [I want to understand how the Debian matching works](#i-want-to-understand-how-the-debian-matching-works)
     - [I want to add a new sub-command to Aliens4Friends](#i-want-to-add-a-new-sub-command-to-aliens4friends)
-    - [Why do we have two matching strategies?](#why-do-we-have-two-matching-strategies)
   - [References](#references)
 
 ## Requirements and Installation
@@ -1723,9 +1722,44 @@ folks :-)
 
 ### I want to understand how the Debian matching works
 
-### I want to add a new sub-command to Aliens4Friends
+Debian matching is a process to gather Copyright and License information by
+matching the name and version of a given software package to the Debian
+repository APIs.
 
-### Why do we have two matching strategies?
+Here two APIs exist:
+1) The [Snapshot API](https://snapshot.debian.org) has all ever used
+   packages of Debian in a single storage\
+   Implementation: [snapmatcher.py](aliens4friends/commons/snapmatcher.py)
+2) The [most-recent API](https://api.ftp-master.debian.org) has only the
+   most recent versions of each package per Debian release\
+   Implementation: [alienmatcher.py](aliens4friends/commons/alienmatcher.py)
+
+API (1) is slow, but has all packages, and can therefore provide better matching
+results. API (2) is fast, but might lack a good matching score at the end. See Aliens4Friends' [match command](#step-5-find-a-matching-debian-source-package) for further details.
+
+As for the rest both matching algorithms work very similar:
+1) Retrieve a list of Debian packages
+2) Use the [calc.py#fuzzy_package_score](aliens4friends/commons/calc.py) to get
+   a matching score of the package name alone, comparing the given package name
+   and all packages coming from point (1)
+3) Take the best candidate package, and retrieve all available version strings
+4) Calculate a distance between the actual package version and all version strings
+5) Find the nearest neighbor with the smallest distance
+6) Download the matching package from Debian and unpack it into the pool's `debian` folder
+7) Retrieve Debian package information by parsing the various Debian archive descriptions:
+   - Format `1.0`
+   - Format `3.0 (quilt)`
+   - Format `3.0 (native)`
+
+We use the Aliens4Friends pool cache for these operations, so we do not download
+or process packages that have already been addressed beforehand. The cache can
+be disabled.
+
+A known restriction at the moment is, that we only deal with packages that have
+a single archive internally, because we want to find the primary archive first
+on our side, before we look at Debian's side for a match.
+
+### I want to add a new sub-command to Aliens4Friends
 
 ## References
 
