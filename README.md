@@ -96,6 +96,7 @@ it is a presumed friend, and we can safely invite it to our party.
       - [Mirror Command Execution Configuration](#mirror-command-execution-configuration)
       - [Mirror business logic](#mirror-business-logic)
     - [Verbose and quiet output of commands](#verbose-and-quiet-output-of-commands)
+    - [String formatting](#string-formatting)
   - [References](#references)
 
 ## Requirements and Installation
@@ -1904,6 +1905,31 @@ that then in `run`. See comments above...
 
 ### Verbose and quiet output of commands
 
+The `--verbose` and `--quiet` flags just use the log levels `debug` and
+`warning` respectively. If you omit these CLI arguments, the default level
+`info` is used. So, in your code start your Python file with
+
+```python
+import logging
+
+logger = logging.getLogger(__name__)
+```
+
+Then, just the log method you need. Consider, `error` as something unrecoverable,
+which should maybe also raise an exception. `warning` something that can also be
+skipped in certain circumstances, or from which we have a recover strategy. An
+`info` log should be something to make the user understand that the process is
+still running or to gather some statistics while running, `debug` on the other
+hand should just be used when we want to find bugs. Remove eventual `debug` log
+calls, that are only useful for the very first implementation.
+
+### String formatting
+
+We opted for the f-string format, so please stick to it for most cases. If you
+need some special formatting, where `str.format()` or modulo (`%`) are better
+suited, you can still use it though.
+
+For example, `print(f"Hello, {name}")` and not `print("Hello, %s" % name)`.
 
 
 ## References
