@@ -630,13 +630,13 @@ class Aliens4Friends:
 			cmd,
 			help="Mirror tinfoilhat JSON files to the PostgreSQL database"
 		)
-		self._args_defaults(self.parsers[cmd])
 		self.parsers[cmd].add_argument(
 			"--mode",
 			choices=["FULL", "DELTA"],
 			default="FULL",
 			help="truncate table and mirror all files (FULL) or just mirror files that are not yet present (DELTA)"
 		)
+		self._args_defaults(self.parsers[cmd])
 		self._args_session(self.parsers[cmd])
 
 	def session(self) -> bool:

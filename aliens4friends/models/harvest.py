@@ -5,7 +5,7 @@
 from .base import BaseModel
 from .tinfoilhat import RecipeCveMetaData, RecipeMetaData, BBLayer
 from .common import License, Tool, SourceFile
-from typing import Any, Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Union
 
 class DebianMatchBasic(BaseModel):
 	def __init__(
