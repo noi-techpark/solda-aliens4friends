@@ -10,7 +10,6 @@ from copy import deepcopy
 from deepdiff import DeepDiff
 
 from .base import BaseModel, DictModel, ModelError
-from aliens4friends.commons.utils import sha1sum_str
 
 logger = logging.getLogger(__name__)
 
