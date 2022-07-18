@@ -367,6 +367,12 @@ class Aliens4Friends:
 			default = False,
 			help = "Unlock the selected session, if the A4F_LOCK_KEY env-var matches the current lock"
 		)
+		group.add_argument(
+			"--add-variants",
+			action = "store_true",
+			default = False,
+			help = "Add any possible variants for each package found in current session"
+		)
 		self._args_session(self.parsers[cmd], required=False)
 		self._args_glob(self.parsers[cmd])
 
@@ -657,6 +663,7 @@ class Aliens4Friends:
 			self.args.force,
 			self.args.glob_name,
    			self.args.glob_version,
+			self.args.add_variants
 		)
 
 	def add(self) -> bool:

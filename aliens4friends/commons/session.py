@@ -373,6 +373,31 @@ class Session:
 			for row in report:
 				w.writerow(row)
 
+	def add_variants(self):
+		self.load()
+		to_add = []
+		for session_pkg in self.session_model.package_list:
+			candidate_group = { FILETYPE.TINFOILHAT: {}, FILETYPE.ALIENSRC: {} }
+			for filetype, candidates in candidate_group.items():
+				for path in self.pool.absglob(
+					f"{Settings.PATH_USR}/"
+					f"{session_pkg.name}/{session_pkg.version}/"
+					f"*.{filetype}"
+				):
+					name, version, variant, _, _ = self.pool.packageinfo_from_path(path)
+					candidate_id = f"{name}@{version}-{variant}"
+					candidate_pkg = SessionPackageModel(
+						name, version, variant,
+						selected_reason = "Added variant"
+					)
+					candidates.update({candidate_id: candidate_pkg})
+			for candidate_id, candidate_pkg in candidate_group[FILETYPE.TINFOILHAT].items():
+				if candidate_id in candidate_group[FILETYPE.ALIENSRC] and candidate_pkg.variant != session_pkg.variant:
+					to_add.append(candidate_pkg)
+					logger.info(f"adding variant {candidate_id}")
+		self.session_model.package_list += to_add
+		logger.info(f"writing session")
+		self.write_session()
 
 	@staticmethod
 	def _random_string(length: int = 16):
