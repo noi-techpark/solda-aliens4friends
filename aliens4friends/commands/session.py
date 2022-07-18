@@ -99,7 +99,8 @@ class SessionCmd(Command):
 		unlock: bool,
 		force: bool,
 		glob_name: str,
-		glob_version: str
+		glob_version: str,
+		add_variants: bool
 	):
 		super().__init__(session_id, processing=Processing.SINGLE)
 		self.create = create
@@ -111,6 +112,7 @@ class SessionCmd(Command):
 		self.force = force
 		self.glob_name = "*" if create and not glob_name else glob_name
 		self.glob_version = "*" if create and not glob_version else glob_version
+		self.add_variants = add_variants
 
 	@staticmethod
 	def execute(
@@ -123,9 +125,10 @@ class SessionCmd(Command):
 		unlock: bool = False,
 		force: bool = False,
 		glob_name: str = "",
-		glob_version: str = ""
+		glob_version: str = "",
+		add_variants: bool = False
 	) -> bool:
-		cmd = SessionCmd(session_id, create, filter_str, report, new, lock, unlock, force, glob_name, glob_version)
+		cmd = SessionCmd(session_id, create, filter_str, report, new, lock, unlock, force, glob_name, glob_version, add_variants)
 		return cmd.exec()
 
 	def run(self, _) -> bool:
@@ -150,6 +153,7 @@ class SessionCmd(Command):
 			print(self.session.session_id)
 			return True
 
+		# TODO: move filter logic to ../commons/session.py
 		if self.filter_str:
 			filters = []
 			for filter in self.filter_str.split(","):
@@ -191,5 +195,8 @@ class SessionCmd(Command):
 
 		if self.unlock:
 			self.session.unlock(self.force)
+
+		if self.add_variants:
+			self.session.add_variants()
 
 		return True

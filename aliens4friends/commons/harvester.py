@@ -296,8 +296,11 @@ class Harvester:
 					continue
 				filtered_release_tags.append(release)
 			if not filtered_release_tags:
-				continue
-			source_package.tags['release'] = filtered_release_tags
+				if source_package.session_state.selected_reason != "Added variant":
+					continue
+				source_package.tags['release'] = source_package.tags['release'][:1]
+			else:
+				source_package.tags['release'] = filtered_release_tags
 			filtered_source_packages.append(source_package)
 		self.result.source_packages = filtered_source_packages
 
