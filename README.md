@@ -69,6 +69,8 @@ it is a presumed friend, and we can safely invite it to our party.
     - [Session](#session)
       - [Filter](#filter)
       - [Locking](#locking)
+      - [Adding variants](#adding-variants)
+      - [Generate a static csv report](#generate-a-static-csv-report)
     - [Mirror](#mirror)
   - [Installation and execution with docker](#installation-and-execution-with-docker)
   - [Manual installation and execution on your host machine](#manual-installation-and-execution-on-your-host-machine)
@@ -316,7 +318,8 @@ to continue a work, previously put down.
 <summary><b>See "aliens4friends session --help" output for details.</b></summary>
 
 ```
-usage: aliens4friends session [-h] [-f FILTER | -c | -n] [-s SESSION] [glob_name] [glob_version]
+usage: aliens4friends session [-h] [--force] [-f FILTER | -c | -n | --report REPORT | --lock | --unlock | --add-variants] [-s SESSION]
+                              [glob_name] [glob_version]
 
 positional arguments:
   glob_name             Wildcard pattern to filter by package names. Do not forget to quote it!
@@ -324,10 +327,16 @@ positional arguments:
 
 optional arguments:
   -h, --help            show this help message and exit
+  --force               Force a lock or unlock operation
   -f FILTER, --filter FILTER
                         Filter the package list inside the given session (use -s SESSION for that)
   -c, --create          Create and fill a session from a given ID or random string (if absent)
   -n, --new             Create a new empty session from a given ID or random string (if absent)
+  --report REPORT       Generate a csv report on the session's packages (collecting also Fossology metadata), and save it to REPORT
+  --lock                Lock the selected session with a runtime specific LOCK key, ex. the pipeline ID stored inside an A4F_LOCK_KEY env-
+                        var
+  --unlock              Unlock the selected session, if the A4F_LOCK_KEY env-var matches the current lock
+  --add-variants        Add any possible variants for each package found in current session
   -s SESSION, --session SESSION
                         Use a session to create a list of packages, otherwise all packages inside the pool are used
 ```
@@ -1348,7 +1357,7 @@ https://www.govinfo.gov/content/pkg/GOVPUB-C13-c213837a04c3bcc778ebfd420c6a3f2a/
 You can filter out packages from the current session's package list with
 
 ```sh
-aliens4friends session --filter [FILTER_NAME]
+aliens4friends session -s <session-name> --filter [FILTER_NAME]
 ```
 
 Filters are:
@@ -1375,16 +1384,36 @@ current pipeline run.
 
 Locking:
 ```sh
-A4F_LOCK_KEY=pipeline-123-abc-unique aliens4friends session --lock
+A4F_LOCK_KEY=pipeline-123-abc-unique aliens4friends session -s <session-name> --lock
 ```
 
 Unlocking:
 ```sh
-A4F_LOCK_KEY=pipeline-123-abc-unique aliens4friends session --unlock
+A4F_LOCK_KEY=pipeline-123-abc-unique aliens4friends session -s <session-name> --unlock
 ```
 
 Both commands allow also a `--force` parameter, to overwrite or remove an
 existing lock regardless if the actual lock key is different then the given one.
+
+#### Adding variants
+
+The Dashboard shows audit progress also based on existing package variants - eg. if there are multiple package variants, but only the oldest one has been reviewed in Fossology, the Dashboard regards also the newer one as reviewed in the total file count, because in variants only some single files (patches etc.) are usually changed/added, so it's just a matter of Fossology reuse agent that needs to be scheduled in order to have also the new variant fully reviewed.
+
+However, by harvesting only latest project snapshot's data, previous variants are not included, so the total audited file count provided by the Dashboard is not reliable.
+
+To fix this, we may want to add all available variants to the session before running `upload|fossy` and `harvest` commands. To this purpose, we may run:
+
+```sh
+aliens4friends session - s <session-name> --add-variants
+```
+
+#### Generate a static csv report
+
+As a convenience, one may want to quickly generate a static report concerning packages included in a specific session (including related Fossology metadata). This may be done by running:
+
+```sh
+aliens4friends session - s <session-name> --report <report-filename>
+```
 
 ### Mirror
 
