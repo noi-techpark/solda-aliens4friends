@@ -43,7 +43,7 @@ reuse:
 dockerize:
   tags: [ soldaprod, docker, minimal ]
   stage: dockerize
-  image: docker:20.
+  image: docker:20.10
   variables:
     REGISTRY_NAME: toolchain
     DOCKERFILE: infrastructure/docker/toolchain.dockerfile
